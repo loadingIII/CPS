@@ -1,0 +1,58 @@
+<view class="page" wx:if="{{detail}}">
+  <view class="card hero s-{{detail.status}}">
+    <view class="hero-top">
+      <text class="hero-status">{{STATUS_LABEL[detail.status]}}</text>
+      <text class="tag tag-danger" wx:if="{{detail.urgency === 'URGENT'}}">紧急单</text>
+    </view>
+    <view class="hero-no">{{detail.orderNo}}</view>
+  </view>
+
+  <view class="card">
+    <view class="info">
+      <text class="k">位置</text><text class="v strong">{{detail.locationText}}</text>
+      <view class="nav-btn" wx:if="{{detail.locationLat}}" bindtap="openMap">
+        <view class="icon-nav"></view><text>导航前往</text>
+      </view>
+    </view>
+    <view class="info"><text class="k">类型</text><text class="v">{{detail.faultType}}</text></view>
+    <view class="info">
+      <text class="k">报修人</text><text class="v">{{detail.reporterName}}</text>
+      <view class="call" wx:if="{{detail.reporterPhone}}" bindtap="callReporter">
+        <view class="icon-phone"></view><text>拨打</text>
+      </view>
+    </view>
+    <view class="desc">{{detail.description}}</view>
+  </view>
+
+  <view class="card" wx:if="{{detail.reportImages.length}}">
+    <view class="section-title">故障图片</view>
+    <view class="imgs">
+      <image class="img" wx:for="{{detail.reportImages}}" wx:key="*this"
+             src="{{BASE}}{{item}}" mode="aspectFill" data-urls="{{detail.reportImages}}"
+             data-idx="{{index}}" bindtap="preview" />
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{detail.evaluation}}">
+    <view class="section-title">服务评价</view>
+    <view class="stars-static">{{detail.evaluation.starsText}}</view>
+    <view class="muted" wx:if="{{detail.evaluation.content}}">{{detail.evaluation.content}}</view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">处理进度</view>
+    <timeline logs="{{logs}}" />
+  </view>
+
+  <view class="actions">
+    <block wx:if="{{detail.status === 'PENDING'}}">
+      <button class="btn-primary act" bindtap="onAccept">接 单</button>
+      <button class="btn-warn act" bindtap="onReject">拒 单</button>
+    </block>
+    <block wx:if="{{detail.status === 'PROCESSING'}}">
+      <button class="btn-primary act" bindtap="goFinish">完工上报</button>
+      <button class="btn-plain act" bindtap="onTransfer">转 单</button>
+    </block>
+  </view>
+  <view class="bottom-space"></view>
+</view>

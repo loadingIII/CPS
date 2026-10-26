@@ -1,0 +1,46 @@
+.page { padding-bottom: 60rpx; }
+
+/* 深色头部延伸出卡片，形成层次：卡片为兄弟节点，上浮量 = 头部自身的 padding-bottom */
+.head {
+  background: linear-gradient(155deg, #10424E, #0C2F3A);
+  padding: 40rpx 0 130rpx;
+  position: relative;
+  overflow: hidden;
+}
+.head-ring {
+  position: absolute;
+  width: 480rpx; height: 480rpx; border-radius: 50%;
+  border: 2rpx solid rgba(255, 255, 255, 0.07);
+  top: -160rpx; right: -140rpx;
+}
+.user-card {
+  margin: -170rpx 24rpx 0;
+  display: flex; align-items: center; gap: 26rpx;
+  position: relative;
+}
+.avatar {
+  width: 116rpx; height: 116rpx; border-radius: 30rpx;
+  background: linear-gradient(135deg, #E8A33D, #D96A3B);
+  color: #FFFFFF; font-size: 52rpx; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 12rpx 24rpx rgba(217, 106, 59, 0.3);
+}
+.name { font-size: 36rpx; font-weight: 700; letter-spacing: 2rpx; }
+
+.stat-card { display: flex; margin-top: -50rpx; position: relative; z-index: 2; }
+.stat { flex: 1; text-align: center; }
+.stat-num { font-size: 40rpx; font-weight: 700; color: #0E4A54; }
+.stat-label { font-size: 22rpx; color: #97A6AB; margin-top: 6rpx; }
+
+.field { display: flex; align-items: center; border-bottom: 1rpx solid #EEF1F1; padding: 24rpx 0; }
+.k { width: 120rpx; color: #97A6AB; font-size: 27rpx; }
+.field input { flex: 1; font-size: 28rpx; }
+.ph { color: #B8C4C7; }
+.save { margin-top: 36rpx; }
+.logout {
+  margin: 44rpx 24rpx 0;
+  height: 92rpx; line-height: 92rpx;
+  background: #FFFFFF; color: #C4503A;
+  border: 2rpx solid #F5DCD5;
+  border-radius: 18rpx; font-size: 30rpx;
+}

@@ -1,0 +1,82 @@
+<view class="page">
+  <view class="hello">
+    <view class="hello-title">{{greeting}}，{{userName}}</view>
+    <view class="hello-sub">设施故障不用跑腿，提交后进度随时可查</view>
+  </view>
+
+  <view class="card">
+    <view class="item">
+      <view class="field-label">报修位置<text class="req">*</text></view>
+      <picker mode="multiSelector" range="{{columns}}" value="{{colIdx}}"
+              bindcolumnchange="onPickColumn" bindchange="onPick">
+        <view class="picker-cell {{locationLabel ? '' : 'placeholder'}}">
+          <text>{{ locationLabel || '校区 / 片区 / 楼栋 / 房间' }}</text>
+          <view class="chevron"></view>
+        </view>
+      </picker>
+    </view>
+
+    <view class="item">
+      <view class="field-label">故障类型<text class="req">*</text></view>
+      <picker range="{{skillNames}}" bindchange="onFaultType">
+        <view class="picker-cell {{faultType ? '' : 'placeholder'}}">
+          <text>{{ faultType || '请选择故障类型' }}</text>
+          <view class="chevron"></view>
+        </view>
+      </picker>
+    </view>
+
+    <view class="item">
+      <view class="field-label">补充定位 <text class="optional">选填，方便师傅精准上门</text></view>
+      <view class="picker-cell {{mapPick ? '' : 'placeholder'}}" bindtap="chooseMapPoint">
+        <text class="pick-text">{{ mapPick ? mapPick.name : '在地图上选点' }}</text>
+        <text class="map-clear" wx:if="{{mapPick}}" catchtap="clearMapPoint">清除</text>
+        <view class="chevron" wx:else></view>
+      </view>
+      <view class="pick-addr" wx:if="{{mapPick && mapPick.address}}">{{mapPick.address}}</view>
+    </view>
+
+    <view class="item">
+      <view class="field-label">紧急程度</view>
+      <view class="urgency">
+        <view class="u-card {{urgency === 'NORMAL' ? 'u-on' : ''}}" data-v="NORMAL" bindtap="setUrgency">
+          <view class="u-dot u-dot-normal"></view>
+          <view class="u-name">普通</view>
+          <view class="u-desc">常规排队处理</view>
+        </view>
+        <view class="u-card {{urgency === 'URGENT' ? 'u-on-urgent' : ''}}" data-v="URGENT" bindtap="setUrgency">
+          <view class="u-dot u-dot-urgent"></view>
+          <view class="u-name u-name-urgent">紧急</view>
+          <view class="u-desc">漏水断电等，优先调度</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="item">
+      <view class="field-label">故障描述<text class="req">*</text>
+        <text class="count">{{desc.length}}/1000</text>
+      </view>
+      <textarea class="desc" placeholder="请描述故障情况（5 字以上），例如：宿舍空调不制冷，出风为常温"
+                placeholder-class="ph" maxlength="1000" value="{{desc}}" bindinput="onDesc" />
+    </view>
+
+    <view class="item">
+      <view class="field-label">现场图片 <text class="optional">最多 3 张，建议上传</text></view>
+      <view class="imgs">
+        <view class="img-box" wx:for="{{images}}" wx:key="*this">
+          <image class="img" src="{{BASE}}{{item}}" mode="aspectFill" data-idx="{{index}}" bindtap="previewImage" />
+          <view class="del" data-idx="{{index}}" catchtap="deleteImage">×</view>
+        </view>
+        <view class="img-add" wx:if="{{images.length < 3}}" bindtap="chooseImage">
+          <view class="icon-camera"></view>
+          <view class="add-text">拍照 / 相册</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="footer">
+    <button class="btn-primary submit" loading="{{submitting}}" bindtap="onSubmit">提交报修</button>
+  </view>
+  <view class="bottom-space"></view>
+</view>

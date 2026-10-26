@@ -1,0 +1,28 @@
+<scroll-view class="tabs" scroll-x>
+  <view class="tab {{status === item.value ? 'on' : ''}}" wx:for="{{tabs}}" wx:key="value"
+        data-value="{{item.value}}" bindtap="onTab">{{item.label}}</view>
+</scroll-view>
+
+<view class="list">
+  <view class="card order" wx:for="{{list}}" wx:key="id" data-id="{{item.id}}" bindtap="goDetail">
+    <view class="spine {{item.urgency === 'URGENT' ? 'spine-urgent' : ''}}"></view>
+    <view class="body">
+      <view class="row1">
+        <text class="orderNo">{{item.orderNo}}</text>
+        <text class="tag {{STATUS_TAG[item.status]}}">{{STATUS_LABEL[item.status]}}</text>
+      </view>
+      <view class="loc">{{item.locationText}}</view>
+      <view class="row2">
+        <text class="chip">{{item.faultType}}</text>
+        <text class="chip chip-urgent" wx:if="{{item.urgency === 'URGENT'}}">紧急</text>
+        <text class="time">{{item.submittedAt}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{!list.length}}">
+    <view class="empty-icon"></view>
+    <view>暂无工单，去「我要报修」提交一张</view>
+  </view>
+</view>
+<view class="bottom-space"></view>

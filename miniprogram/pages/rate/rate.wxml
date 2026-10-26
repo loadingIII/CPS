@@ -1,0 +1,15 @@
+<view class="page">
+  <view class="card">
+    <view class="title">这次维修服务您满意吗</view>
+    <view class="stars">
+      <text class="star {{rating >= n ? 'on' : ''}}" wx:for="{{[1,2,3,4,5]}}" wx:key="*this"
+            data-n="{{item}}" bindtap="setRating">★</text>
+    </view>
+    <view class="hint">{{hints[rating - 1] || '点击星星评分'}}</view>
+    <textarea class="desc" maxlength="500" value="{{content}}" bindinput="onContent"
+              placeholder-class="ph" placeholder="说点什么吧（选填），例如：师傅很快修好了" />
+  </view>
+  <view class="footer">
+    <button class="btn-primary submit" bindtap="onSubmit">提交评价</button>
+  </view>
+</view>

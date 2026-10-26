@@ -1,0 +1,13 @@
+.page { padding-bottom: calc(60rpx + env(safe-area-inset-bottom)); }
+.field-label { font-size: 27rpx; font-weight: 600; margin-bottom: 16rpx; display: flex; align-items: center; }
+.optional { font-weight: 400; color: #97A6AB; font-size: 22rpx; margin-left: 12rpx; }
+.desc {
+  width: 100%; box-sizing: border-box;
+  background: #F6F8F7; border-radius: 14rpx;
+  padding: 22rpx; min-height: 220rpx;
+  font-size: 28rpx; line-height: 1.65;
+}
+.ph { color: #B8C4C7; }
+.img { width: 100%; height: 100%; border-radius: 16rpx; }
+.footer { padding: 10rpx 24rpx; }
+.submit { width: 100%; }

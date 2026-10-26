@@ -1,0 +1,46 @@
+.page { padding-bottom: 40rpx; }
+
+.hello { padding: 26rpx 32rpx 6rpx; }
+.hello-title { font-size: 36rpx; font-weight: 700; letter-spacing: 2rpx; }
+.hello-sub { font-size: 24rpx; color: #97A6AB; margin-top: 8rpx; }
+.item { margin-bottom: 34rpx; }
+.item:last-child { margin-bottom: 8rpx; }
+.count { font-weight: 400; color: #B8C4C7; font-size: 22rpx; margin-left: auto; }
+.optional { font-weight: 400; color: #97A6AB; font-size: 22rpx; margin-left: 12rpx; }
+.pick-text { flex: 1; }
+.map-clear {
+  color: #C4503A; font-size: 24rpx; font-weight: 600;
+  padding: 8rpx 0 8rpx 20rpx;
+}
+.pick-addr {
+  margin-top: 10rpx; font-size: 22rpx; color: #97A6AB; line-height: 1.5;
+}
+
+.urgency { display: flex; gap: 16rpx; }
+.u-card {
+  flex: 1;
+  background: #F6F8F7;
+  border: 2rpx solid transparent;
+  border-radius: 16rpx;
+  padding: 22rpx 24rpx;
+  transition: all 0.2s ease;
+}
+.u-card.u-on { background: #E7F0F0; border-color: #0E4A54; }
+.u-card.u-on-urgent { background: #FBEFE8; border-color: #D96A3B; }
+.u-dot { width: 14rpx; height: 14rpx; border-radius: 50%; margin-bottom: 14rpx; }
+.u-dot-normal { background: #0E4A54; }
+.u-dot-urgent { background: #D96A3B; }
+.u-name { font-size: 28rpx; font-weight: 700; }
+.u-name-urgent { color: #C4552F; }
+.u-desc { font-size: 21rpx; color: #97A6AB; margin-top: 6rpx; }
+
+.desc {
+  width: 100%; box-sizing: border-box;
+  background: #F6F8F7; border-radius: 14rpx;
+  padding: 22rpx; min-height: 210rpx;
+  font-size: 28rpx; line-height: 1.65;
+}
+.ph { color: #B8C4C7; }
+
+.footer { padding: 10rpx 24rpx; }
+.submit { width: 100%; }

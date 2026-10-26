@@ -1,0 +1,39 @@
+<view class="page">
+  <map id="orderMap" class="map"
+       latitude="{{center.lat}}" longitude="{{center.lng}}" scale="15"
+       markers="{{markers}}" show-location
+       bindmarkertap="onMarkerTap" bindregionchange="onRegionChange">
+  </map>
+
+  <view class="legend">
+    <view class="legend-item"><view class="dot dot-mine"></view>已接的单</view>
+    <view class="legend-item"><view class="dot dot-grab"></view>可接的单</view>
+    <view class="legend-count">共 {{orders.length}} 个工单</view>
+  </view>
+
+  <scroll-view class="olist" scroll-y>
+    <view class="card order" wx:for="{{orders}}" wx:key="id" data-id="{{item.id}}" bindtap="goDetail">
+      <view class="spine {{item.kind === 'GRAB' ? 'spine-grab' : 'spine-mine'}}"></view>
+      <view class="body">
+        <view class="row1">
+          <text class="orderNo">{{item.orderNo}}</text>
+          <text class="tag tag-danger" wx:if="{{item.urgency === 'URGENT'}}">紧急</text>
+        </view>
+        <view class="loc">{{item.mapName || item.locationText}}</view>
+        <view class="row2">
+          <text class="chip">{{item.faultType}}</text>
+          <text class="chip">{{item.status}}</text>
+          <text class="tag {{item.kind === 'GRAB' ? 'tag-warning' : 'tag-primary'}}">
+            {{item.kind === 'GRAB' ? '可抢单' : '我的工单'}}
+          </text>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty" wx:if="{{!orders.length}}">
+      <view class="empty-icon"></view>
+      <view>地图上还没有工单，去抢单大厅看看</view>
+    </view>
+    <view class="bottom-space"></view>
+  </scroll-view>
+</view>

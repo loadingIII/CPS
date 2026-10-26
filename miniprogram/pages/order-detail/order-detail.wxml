@@ -1,0 +1,71 @@
+<view class="page" wx:if="{{detail}}">
+  <view class="card hero s-{{detail.status}}">
+    <view class="hero-top">
+      <text class="hero-status">{{STATUS_LABEL[detail.status]}}</text>
+      <text class="tag tag-danger" wx:if="{{detail.urgency === 'URGENT'}}">紧急单</text>
+    </view>
+    <view class="hero-no">{{detail.orderNo}}</view>
+  </view>
+
+  <view class="card">
+    <view class="info">
+      <text class="k">位置</text><text class="v strong">{{detail.locationText}}</text>
+      <view class="nav-btn" wx:if="{{detail.locationLat}}" bindtap="openMap">
+        <view class="icon-nav"></view><text>查看地图</text>
+      </view>
+    </view>
+    <view class="info"><text class="k">类型</text><text class="v">{{detail.faultType}}</text></view>
+    <view class="info"><text class="k">提交时间</text><text class="v">{{detail.submittedAt}}</text></view>
+    <view class="info" wx:if="{{detail.workerName}}">
+      <text class="k">维修工</text>
+      <text class="v">{{detail.workerName}}</text>
+      <view class="call" wx:if="{{detail.workerPhone}}" bindtap="callWorker">
+        <view class="icon-phone"></view><text>拨打</text>
+      </view>
+    </view>
+    <view class="desc">{{detail.description}}</view>
+  </view>
+
+  <view class="card" wx:if="{{detail.reportImages.length}}">
+    <view class="section-title">报修图片</view>
+    <view class="imgs">
+      <image class="img" wx:for="{{detail.reportImages}}" wx:key="*this"
+             src="{{BASE}}{{item}}" mode="aspectFill" data-urls="{{detail.reportImages}}"
+             data-idx="{{index}}" bindtap="preview" />
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{detail.finishImages.length}}">
+    <view class="section-title">完工图片</view>
+    <view class="imgs">
+      <image class="img" wx:for="{{detail.finishImages}}" wx:key="*this"
+             src="{{BASE}}{{item}}" mode="aspectFill" data-urls="{{detail.finishImages}}"
+             data-idx="{{index}}" bindtap="preview" />
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{detail.evaluation}}">
+    <view class="section-title">我的评价</view>
+    <view class="stars-static">{{detail.evaluation.starsText}}</view>
+    <view class="muted" wx:if="{{detail.evaluation.content}}">{{detail.evaluation.content}}</view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">处理进度</view>
+    <timeline logs="{{logs}}" />
+  </view>
+
+  <view class="actions">
+    <block wx:if="{{detail.status === 'PENDING_AUDIT' || (detail.status === 'PENDING' && !detail.workerId)}}">
+      <button class="btn-warn act" bindtap="onCancel">取消报修</button>
+    </block>
+    <block wx:if="{{detail.status === 'REJECTED'}}">
+      <button class="btn-primary act" bindtap="goResubmit">补充重报</button>
+      <button class="btn-plain act" bindtap="onAbandon">放弃</button>
+    </block>
+    <block wx:if="{{detail.status === 'COMPLETED'}}">
+      <button class="btn-primary act" bindtap="goRate">去评价</button>
+    </block>
+  </view>
+  <view class="bottom-space"></view>
+</view>

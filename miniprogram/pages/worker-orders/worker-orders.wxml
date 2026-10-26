@@ -1,0 +1,61 @@
+<view class="page">
+  <!-- 绩效头卡：评分 / 负载 / 待接在办 -->
+  <view class="card header-card" wx:if="{{header}}">
+    <view class="h-left">
+      <view class="h-name">{{header.name}} <text class="h-role">维修师傅</text></view>
+      <view class="h-sub">综合评分 {{header.score}} · 负载 {{header.load}}/{{header.limit}}</view>
+      <view class="h-skills">
+        <text class="chip" wx:for="{{header.skills}}" wx:key="*this">{{item}}</text>
+      </view>
+    </view>
+    <view class="h-stats">
+      <view class="h-stat">
+        <view class="h-num">{{header.pending}}</view>
+        <view class="h-label">待接</view>
+      </view>
+      <view class="h-divider"></view>
+      <view class="h-stat">
+        <view class="h-num">{{header.processing}}</view>
+        <view class="h-label">在办</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="segs">
+    <view class="seg {{status === 'PENDING' ? 'on' : ''}}" data-v="PENDING" bindtap="onTab">待接单</view>
+    <view class="seg {{status === 'PROCESSING' ? 'on' : ''}}" data-v="PROCESSING" bindtap="onTab">在办</view>
+    <view class="seg {{status === 'COMPLETED' ? 'on' : ''}}" data-v="COMPLETED" bindtap="onTab">已完成</view>
+    <view class="seg {{status === 'GRAB' ? 'on' : ''}}" data-v="GRAB" bindtap="onTab">抢单大厅</view>
+  </view>
+
+  <view class="grab-tip" wx:if="{{status === 'GRAB'}}">
+    以下为审核通过、尚未派单的工单，且与你的技能和服务范围匹配，先到先得
+  </view>
+
+  <view class="list">
+    <view class="card order" wx:for="{{list}}" wx:key="id" data-id="{{item.id}}" bindtap="goDetail">
+      <view class="spine {{item.urgency === 'URGENT' && status !== 'COMPLETED' ? 'spine-urgent' : ''}}"></view>
+      <view class="body">
+        <view class="row1">
+          <text class="orderNo">{{item.orderNo}}</text>
+          <text class="tag tag-danger" wx:if="{{item.urgency === 'URGENT'}}">紧急</text>
+        </view>
+        <view class="loc">{{item.locationText}}</view>
+        <view class="row2">
+          <text class="chip">{{item.faultType}}</text>
+          <text class="time">{{item.submittedAt}}</text>
+        </view>
+        <view class="desc">{{item.description}}</view>
+        <view class="grab-btn" wx:if="{{status === 'GRAB'}}" data-id="{{item.id}}" catchtap="onGrab">
+          立即抢单
+        </view>
+      </view>
+    </view>
+
+    <view class="empty" wx:if="{{!list.length}}">
+      <view class="empty-icon"></view>
+      <view>{{status === 'GRAB' ? '暂无可抢的工单，稍后再来看看' : (status === 'PENDING' ? '暂无待接工单，下拉刷新试试' : '暂无工单')}}</view>
+    </view>
+  </view>
+  <view class="bottom-space"></view>
+</view>

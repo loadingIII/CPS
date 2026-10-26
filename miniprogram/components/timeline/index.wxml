@@ -1,0 +1,13 @@
+<view class="tl">
+  <view class="item" wx:for="{{logs}}" wx:key="index">
+    <view class="left">
+      <view class="dot {{index === logs.length - 1 ? 'dot-active' : ''}}"></view>
+      <view class="line" wx:if="{{index < logs.length - 1}}"></view>
+    </view>
+    <view class="right">
+      <view class="action">{{item.action}}</view>
+      <view class="op">{{item.operatorName || '系统'}} · {{item.createdAt}}</view>
+      <view class="remark" wx:if="{{item.remark}}">{{item.remark}}</view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,49 @@
+.tabs {
+  white-space: nowrap;
+  background: #F3F5F4;
+  padding: 18rpx 20rpx 6rpx;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.tab {
+  display: inline-block;
+  padding: 12rpx 28rpx;
+  margin: 0 8rpx 12rpx 0;
+  border-radius: 999rpx;
+  font-size: 25rpx;
+  color: #5C6E74;
+  background: #FFFFFF;
+  border: 2rpx solid #E8EDEC;
+}
+.tab.on {
+  background: #0E4A54;
+  border-color: #0E4A54;
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+.order {
+  display: flex;
+  padding: 0;
+  overflow: hidden;
+}
+.spine { width: 8rpx; background: #DCE4E3; flex-shrink: 0; }
+.spine-urgent { background: #D96A3B; }
+.body { flex: 1; padding: 24rpx 26rpx; }
+
+.row1 { display: flex; justify-content: space-between; align-items: center; }
+.orderNo {
+  font-size: 25rpx; font-weight: 600; color: #5C6E74;
+  letter-spacing: 1rpx;
+}
+.loc { margin: 16rpx 0 14rpx; font-size: 30rpx; font-weight: 600; }
+.row2 { display: flex; align-items: center; }
+.chip {
+  font-size: 21rpx; color: #5C6E74;
+  background: #F3F5F4;
+  padding: 6rpx 16rpx; border-radius: 8rpx;
+  margin-right: 10rpx;
+}
+.chip-urgent { color: #C4552F; background: #FBEFE8; }
+.time { margin-left: auto; color: #B8C4C7; font-size: 21rpx; }

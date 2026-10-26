@@ -1,0 +1,26 @@
+<view class="wrap">
+  <view class="ring ring-a"></view>
+  <view class="ring ring-b"></view>
+
+  <view class="brand">
+    <view class="logo"><view class="logo-icon"></view></view>
+    <view class="title">校园报修</view>
+    <view class="subtitle">报修工单全流程管理平台</view>
+  </view>
+
+  <view class="card form">
+    <view class="welcome">账号登录</view>
+    <view class="field">
+      <text class="label">学工号</text>
+      <input class="input" placeholder="请输入学工号 / 工号" placeholder-class="ph"
+             value="{{jobNo}}" bindinput="onJobNo" />
+    </view>
+    <view class="field">
+      <text class="label">密码</text>
+      <input class="input" password placeholder="请输入密码" placeholder-class="ph"
+             value="{{password}}" bindinput="onPassword" />
+    </view>
+    <button class="btn-primary login-btn" loading="{{loading}}" bindtap="onLogin">登 录</button>
+    <view class="tip">演示账号 student01 / worker01，密码 123456</view>
+  </view>
+</view>

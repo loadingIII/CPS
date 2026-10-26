@@ -1,0 +1,43 @@
+{
+  "pages": [
+    "pages/login/login",
+    "pages/report/report",
+    "pages/my-orders/my-orders",
+    "pages/worker-orders/worker-orders",
+    "pages/worker-map/worker-map",
+    "pages/profile/profile",
+    "pages/order-detail/order-detail",
+    "pages/resubmit/resubmit",
+    "pages/rate/rate",
+    "pages/worker-detail/worker-detail",
+    "pages/worker-finish/worker-finish"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#0C2F3A",
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "校园报修",
+    "backgroundColor": "#F3F5F4",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#909399",
+    "selectedColor": "#2c5364",
+    "backgroundColor": "#ffffff",
+    "list": [
+      { "pagePath": "pages/report/report", "text": "我要报修" },
+      { "pagePath": "pages/my-orders/my-orders", "text": "我的报修" },
+      { "pagePath": "pages/worker-orders/worker-orders", "text": "维修工单" },
+      { "pagePath": "pages/worker-map/worker-map", "text": "地图" },
+      { "pagePath": "pages/profile/profile", "text": "我的" }
+    ]
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于报修时在地图上选点定位，以及工单地图展示你的当前位置"
+    }
+  },
+  "requiredPrivateInfos": ["chooseLocation"],
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

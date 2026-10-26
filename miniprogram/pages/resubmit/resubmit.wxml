@@ -1,0 +1,25 @@
+<view class="page">
+  <view class="card">
+    <view class="reason" wx:if="{{rejectReason}}">
+      <view class="reason-label">驳回理由</view>
+      <view class="reason-text">{{rejectReason}}</view>
+    </view>
+    <view class="field-label">补充后的故障描述 <text class="optional">5-1000 字</text></view>
+    <textarea class="desc" maxlength="1000" value="{{description}}" bindinput="onDesc"
+              placeholder-class="ph" placeholder="请补充更详细的故障说明" />
+    <view class="field-label" style="margin-top: 30rpx">重新上传图片 <text class="optional">1-3 张，必传</text></view>
+    <view class="imgs">
+      <view class="img-box" wx:for="{{images}}" wx:key="*this">
+        <image class="img" src="{{BASE}}{{item}}" mode="aspectFill" data-idx="{{index}}" bindtap="noop" />
+        <view class="del" data-idx="{{index}}" catchtap="deleteImage">×</view>
+      </view>
+      <view class="img-add" wx:if="{{images.length < 3}}" bindtap="chooseImage">
+        <view class="icon-camera"></view>
+        <view class="add-text">拍照 / 相册</view>
+      </view>
+    </view>
+  </view>
+  <view class="footer">
+    <button class="btn-primary submit" bindtap="onSubmit">重新提交审核</button>
+  </view>
+</view>

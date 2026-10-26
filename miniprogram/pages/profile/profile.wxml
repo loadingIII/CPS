@@ -1,0 +1,39 @@
+<view class="page">
+  <view class="head">
+    <view class="head-ring"></view>
+  </view>
+  <view class="card user-card">
+    <view class="avatar">{{avatarText}}</view>
+    <view class="info">
+      <view class="name">{{user.name}}</view>
+      <view class="muted">{{user.jobNo}} · {{roleLabel}}</view>
+    </view>
+  </view>
+
+  <view class="card stat-card" wx:if="{{stats.length}}">
+    <view class="stat" wx:for="{{stats}}" wx:key="label">
+      <view class="stat-num">{{item.value}}</view>
+      <view class="stat-label">{{item.label}}</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">个人信息</view>
+    <view class="field">
+      <text class="k">电话</text>
+      <input value="{{phone}}" bindinput="onPhone" placeholder="请输入手机号" placeholder-class="ph" />
+    </view>
+    <view class="field" wx:if="{{user.role === 'REPORTER'}}">
+      <text class="k">住址</text>
+      <input value="{{address}}" bindinput="onAddress" placeholder="宿舍楼栋 · 房间" placeholder-class="ph" />
+    </view>
+    <view class="field" wx:if="{{user.role !== 'REPORTER'}}">
+      <text class="k">部门</text>
+      <input value="{{department}}" bindinput="onDepartment" placeholder-class="ph" />
+    </view>
+    <button class="btn-primary save" bindtap="saveProfile">保存资料</button>
+  </view>
+
+  <button class="logout" bindtap="onLogout">退出登录</button>
+  <view class="bottom-space"></view>
+</view>

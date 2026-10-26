@@ -1,0 +1,40 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: campus-repair
+  datasource:
+    url: jdbc:mysql://localhost:3306/campus_repair?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 123321
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 20MB
+  jackson:
+    time-zone: Asia/Shanghai
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+
+app:
+  upload-dir: ./uploads
+
+jwt:
+  # HS256 签名密钥（长度 ≥ 256bit）；课程设计演示用，生产环境应外部注入
+  secret: CampusRepairSystemJwtSigningSecretKey0123456789ABCDEF
+  expire-hours: 168
+
+knife4j:
+  enable: true
+
+logging:
+  level:
+    com.campus.repair: info
