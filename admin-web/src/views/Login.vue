@@ -51,11 +51,16 @@ async function onLogin() {
 
 <style scoped>
 .login-bg {
-  height: 100vh; display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, #1d2b36 0%, #2c5364 100%);
+  min-height: 100dvh; display: flex; align-items: center; justify-content: center;
+  padding: 24px 16px;
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(rgba(15, 123, 126, .045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 123, 126, .045) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
-.login-card { width: 380px; max-width: calc(100vw - 32px); padding: 12px 8px; }
-.title { text-align: center; margin: 8px 0 4px; color: #1d2b36; }
-.subtitle { text-align: center; color: #909399; margin: 0 0 20px; font-size: 13px; }
-.tip { color: #c0c4cc; font-size: 12px; text-align: center; margin-top: 14px; }
+.login-card { width: 400px; max-width: calc(100vw - 32px); padding: 12px 8px; }
+.title { text-align: center; margin: 8px 0 4px; color: var(--ink); font-family: "Noto Serif CJK SC", "Songti SC", SimSun, serif; font-weight: 900; letter-spacing: .04em; }
+.subtitle { text-align: center; color: var(--teal); margin: 0 0 20px; font-size: 13px; letter-spacing: .16em; }
+.tip { color: var(--muted); font-size: 12px; text-align: center; margin-top: 14px; line-height: 1.6; }
 </style>

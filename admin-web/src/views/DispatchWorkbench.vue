@@ -105,19 +105,19 @@
                     <el-tag v-for="s in w.skills" :key="s" size="small" style="margin-right: 4px">{{ s }}</el-tag>
                     <span v-if="!w.skills.length" class="muted">无</span>
                   </div>
-                  <div class="row">范围：<span class="muted">{{ w.scopes.join('、') || '未配置' }}</span></div>
+                  <div class="row">校区：<span class="muted">{{ (w.campuses || []).join('、') || '未配置' }}</span></div>
                   <div class="row">
                     负载：
                     <el-progress style="flex: 1"
                                  :percentage="Math.min(100, Math.round((w.currentLoad / (w.loadLimit || 5)) * 100))"
-                                 :color="w.currentLoad >= w.loadLimit ? '#f56c6c' : '#67c23a'"
+                                 :color="w.currentLoad >= w.loadLimit ? 'var(--el-color-danger)' : 'var(--el-color-success)'"
                                  :format="() => `${w.currentLoad}/${w.loadLimit}`" />
                   </div>
                   <div class="row">评分：<b>{{ w.score }}</b>
                     <span v-if="selected" class="muted" style="margin-left: 8px">{{ w.onDuty ? '在岗' : '离岗' }}</span>
                   </div>
                   <div v-if="selected && !w.eligible" class="reasons">
-                    <div v-for="r in w.failReasons" :key="r" class="reason">⚠ {{ r }}</div>
+                    <div v-for="r in w.failReasons" :key="r" class="reason">注意：{{ r }}</div>
                   </div>
                   <el-button type="primary" style="width: 100%"
                              :disabled="!selected || !w.eligible" @click="assign(w)">
@@ -168,7 +168,7 @@ async function load() {
   total.value = d.total
 }
 
-/** 全部维修工概况（/workers 的 scopes 带类型后缀，去掉后与派单看板展示一致） */
+/** 全部维修工概况（负责校区来自 /workers 与 /eligible-workers，字段一致） */
 async function loadAllWorkers() {
   const d = await api.get('/workers', { params: { page: 1, pageSize: 200 } })
   allWorkers.value = (d.list || [])
@@ -176,7 +176,7 @@ async function loadAllWorkers() {
       workerId: w.id,
       name: w.name,
       skills: w.skills || [],
-      scopes: (w.scopes || []).map(s => s.replace(/\([A-Z_]+\)$/, '')),
+      campuses: w.campuses || [],
       currentLoad: w.currentLoad ?? 0,
       loadLimit: w.loadLimit ?? 5,
       onDuty: !!w.onDuty,
@@ -263,30 +263,30 @@ onUnmounted(() => {
 .order-cell { display: flex; flex-direction: column; line-height: 1.35; min-width: 0; }
 .order-no { font-size: 13px; }
 .order-loc {
-  font-size: 12px; color: #909399;
+  font-size: 12px; color: var(--muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
 /* 右栏：工单上下文 / 提示条固定，卡片区独立滚动 */
-.ctx { background: #f5f7fa; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; flex-shrink: 0; }
+.ctx { background: var(--paper); border: 1px dashed var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; flex-shrink: 0; }
 .ctx-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
-.ctx-text { color: #606266; }
-.ctx-desc { font-size: 13px; color: #333; line-height: 1.6; margin-top: 4px; }
-.map-link { color: #409eff; margin-left: 8px; font-size: 12px; }
+.ctx-text { color: #536568; }
+.ctx-desc { font-size: 13px; color: var(--ink); line-height: 1.6; margin-top: 4px; }
+.map-link { color: var(--teal-deep); margin-left: 8px; font-size: 12px; text-decoration-color: rgba(10, 95, 98, .35); text-underline-offset: 3px; }
 .ctx-imgs { margin-top: 8px; }
-.ctx-img { width: 56px; height: 56px; border-radius: 6px; margin-right: 8px; display: inline-block; }
+.ctx-img { width: 56px; height: 56px; border-radius: 8px; margin-right: 8px; display: inline-block; }
 .hint {
   display: flex; align-items: flex-start; gap: 6px; flex-shrink: 0; margin-bottom: 10px;
-  background: #f4f4f5; color: #909399; font-size: 12px; line-height: 1.6;
-  border-radius: 8px; padding: 8px 12px;
+  background: var(--paper-deep); color: #5b6e70; font-size: 12px; line-height: 1.6;
+  border: 1px dashed var(--line); border-radius: 9px; padding: 8px 12px;
 }
-.hint .el-icon { margin-top: 2px; color: #c0c4cc; }
+.hint .el-icon { margin-top: 2px; color: var(--teal); }
 .cards-scroll {
   flex: 1; min-height: 0; overflow: auto; padding-right: 2px;
-  scrollbar-width: thin; scrollbar-color: #d0d3d9 transparent;
+  scrollbar-width: thin; scrollbar-color: #c6cad0 transparent;
 }
 .cards-scroll::-webkit-scrollbar { width: 8px; }
-.cards-scroll::-webkit-scrollbar-thumb { background: #d0d3d9; border-radius: 4px; }
+.cards-scroll::-webkit-scrollbar-thumb { background: #c6cad0; border-radius: 999px; }
 .cards-scroll::-webkit-scrollbar-track { background: transparent; }
 
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
@@ -300,14 +300,14 @@ onUnmounted(() => {
 .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
 .row { display: flex; align-items: center; gap: 4px; font-size: 13px; margin: 3px 0; }
 .reasons { margin: 6px 0; }
-.reason { color: #e6a23c; font-size: 12px; }
+.reason { color: var(--el-color-warning); font-size: 12px; }
 
-.urgent { color: #f56c6c; font-weight: 600; }
-.muted { color: #909399; font-size: 12px; }
+.urgent { color: var(--el-color-danger); font-weight: 700; }
+.muted { color: var(--muted); font-size: 12px; }
 
 /* 宽屏：工作台铺满视口高度，左右两栏等宽等高、各自内部滚动 */
 @media (min-width: 992px) {
-  .wb { height: calc(100vh - 88px); min-height: 520px; }
+  .wb { height: calc(100dvh - 102px); min-height: 520px; }
   .wb-row { height: 100%; }
   .wb-col { height: 100%; min-height: 0; }
 }

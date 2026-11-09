@@ -24,6 +24,8 @@ public class WorkerVO {
     private List<Long> skillIds = new ArrayList<>();
     private List<String> skills = new ArrayList<>();
 
-    private List<Long> scopeIds = new ArrayList<>();
-    private List<String> scopes = new ArrayList<>();
+    /** 负责校区 code 列表 */
+    private List<String> campusCodes = new ArrayList<>();
+    /** 负责校区中文名列表 */
+    private List<String> campuses = new ArrayList<>();
 }

@@ -2,14 +2,14 @@
   <el-card>
     <template #header>
       <div class="toolbar">
-        <b>账号管理</b>
+        <b>用户管理</b>
         <div class="filters">
           <el-select v-model="query.role" placeholder="角色" clearable style="width: 160px">
             <el-option v-for="(label, key) in ROLE_LABEL" :key="key" :label="label" :value="key" />
           </el-select>
           <el-input v-model="query.keyword" placeholder="姓名/学工号" clearable style="width: 180px" @keyup.enter="load" />
           <el-button type="primary" plain @click="load">查询</el-button>
-          <el-button type="primary" @click="openCreate">新增账号</el-button>
+          <el-button type="primary" @click="openCreate">新增用户</el-button>
         </div>
       </div>
     </template>
@@ -47,7 +47,7 @@
     <el-pagination style="margin-top: 12px; justify-content: flex-end" layout="total, prev, pager, next"
                    :total="total" :page-size="query.pageSize" v-model:current-page="query.page" @current-change="load" />
 
-    <el-dialog v-model="dialog" :title="form.id ? '编辑账号' : '新增账号'" width="480px">
+    <el-dialog v-model="dialog" :title="form.id ? '编辑用户' : '新增用户'" width="480px">
       <el-form :model="form" label-width="90px">
         <el-form-item label="学工号"><el-input v-model="form.jobNo" :disabled="!!form.id" /></el-form-item>
         <el-form-item label="姓名"><el-input v-model="form.name" /></el-form-item>

@@ -1,4 +1,4 @@
-package com.campus.repair.module.place;
+package com.campus.repair.module.dict;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;

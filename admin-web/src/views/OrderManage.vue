@@ -161,6 +161,6 @@ onMounted(async () => {
 <style scoped>
 .toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
 .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.urgent { color: #f56c6c; font-weight: 600; }
-.muted { color: #c0c4cc; font-size: 13px; }
+.urgent { color: var(--el-color-danger); font-weight: 700; }
+.muted { color: var(--muted); font-size: 13px; }
 </style>

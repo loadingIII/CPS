@@ -1,4 +1,4 @@
-package com.campus.repair.module.place;
+package com.campus.repair.module.dict;
 
 import com.campus.repair.common.RequireRole;
 import com.campus.repair.common.Result;

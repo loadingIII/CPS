@@ -1,4 +1,4 @@
-package com.campus.repair.module.place;
+package com.campus.repair.module.dict;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.campus.repair.common.BusinessException;

@@ -46,24 +46,14 @@ check('TC01d 维修工登录', !!workerToken, workerLogin.json);
 
 // ---------- TC02 RBAC ----------
 const forbidden = await req('GET', '/users', null, studentToken);
-check('TC02 学生访问账号管理被拒(403)', forbidden.status === 403 && forbidden.json?.code === 40301, forbidden.json);
+check('TC02 学生访问用户管理被拒(403)', forbidden.status === 403 && forbidden.json?.code === 40301, forbidden.json);
 const noAuth = await req('GET', '/auth/me');
 check('TC02b 未登录访问被拒(401)', noAuth.status === 401, noAuth.json);
 
 // ---------- TC03/04 基础数据 ----------
-const tree = await req('GET', '/places/tree', null, studentToken);
-check('TC03 位置树四级结构', tree.json?.code === 0 && tree.json?.data?.length > 0, tree.json);
-let spot = null;
-for (const campus of tree.json?.data || []) {
-  for (const area of campus.children || []) {
-    for (const b of area.children || []) {
-      for (const s of b.children || []) {
-        if (s.name === '一教101') spot = s;
-      }
-    }
-  }
-}
-check('TC03b 找到点位「一教101」', !!spot, tree.json?.data?.[0]);
+const campuses = await req('GET', '/campuses', null, studentToken);
+check('TC03 校区字典只读返回', campuses.json?.code === 0 && (campuses.json?.data?.length ?? 0) >= 3, campuses.json);
+check('TC03b 含东校区枚举', (campuses.json?.data || []).some(c => c.code === 'EAST' && c.name === '东校区'), campuses.json?.data);
 
 const skills = await req('GET', '/skills', null, studentToken);
 check('TC04 技能列表 ≥7 项', skills.json?.code === 0 && (skills.json?.data?.length ?? 0) >= 7, skills.json);
@@ -72,18 +62,18 @@ check('TC04 技能列表 ≥7 项', skills.json?.code === 0 && (skills.json?.dat
 const desc = '冒烟测试：一教101讲台插座接触不良，偶发打火，请尽快检修';
 const clientToken = 'smoke-' + Date.now();
 const submit = await req('POST', '/orders', {
-  locationId: spot.id, faultType: '水电', urgency: 'URGENT', description: desc, clientToken,
+  campus: 'EAST', locationDetail: '一教 101', faultType: '水电', urgency: 'URGENT', description: desc, clientToken,
 }, studentToken);
 check('TC05 提交工单(BX工单号)', submit.json?.code === 0 && submit.json?.data?.orderNo?.startsWith('BX'), submit.json);
 const orderId = submit.json?.data?.orderId;
 
 const submitDup = await req('POST', '/orders', {
-  locationId: spot.id, faultType: '水电', urgency: 'URGENT', description: desc, clientToken,
+  campus: 'EAST', locationDetail: '一教 101', faultType: '水电', urgency: 'URGENT', description: desc, clientToken,
 }, studentToken);
 check('TC05b 幂等：同 token 不产生新单', submitDup.json?.data?.orderId === orderId, submitDup.json);
 
 const badSubmit = await req('POST', '/orders', {
-  locationId: spot.id, faultType: '水电', urgency: 'URGENT', description: '短',
+  campus: 'EAST', locationDetail: '一教 101', faultType: '水电', urgency: 'URGENT', description: '短',
 }, studentToken);
 check('TC05c 描述过短被拒(40001)', badSubmit.json?.code === 40001, badSubmit.json);
 
@@ -108,9 +98,9 @@ check('TC09 审核通过', audit.json?.code === 0, audit.json);
 const board = await req('GET', '/orders/' + orderId + '/eligible-workers', null, adminToken);
 check('TC10 看板返回维修工', board.json?.code === 0 && (board.json?.data?.length ?? 0) >= 6, board.json);
 const w02 = (board.json?.data || []).find(w => w.name === '李国栋');
-check('TC10b 李国栋合格(水电技能+教学区范围)', w02?.eligible === true, w02);
-const w01 = (board.json?.data || []).find(w => w.name === '张强');
-check('TC10c 张强不合格(范围在生活区)', w01?.eligible === false && (w01?.failReasons || []).some(r => r.includes('范围')), w01);
+check('TC10b 李国栋合格(水电技能+负责东校区)', w02?.eligible === true, w02);
+const w03 = (board.json?.data || []).find(w => w.name === '赵敏');
+check('TC10c 赵敏不合格(负责西校区)', w03?.eligible === false && (w03?.failReasons || []).some(r => r.includes('校区')), w03);
 
 // ---------- TC11/12 派单 ----------
 const assign = await req('POST', '/orders/' + orderId + '/assign', { workerId: w02.workerId }, adminToken);

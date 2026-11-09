@@ -163,7 +163,7 @@ onMounted(load)
 
 <style scoped>
 .toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-.urgent { color: #f56c6c; font-weight: 600; }
-:deep(.urgent-row) { background: #fef0f0; }
-.muted { color: #c0c4cc; font-size: 13px; }
+.urgent { color: var(--el-color-danger); font-weight: 700; }
+:deep(.urgent-row) { background: var(--blush-soft); }
+.muted { color: var(--muted); font-size: 13px; }
 </style>
