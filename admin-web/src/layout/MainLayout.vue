@@ -63,10 +63,8 @@ const allMenus = [
   { path: '/audit', title: '审核工作台', icon: 'Checked', roles: ['ADMIN', 'SYS_ADMIN'] },
   { path: '/dispatch', title: '派单工作台', icon: 'Share', roles: ['ADMIN', 'SYS_ADMIN'] },
   { path: '/orders', title: '工单管理', icon: 'Tickets', roles: ['ADMIN', 'SYS_ADMIN'] },
-  { path: '/places', title: '位置管理', icon: 'LocationInformation', roles: ['ADMIN', 'SYS_ADMIN'] },
-  { path: '/skills', title: '技能/故障类型', icon: 'Collection', roles: ['ADMIN', 'SYS_ADMIN'] },
   { path: '/workers', title: '维修工管理', icon: 'Avatar', roles: ['ADMIN', 'SYS_ADMIN'] },
-  { path: '/users', title: '账号管理', icon: 'UserFilled', roles: ['SYS_ADMIN'] },
+  { path: '/users', title: '用户管理', icon: 'UserFilled', roles: ['SYS_ADMIN'] },
 ]
 
 const menus = computed(() => allMenus.filter(m => m.roles.includes(auth.role)))

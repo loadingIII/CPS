@@ -21,16 +21,12 @@ const check = (name, cond, detail) => {
 
 const student = (await req('POST', '/auth/login', { jobNo: 'student01', password: '123456' })).json.data.token;
 const admin = (await req('POST', '/auth/login', { jobNo: 'admin1', password: '123456' })).json.data.token;
-const worker01 = (await req('POST', '/auth/login', { jobNo: 'worker01', password: '123456' })).json.data.token; // 水电+空调,生活区
-const worker02 = (await req('POST', '/auth/login', { jobNo: 'worker02', password: '123456' })).json.data.token; // 水电,教学区
+const worker01 = (await req('POST', '/auth/login', { jobNo: 'worker01', password: '123456' })).json.data.token; // 水电+空调，东校区
+const workerOut = (await req('POST', '/auth/login', { jobNo: 'worker03', password: '123456' })).json.data.token; // 网络+实验，西校区（范围外）
 
-// 1. 提交一张生活区水电单（worker01 技能/范围均匹配）
-const tree = (await req('GET', '/places/tree', null, student)).json.data;
-let spot = null;
-for (const c of tree) for (const a of c.children || []) for (const b of a.children || [])
-  for (const s of b.children || []) if (s.name === '1号宿舍楼101') spot = s;
+// 1. 提交一张东校区水电单（worker01 技能/校区均匹配）
 const submit = (await req('POST', '/orders', {
-  locationId: spot.id, faultType: '水电', urgency: 'NORMAL',
+  campus: 'EAST', locationDetail: '1号宿舍楼 101', faultType: '水电', urgency: 'NORMAL',
   description: '抢单流程测试：宿舍水龙头漏水，请检修',
 }, student)).json.data;
 check('提交工单', !!submit?.orderId, submit);
@@ -38,9 +34,9 @@ check('提交工单', !!submit?.orderId, submit);
 // 2. 审核通过（未派单，进入待处理池）
 await req('POST', '/orders/' + submit.orderId + '/audit', { pass: true }, admin);
 
-// 3. worker02（教学区）看不到该单（范围不符被过滤）
-const pool02 = (await req('GET', '/orders/grab-pool?page=1&pageSize=50', null, worker02)).json.data;
-check('资格过滤：范围外维修工看不到该单', !(pool02?.list || []).some(o => o.id === submit.orderId), pool02);
+// 3. worker03（负责西校区）看不到该单（校区不符被过滤）
+const pool02 = (await req('GET', '/orders/grab-pool?page=1&pageSize=50', null, workerOut)).json.data;
+check('资格过滤：跨校区维修工看不到该单', !(pool02?.list || []).some(o => o.id === submit.orderId), pool02);
 
 // 4. worker01 能看到并抢单
 const pool01 = (await req('GET', '/orders/grab-pool?page=1&pageSize=50', null, worker01)).json.data;
@@ -55,7 +51,7 @@ check('进入待接列表', !!mineOrder, mine);
 check('状态仍为 PENDING（自助派单）', mineOrder?.status === 'PENDING', mineOrder);
 
 // 6. 并发/重复抢单被拒（worker_id 已非空）
-const claimAgain = await req('POST', '/orders/' + submit.orderId + '/claim', null, worker02);
+const claimAgain = await req('POST', '/orders/' + submit.orderId + '/claim', null, worker01);
 check('重复抢单被拒(40901)', claimAgain.json?.code === 40901, claimAgain.json);
 
 // 7. 抢单时间线有记录

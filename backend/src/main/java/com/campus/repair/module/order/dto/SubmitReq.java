@@ -7,7 +7,13 @@ import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
-public record SubmitReq(@NotNull(message = "请选择报修位置") Long locationId,
+/**
+ * 报修提交：校区为唯一受控选项（Campus 枚举 code），
+ * 楼栋 / 房间 / 公共设施等详细位置由报修人自由填写。
+ */
+public record SubmitReq(@NotBlank(message = "请选择校区") String campus,
+                        @NotBlank(message = "请填写详细位置")
+                        @Size(max = 200, message = "详细位置需 200 字以内") String locationDetail,
                         @NotBlank(message = "请选择故障类型") String faultType,
                         @NotNull(message = "请选择紧急程度") Urgency urgency,
                         @NotBlank(message = "请填写故障描述")

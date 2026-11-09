@@ -5,6 +5,9 @@ import com.campus.repair.common.Role;
 import com.campus.repair.module.auth.AuthService;
 import com.campus.repair.module.auth.SysUser;
 import com.campus.repair.module.auth.UserMapper;
+import com.campus.repair.module.dict.Campus;
+import com.campus.repair.module.dict.Skill;
+import com.campus.repair.module.dict.SkillMapper;
 import com.campus.repair.module.order.Evaluation;
 import com.campus.repair.module.order.EvaluationMapper;
 import com.campus.repair.module.order.OrderLog;
@@ -14,19 +17,13 @@ import com.campus.repair.module.order.RepairOrderMapper;
 import com.campus.repair.module.order.Urgency;
 import com.campus.repair.module.order.statemachine.OrderAction;
 import com.campus.repair.module.order.statemachine.OrderStatus;
-import com.campus.repair.module.place.Place;
-import com.campus.repair.module.place.PlaceMapper;
-import com.campus.repair.module.place.PlaceType;
-import com.campus.repair.module.place.PlaceService;
-import com.campus.repair.module.place.Skill;
-import com.campus.repair.module.place.SkillMapper;
 import com.campus.repair.module.worker.WorkerMapper;
 import com.campus.repair.module.worker.WorkerProfile;
 import com.campus.repair.module.worker.WorkerProfileMapper;
-import com.campus.repair.module.worker.WorkerSkill;
-import com.campus.repair.module.worker.WorkerSkillMapper;
 import com.campus.repair.module.worker.WorkerScope;
 import com.campus.repair.module.worker.WorkerScopeMapper;
+import com.campus.repair.module.worker.WorkerSkill;
+import com.campus.repair.module.worker.WorkerSkillMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -35,22 +32,20 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
 /**
- * T13 种子数据：首次启动（用户表为空）时初始化基础数据与 12 张演示工单，幂等（重复启动不重复插入）。
- * 账号密码统一 123456。
+ * T13 种子数据：首次启动（用户表为空）时初始化基础数据与 11 张演示工单，幂等（重复启动不重复插入）。
+ * 账号密码统一 123456。校区为代码枚举，不落库；详细位置为报修人自由填写的文本。
  */
 @Component
 public class SeedRunner implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(SeedRunner.class);
 
-    private final PlaceMapper placeMapper;
     private final SkillMapper skillMapper;
     private final UserMapper userMapper;
     private final WorkerProfileMapper profileMapper;
@@ -61,16 +56,14 @@ public class SeedRunner implements CommandLineRunner {
     private final EvaluationMapper evaluationMapper;
     private final WorkerMapper workerMapper;
     private final AuthService authService;
-    private final PlaceService placeService;
     private final TransactionTemplate transactionTemplate;
 
-    public SeedRunner(PlaceMapper placeMapper, SkillMapper skillMapper, UserMapper userMapper,
+    public SeedRunner(SkillMapper skillMapper, UserMapper userMapper,
                       WorkerProfileMapper profileMapper, WorkerSkillMapper skillRelMapper,
                       WorkerScopeMapper scopeMapper, RepairOrderMapper orderMapper,
                       OrderLogMapper logMapper, EvaluationMapper evaluationMapper,
                       WorkerMapper workerMapper, AuthService authService,
-                      PlaceService placeService, TransactionTemplate transactionTemplate) {
-        this.placeMapper = placeMapper;
+                      TransactionTemplate transactionTemplate) {
         this.skillMapper = skillMapper;
         this.userMapper = userMapper;
         this.profileMapper = profileMapper;
@@ -81,7 +74,6 @@ public class SeedRunner implements CommandLineRunner {
         this.evaluationMapper = evaluationMapper;
         this.workerMapper = workerMapper;
         this.authService = authService;
-        this.placeService = placeService;
         this.transactionTemplate = transactionTemplate;
     }
 
@@ -111,38 +103,6 @@ public class SeedRunner implements CommandLineRunner {
             skillMap.put(name, s.getId());
         }
 
-        // ---------------- 位置（东校区：教学区/生活区） ----------------
-        Place campus = insertPlace(null, null, PlaceType.CAMPUS, "东校区", null);
-        Place teachArea = insertPlace(campus, campus, PlaceType.AREA, "教学区", null);
-        Place lifeArea = insertPlace(campus, campus, PlaceType.AREA, "生活区", null);
-        Place b1 = insertPlace(teachArea, campus, PlaceType.BUILDING, "一教", null);
-        Place b2 = insertPlace(teachArea, campus, PlaceType.BUILDING, "二教", null);
-        Place b3 = insertPlace(teachArea, campus, PlaceType.BUILDING, "实验楼", null);
-        Place d1 = insertPlace(lifeArea, campus, PlaceType.BUILDING, "1号宿舍楼", null);
-        Place d2 = insertPlace(lifeArea, campus, PlaceType.BUILDING, "2号宿舍楼", null);
-        Place b1_101 = insertPlace(b1, campus, PlaceType.SPOT, "一教101", "101");
-        Place b1_102 = insertPlace(b1, campus, PlaceType.SPOT, "一教102", "102");
-        Place b1_201 = insertPlace(b1, campus, PlaceType.SPOT, "一教201", "201");
-        Place b2_101 = insertPlace(b2, campus, PlaceType.SPOT, "二教101", "101");
-        Place b3_101 = insertPlace(b3, campus, PlaceType.SPOT, "实验楼101", "101");
-        Place d1_101 = insertPlace(d1, campus, PlaceType.SPOT, "1号宿舍楼101", "101");
-        Place d1_102 = insertPlace(d1, campus, PlaceType.SPOT, "1号宿舍楼102", "102");
-        Place d1_301 = insertPlace(d1, campus, PlaceType.SPOT, "1号宿舍楼301", "301");
-        Place d1_302 = insertPlace(d1, campus, PlaceType.SPOT, "1号宿舍楼302", "302");
-        Place d2_101 = insertPlace(d2, campus, PlaceType.SPOT, "2号宿舍楼101", "101");
-        Place d2_102 = insertPlace(d2, campus, PlaceType.SPOT, "2号宿舍楼102", "102");
-        Place d2_301 = insertPlace(d2, campus, PlaceType.SPOT, "2号宿舍楼301", "301");
-
-        // 演示坐标（导航用，wx.openLocation）：房间级不设坐标，导航时沿父链回退到楼栋/片区
-        placeMapper.setGeo(campus.getId(), 114.4000, 30.5000);
-        placeMapper.setGeo(teachArea.getId(), 114.4025, 30.5015);
-        placeMapper.setGeo(b1.getId(), 114.4035, 30.5022);
-        placeMapper.setGeo(b2.getId(), 114.4018, 30.5030);
-        placeMapper.setGeo(b3.getId(), 114.4042, 30.5008);
-        placeMapper.setGeo(lifeArea.getId(), 114.3975, 30.4985);
-        placeMapper.setGeo(d1.getId(), 114.3965, 30.4978);
-        placeMapper.setGeo(d2.getId(), 114.3988, 30.4995);
-
         // ---------------- 账号 ----------------
         SysUser sa = insertUser("sa", "系统管理员", Role.SYS_ADMIN, "13900000001", null, null, hash);
         SysUser admin1 = insertUser("admin1", "李老师", Role.ADMIN, "13900000002", "后勤处", null, hash);
@@ -154,12 +114,13 @@ public class SeedRunner implements CommandLineRunner {
         SysUser w04 = insertUser("worker04", "孙志刚", Role.REPAIRER, "13900000104", null, null, hash);
         SysUser w05 = insertUser("worker05", "周建国", Role.REPAIRER, "13900000105", null, null, hash);
         SysUser w06 = insertUser("worker06", "吴秀兰", Role.REPAIRER, "13900000106", null, null, hash);
-        insertWorker(w01, List.of("水电", "空调家电"), List.of(lifeArea), skillMap);
-        insertWorker(w02, List.of("水电"), List.of(teachArea), skillMap);
-        insertWorker(w03, List.of("网络多媒体", "实验设备"), List.of(teachArea), skillMap);
-        insertWorker(w04, List.of("木工门窗"), List.of(lifeArea), skillMap);
-        insertWorker(w05, List.of("空调家电", "电梯"), List.of(teachArea), skillMap);
-        insertWorker(w06, List.of("水电", "木工门窗"), List.of(lifeArea), skillMap);
+        // 负责校区只按校区枚举配置；东校区单派给西校区师傅会被资格校验拦下（演示点）
+        insertWorker(w01, List.of("水电", "空调家电"), List.of(Campus.EAST), skillMap);
+        insertWorker(w02, List.of("水电"), List.of(Campus.EAST), skillMap);
+        insertWorker(w03, List.of("网络多媒体", "实验设备"), List.of(Campus.WEST), skillMap);
+        insertWorker(w04, List.of("木工门窗"), List.of(Campus.EAST), skillMap);
+        insertWorker(w05, List.of("空调家电", "电梯"), List.of(Campus.EAST), skillMap);
+        insertWorker(w06, List.of("水电", "木工门窗"), List.of(Campus.WEST, Campus.SOUTH), skillMap);
 
         SysUser s01 = insertUser("student01", "陈明", Role.REPORTER, "13900000201", null, "1号宿舍楼101", hash);
         SysUser s02 = insertUser("student02", "刘婷", Role.REPORTER, "13900000202", null, "2号宿舍楼301", hash);
@@ -172,49 +133,49 @@ public class SeedRunner implements CommandLineRunner {
         LocalDateTime now = LocalDateTime.now();
 
         // 1 待审核（紧急）
-        RepairOrder o1 = newOrder(s01, d1_101, "空调家电", Urgency.URGENT,
+        RepairOrder o1 = newOrder(s01, Campus.EAST, "1号宿舍楼 101", "空调家电", Urgency.URGENT,
                 "宿舍空调不制冷，出风只有常温，晚上热得没法睡", now.minusHours(1));
         // 2 待审核（普通）
-        RepairOrder o2 = newOrder(s02, b1_201, "网络多媒体",
+        RepairOrder o2 = newOrder(s02, Campus.EAST, "一教 201", "网络多媒体",
                 Urgency.NORMAL, "一教201多媒体讲台无法开机，投影无信号", now.minusHours(3));
-        // 3 待处理（未派单）
-        RepairOrder o3 = newOrder(s03, d2_101, "水电", Urgency.NORMAL,
+        // 3 待处理（未派单，西校区）
+        RepairOrder o3 = newOrder(s03, Campus.WEST, "3号宿舍楼 101", "水电", Urgency.NORMAL,
                 "宿舍卫生间水龙头关不严，一直在滴水", now.minusHours(5));
         audit(o3, admin1, now.minusHours(4).minusMinutes(30));
         // 4 待处理（已派单）
-        RepairOrder o4 = newOrder(s01, b1_101, "水电", Urgency.URGENT,
+        RepairOrder o4 = newOrder(s01, Campus.EAST, "一教 101", "水电", Urgency.URGENT,
                 "一教101讲台插座打火冒烟，有安全隐患，请尽快处理", now.minusHours(2));
         audit(o4, admin1, now.minusHours(1).minusMinutes(48));
         assign(o4, w02, admin1, now.minusHours(1).minusMinutes(30));
         // 5 处理中
-        RepairOrder o5 = newOrder(s04, d1_301, "木工门窗", Urgency.NORMAL,
+        RepairOrder o5 = newOrder(s04, Campus.EAST, "1号宿舍楼 301", "木工门窗", Urgency.NORMAL,
                 "宿舍阳台窗户合页断裂，窗扇无法固定，大风天有坠落风险", now.minusHours(26));
         audit(o5, admin1, now.minusHours(25));
         assign(o5, w04, admin1, now.minusHours(24));
         accept(o5, w04, now.minusHours(23));
         // 6 处理中（其他类型，跳过技能匹配）
-        RepairOrder o6 = newOrder(s05, b1_102, "其他", Urgency.NORMAL,
+        RepairOrder o6 = newOrder(s05, Campus.EAST, "一教 102", "其他", Urgency.NORMAL,
                 "一教102门锁卡死，钥匙拧不动，影响上课", now.minusHours(8));
         audit(o6, admin2, now.minusHours(7));
         assign(o6, w01, admin2, now.minusHours(6));
         accept(o6, w01, now.minusHours(5));
         // 7 已完成
-        RepairOrder o7 = newOrder(s02, d1_102, "水电", Urgency.NORMAL,
+        RepairOrder o7 = newOrder(s02, Campus.EAST, "1号宿舍楼 102", "水电", Urgency.NORMAL,
                 "宿舍灯管闪烁，疑似镇流器故障需要更换", now.minusHours(50));
         audit(o7, admin1, now.minusHours(49));
         assign(o7, w01, admin1, now.minusHours(48));
         accept(o7, w01, now.minusHours(47));
         finish(o7, w01, now.minusHours(46), "更换 LED 灯管与镇流器，测试正常发光");
         // 8 已评价
-        RepairOrder o8 = newOrder(s03, b2_101, "空调家电", Urgency.NORMAL,
+        RepairOrder o8 = newOrder(s03, Campus.EAST, "二教 101", "空调家电", Urgency.NORMAL,
                 "二教101柜机启动后自动跳闸，无法制冷", now.minusHours(80));
         audit(o8, admin1, now.minusHours(79));
         assign(o8, w05, admin1, now.minusHours(78));
         accept(o8, w05, now.minusHours(77));
         finish(o8, w05, now.minusHours(76), "检查为压缩机启动电容损坏，更换电容后运行正常");
         rate(o8, s03, 5, "师傅很专业，处理很快！", now.minusHours(75));
-        // 9 已评价
-        RepairOrder o9 = newOrder(s04, d2_102, "木工门窗", Urgency.NORMAL,
+        // 9 已评价（西校区）
+        RepairOrder o9 = newOrder(s04, Campus.WEST, "3号宿舍楼 202", "木工门窗", Urgency.NORMAL,
                 "宿舍衣柜柜门脱落，铰链螺丝滑丝", now.minusHours(100));
         audit(o9, admin2, now.minusHours(99));
         assign(o9, w06, admin2, now.minusHours(98));
@@ -222,12 +183,12 @@ public class SeedRunner implements CommandLineRunner {
         finish(o9, w06, now.minusHours(96), "更换铰链并加固螺丝，柜门开合正常");
         rate(o9, s04, 4, "修好了，态度不错，稍慢了一点", now.minusHours(95));
         // 10 已驳回
-        RepairOrder o10 = newOrder(s05, d1_302, "水电", Urgency.NORMAL,
-                "宿舍阳台灯不亮了", now.minusHours(6));
+        RepairOrder o10 = newOrder(s05, Campus.WEST, "体育馆 北侧卫生间", "水电", Urgency.NORMAL,
+                "卫生间顶灯不亮了", now.minusHours(6));
         reject(o10, admin1, "照片无法看清故障位置，请补充清晰图片与具体位置", now.minusHours(5));
-        // 11 已取消
-        RepairOrder o11 = newOrder(s01, b1_201, "电梯", Urgency.NORMAL,
-                "一教电梯按钮失灵（后发现是自己看错楼层）", now.minusHours(48));
+        // 11 已取消（南校区）
+        RepairOrder o11 = newOrder(s01, Campus.SOUTH, "图书馆 电梯厅", "电梯", Urgency.NORMAL,
+                "图书馆电梯按钮失灵（后发现是自己看错楼层）", now.minusHours(48));
         cancel(o11, s01, now.minusHours(47));
 
         // ---------------- 评分重算 ----------------
@@ -238,18 +199,6 @@ public class SeedRunner implements CommandLineRunner {
     // ------------------------------------------------------------------
     // 组装辅助
     // ------------------------------------------------------------------
-
-    private Place insertPlace(Place parent, Place campus, PlaceType type, String name, String code) {
-        Place p = new Place();
-        p.setParentId(parent == null ? null : parent.getId());
-        p.setCampusId(campus == null ? null : campus.getId());
-        p.setType(type);
-        p.setName(name);
-        p.setCode(code);
-        p.setEnabled(true);
-        placeMapper.insert(p);
-        return p;
-    }
 
     private SysUser insertUser(String jobNo, String name, Role role, String phone,
                                String department, String address, String hash) {
@@ -266,7 +215,7 @@ public class SeedRunner implements CommandLineRunner {
         return u;
     }
 
-    private void insertWorker(SysUser u, List<String> skillNames, List<Place> scopes,
+    private void insertWorker(SysUser u, List<String> skillNames, List<Campus> campuses,
                               Map<String, Long> skillMap) {
         WorkerProfile p = new WorkerProfile();
         p.setUserId(u.getId());
@@ -280,22 +229,21 @@ public class SeedRunner implements CommandLineRunner {
             ws.setSkillId(skillMap.get(sn));
             skillRelMapper.insert(ws);
         }
-        for (Place sc : scopes) {
+        for (Campus c : campuses) {
             WorkerScope s = new WorkerScope();
             s.setUserId(u.getId());
-            s.setPlaceId(sc.getId());
-            s.setScopeType(sc.getType().name());
+            s.setCampus(c.name());
             scopeMapper.insert(s);
         }
     }
 
     /** 新建工单（工单号按提交日期生成，含唯一键重试） */
-    private RepairOrder newOrder(SysUser reporter, Place place, String faultType, Urgency urgency,
-                                 String desc, LocalDateTime submittedAt) {
+    private RepairOrder newOrder(SysUser reporter, Campus campus, String locationDetail,
+                                 String faultType, Urgency urgency, String desc, LocalDateTime submittedAt) {
         RepairOrder o = new RepairOrder();
         o.setReporterId(reporter.getId());
-        o.setLocationId(place.getId());
-        o.setLocationText(placeService.buildPath(place.getId()));
+        o.setCampus(campus.name());
+        o.setLocationText(Campus.format(campus.name(), locationDetail));
         o.setFaultType(faultType);
         o.setUrgency(urgency);
         o.setDescription(desc);

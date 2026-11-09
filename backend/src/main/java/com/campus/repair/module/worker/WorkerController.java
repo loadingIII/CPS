@@ -69,10 +69,10 @@ public class WorkerController {
         String name = (String) body.get("name");
         String phone = (String) body.get("phone");
         List<Long> skillIds = toLongList(body.get("skillIds"));
-        List<Long> scopeIds = toLongList(body.get("scopeIds"));
+        List<String> campusCodes = toStringList(body.get("campusCodes"));
         Integer loadLimit = body.get("loadLimit") == null ? null : ((Number) body.get("loadLimit")).intValue();
         Boolean onDuty = body.get("onDuty") == null ? null : (Boolean) body.get("onDuty");
-        return Result.ok(workerService.update(id, name, phone, skillIds, scopeIds, loadLimit, onDuty));
+        return Result.ok(workerService.update(id, name, phone, skillIds, campusCodes, loadLimit, onDuty));
     }
 
     @Operation(summary = "在岗状态切换")
@@ -92,5 +92,13 @@ public class WorkerController {
             return null;
         }
         return ((List<Object>) o).stream().map(x -> ((Number) x).longValue()).toList();
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> toStringList(Object o) {
+        if (o == null) {
+            return null;
+        }
+        return ((List<Object>) o).stream().map(String::valueOf).toList();
     }
 }

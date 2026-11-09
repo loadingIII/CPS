@@ -7,13 +7,19 @@
   <view class="card">
     <view class="item">
       <view class="field-label">报修位置<text class="req">*</text></view>
-      <picker mode="multiSelector" range="{{columns}}" value="{{colIdx}}"
-              bindcolumnchange="onPickColumn" bindchange="onPick">
-        <view class="picker-cell {{locationLabel ? '' : 'placeholder'}}">
-          <text>{{ locationLabel || '校区 / 片区 / 楼栋 / 房间' }}</text>
+      <picker mode="selector" range="{{campusList}}" range-key="name" value="{{campusIndex}}"
+              bindchange="onCampusChange">
+        <view class="picker-cell">
+          <text>{{ campusName || '请选择校区' }}</text>
           <view class="chevron"></view>
         </view>
       </picker>
+      <view class="loc-detail">
+        <input class="loc-input" placeholder="楼栋 / 房间 / 具体点位，如：1号宿舍楼 101"
+               placeholder-class="ph" maxlength="200" value="{{locationDetail}}"
+               bindinput="onLocationDetail" />
+      </view>
+      <view class="loc-tip">校区必选，其余位置自由填写，写清楚更方便师傅上门</view>
     </view>
 
     <view class="item">

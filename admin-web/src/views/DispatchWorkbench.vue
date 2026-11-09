@@ -105,7 +105,7 @@
                     <el-tag v-for="s in w.skills" :key="s" size="small" style="margin-right: 4px">{{ s }}</el-tag>
                     <span v-if="!w.skills.length" class="muted">无</span>
                   </div>
-                  <div class="row">范围：<span class="muted">{{ w.scopes.join('、') || '未配置' }}</span></div>
+                  <div class="row">校区：<span class="muted">{{ (w.campuses || []).join('、') || '未配置' }}</span></div>
                   <div class="row">
                     负载：
                     <el-progress style="flex: 1"
@@ -168,7 +168,7 @@ async function load() {
   total.value = d.total
 }
 
-/** 全部维修工概况（/workers 的 scopes 带类型后缀，去掉后与派单看板展示一致） */
+/** 全部维修工概况（负责校区来自 /workers 与 /eligible-workers，字段一致） */
 async function loadAllWorkers() {
   const d = await api.get('/workers', { params: { page: 1, pageSize: 200 } })
   allWorkers.value = (d.list || [])
@@ -176,7 +176,7 @@ async function loadAllWorkers() {
       workerId: w.id,
       name: w.name,
       skills: w.skills || [],
-      scopes: (w.scopes || []).map(s => s.replace(/\([A-Z_]+\)$/, '')),
+      campuses: w.campuses || [],
       currentLoad: w.currentLoad ?? 0,
       loadLimit: w.loadLimit ?? 5,
       onDuty: !!w.onDuty,

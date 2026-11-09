@@ -22,12 +22,9 @@ import com.campus.repair.module.order.dto.SubmitReq;
 import com.campus.repair.module.order.statemachine.OrderAction;
 import com.campus.repair.module.order.statemachine.OrderStateMachine;
 import com.campus.repair.module.order.statemachine.OrderStatus;
-import com.campus.repair.module.place.Place;
-import com.campus.repair.module.place.PlaceMapper;
-import com.campus.repair.module.place.PlaceService;
-import com.campus.repair.module.place.PlaceType;
-import com.campus.repair.module.place.Skill;
-import com.campus.repair.module.place.SkillMapper;
+import com.campus.repair.module.dict.Campus;
+import com.campus.repair.module.dict.Skill;
+import com.campus.repair.module.dict.SkillMapper;
 import com.campus.repair.module.worker.WorkerMapper;
 import com.campus.repair.module.worker.WorkerService;
 import org.springframework.dao.DuplicateKeyException;
@@ -56,8 +53,6 @@ public class OrderService {
     private final EvaluationMapper evaluationMapper;
     private final OrderStateMachine stateMachine;
     private final OrderLogService logService;
-    private final PlaceMapper placeMapper;
-    private final PlaceService placeService;
     private final SkillMapper skillMapper;
     private final UserMapper userMapper;
     private final WorkerMapper workerMapper;
@@ -67,7 +62,6 @@ public class OrderService {
     public OrderService(RepairOrderMapper orderMapper, AttachmentMapper attachmentMapper,
                         OrderLogMapper logMapper, EvaluationMapper evaluationMapper,
                         OrderStateMachine stateMachine, OrderLogService logService,
-                        PlaceMapper placeMapper, PlaceService placeService,
                         SkillMapper skillMapper, UserMapper userMapper,
                         WorkerMapper workerMapper, WorkerService workerService,
                         IdempotentStore idempotentStore) {
@@ -77,8 +71,6 @@ public class OrderService {
         this.evaluationMapper = evaluationMapper;
         this.stateMachine = stateMachine;
         this.logService = logService;
-        this.placeMapper = placeMapper;
-        this.placeService = placeService;
         this.skillMapper = skillMapper;
         this.userMapper = userMapper;
         this.workerMapper = workerMapper;
@@ -102,10 +94,9 @@ public class OrderService {
     private OrderCreatedVO doSubmit(SubmitReq req) {
         Long uid = AuthContext.userId();
 
-        Place location = placeMapper.selectById(req.locationId());
-        if (location == null || !Boolean.TRUE.equals(location.getEnabled())
-                || (location.getType() != PlaceType.SPOT && location.getType() != PlaceType.BUILDING)) {
-            throw BusinessException.param("报修位置无效（请选择楼栋或房间点位）");
+        Campus campus = Campus.of(req.campus());
+        if (campus == null) {
+            throw BusinessException.param("校区无效");
         }
         Long skillCount = skillMapper.selectCount(new LambdaQueryWrapper<Skill>()
                 .eq(Skill::getName, req.faultType())
@@ -116,8 +107,8 @@ public class OrderService {
 
         RepairOrder o = new RepairOrder();
         o.setReporterId(uid);
-        o.setLocationId(req.locationId());
-        o.setLocationText(placeService.buildPath(req.locationId()));
+        o.setCampus(campus.name());
+        o.setLocationText(Campus.format(campus.name(), req.locationDetail()));
         // 地图选点补充定位（选填，DB-02）：范围校验后保存
         if (req.mapLng() != null && req.mapLat() != null) {
             if (req.mapLng() < -180 || req.mapLng() > 180 || req.mapLat() < -90 || req.mapLat() > 90) {
@@ -318,12 +309,12 @@ public class OrderService {
         return result;
     }
 
-    /** 组装地图点：工单自带选点坐标优先，否则回退位置表 geo；无任何坐标则跳过 */
+    /** 组装地图点：工单自带选点坐标优先，否则回退校区默认中心坐标；无有效校区则跳过 */
     private void addMapPoint(List<MapOrderVO> list, RepairOrder o, String kind) {
         Double lng = o.getMapLng();
         Double lat = o.getMapLat();
         if (lng == null || lat == null) {
-            Map<String, Object> geo = placeService.findGeoWithFallback(o.getLocationId());
+            Map<String, Object> geo = Campus.geo(o.getCampus());
             if (geo == null) {
                 return;
             }
@@ -534,15 +525,16 @@ public class OrderService {
         v.setOrderNo(o.getOrderNo());
         v.setReporterId(o.getReporterId());
         v.setWorkerId(o.getWorkerId());
-        v.setLocationId(o.getLocationId());
+        v.setCampus(o.getCampus());
+        v.setCampusName(Campus.labelOf(o.getCampus()));
         v.setLocationText(o.getLocationText());
-        // 导航坐标：报修时地图选点优先，否则沿位置父链回退取最近一级 geo
+        // 导航坐标：报修时地图选点优先，否则回退到校区默认中心坐标
         if (o.getMapLng() != null && o.getMapLat() != null) {
             v.setLocationLng(o.getMapLng());
             v.setLocationLat(o.getMapLat());
             v.setMapName(o.getMapName());
         } else {
-            Map<String, Object> geo = placeService.findGeoWithFallback(o.getLocationId());
+            Map<String, Object> geo = Campus.geo(o.getCampus());
             if (geo != null) {
                 v.setLocationLng(((Number) geo.get("lng")).doubleValue());
                 v.setLocationLat(((Number) geo.get("lat")).doubleValue());

@@ -2,21 +2,20 @@ package com.campus.repair.module.worker;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.campus.repair.common.AuthContext;
 import com.campus.repair.common.BusinessException;
 import com.campus.repair.common.PageVO;
+import com.campus.repair.common.Role;
 import com.campus.repair.module.auth.AuthService;
 import com.campus.repair.module.auth.SysUser;
 import com.campus.repair.module.auth.UserMapper;
+import com.campus.repair.module.dict.Campus;
+import com.campus.repair.module.dict.Skill;
+import com.campus.repair.module.dict.SkillMapper;
 import com.campus.repair.module.order.RepairOrder;
-import com.campus.repair.module.place.Place;
-import com.campus.repair.module.place.PlaceMapper;
-import com.campus.repair.module.place.PlaceService;
-import com.campus.repair.module.place.PlaceType;
-import com.campus.repair.module.place.Skill;
-import com.campus.repair.module.place.SkillMapper;
 import com.campus.repair.module.worker.dto.EligibleWorkerVO;
 import com.campus.repair.module.worker.dto.WorkerCreateReq;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,22 +39,17 @@ public class WorkerService {
     private final WorkerSkillMapper skillRelMapper;
     private final WorkerScopeMapper scopeMapper;
     private final SkillMapper skillMapper;
-    private final PlaceMapper placeMapper;
-    private final PlaceService placeService;
     private final AuthService authService;
 
     public WorkerService(WorkerMapper workerMapper, UserMapper userMapper,
                          WorkerProfileMapper profileMapper, WorkerSkillMapper skillRelMapper,
-                         WorkerScopeMapper scopeMapper, SkillMapper skillMapper,
-                         PlaceMapper placeMapper, PlaceService placeService, AuthService authService) {
+                         WorkerScopeMapper scopeMapper, SkillMapper skillMapper, AuthService authService) {
         this.workerMapper = workerMapper;
         this.userMapper = userMapper;
         this.profileMapper = profileMapper;
         this.skillRelMapper = skillRelMapper;
         this.scopeMapper = scopeMapper;
         this.skillMapper = skillMapper;
-        this.placeMapper = placeMapper;
-        this.placeService = placeService;
         this.authService = authService;
     }
 
@@ -84,7 +78,7 @@ public class WorkerService {
         return new IPageFill(p, list);
     }
 
-    /** 批量补充 技能/服务范围/当前负载 */
+    /** 批量补充 技能 / 负责校区 / 当前负载 */
     private void fillRelations(List<WorkerVO> list) {
         List<Long> ids = list.stream().map(WorkerVO::getId).toList();
 
@@ -97,14 +91,11 @@ public class WorkerService {
                 .collect(Collectors.toMap(Function.identity(),
                         id -> skillMapper.selectById(id), (a, b) -> a));
 
-        Map<Long, List<Long>> scopeIds = new HashMap<>();
+        Map<Long, List<String>> campusCodes = new HashMap<>();
         for (WorkerScope s : scopeMapper.selectList(new LambdaQueryWrapper<WorkerScope>()
                 .in(WorkerScope::getUserId, ids))) {
-            scopeIds.computeIfAbsent(s.getUserId(), k -> new ArrayList<>()).add(s.getPlaceId());
+            campusCodes.computeIfAbsent(s.getUserId(), k -> new ArrayList<>()).add(s.getCampus());
         }
-        Map<Long, Place> placeMap = scopeIds.values().stream().flatMap(List::stream).distinct()
-                .collect(Collectors.toMap(Function.identity(),
-                        id -> placeMapper.selectById(id), (a, b) -> a));
 
         Map<Long, Long> loads = new HashMap<>();
         for (Map<String, Object> row : workerMapper.countLoad(ids)) {
@@ -119,12 +110,9 @@ public class WorkerService {
                     v.getSkills().add(s.getName());
                 }
             }
-            for (Long pid : scopeIds.getOrDefault(v.getId(), List.of())) {
-                Place pl = placeMap.get(pid);
-                if (pl != null) {
-                    v.getScopeIds().add(pid);
-                    v.getScopes().add(pl.getName() + "(" + pl.getType() + ")");
-                }
+            for (String code : campusCodes.getOrDefault(v.getId(), List.of())) {
+                v.getCampusCodes().add(code);
+                v.getCampuses().add(Campus.labelOf(code));
             }
             v.setCurrentLoad(loads.getOrDefault(v.getId(), 0L).intValue());
         }
@@ -139,7 +127,7 @@ public class WorkerService {
         u.setJobNo(req.jobNo());
         u.setName(req.name());
         u.setPhone(req.phone());
-        u.setRole(com.campus.repair.common.Role.REPAIRER);
+        u.setRole(Role.REPAIRER);
         u.setStatus(1);
         u.setPasswordHash(authService.encoder().encode(req.password()));
         Long count = userMapper.selectCount(new LambdaQueryWrapper<SysUser>()
@@ -157,15 +145,15 @@ public class WorkerService {
         profileMapper.insert(profile);
 
         replaceSkills(u.getId(), req.skillIds());
-        replaceScopes(u.getId(), req.scopeIds());
+        replaceCampuses(u.getId(), req.campusCodes());
         return detail(u.getId());
     }
 
     @Transactional
     public WorkerVO update(Long userId, String name, String phone, List<Long> skillIds,
-                           List<Long> scopeIds, Integer loadLimit, Boolean onDuty) {
+                           List<String> campusCodes, Integer loadLimit, Boolean onDuty) {
         SysUser u = userMapper.selectById(userId);
-        if (u == null || u.getRole() != com.campus.repair.common.Role.REPAIRER) {
+        if (u == null || u.getRole() != Role.REPAIRER) {
             throw BusinessException.notFound("维修工不存在");
         }
         if (name != null) {
@@ -199,8 +187,8 @@ public class WorkerService {
         if (skillIds != null) {
             replaceSkills(userId, skillIds);
         }
-        if (scopeIds != null) {
-            replaceScopes(userId, scopeIds);
+        if (campusCodes != null) {
+            replaceCampuses(userId, campusCodes);
         }
         return detail(userId);
     }
@@ -230,37 +218,32 @@ public class WorkerService {
         }
     }
 
-    private void replaceScopes(Long userId, List<Long> scopeIds) {
-        if (scopeIds == null || scopeIds.isEmpty()) {
-            throw BusinessException.param("请至少选择一个服务范围");
+    /** 负责校区：只接受 Campus 枚举中的 code，不再依赖位置树节点 */
+    private void replaceCampuses(Long userId, List<String> campusCodes) {
+        if (campusCodes == null || campusCodes.isEmpty()) {
+            throw BusinessException.param("请至少选择一个负责校区");
         }
-        List<Place> places = placeMapper.selectBatchIds(scopeIds);
-        if (places.size() != scopeIds.stream().distinct().count()) {
-            throw BusinessException.param("存在无效的服务范围选项");
-        }
-        for (Place p : places) {
-            if (p.getType() != PlaceType.AREA && p.getType() != PlaceType.BUILDING) {
-                throw BusinessException.param("服务范围只能选择片区或楼栋: " + p.getName());
+        for (String code : campusCodes) {
+            if (Campus.of(code) == null) {
+                throw BusinessException.param("存在无效的校区选项: " + code);
             }
         }
         scopeMapper.delete(new LambdaQueryWrapper<WorkerScope>().eq(WorkerScope::getUserId, userId));
-        for (Long pid : scopeIds.stream().distinct().toList()) {
-            Place p = places.stream().filter(x -> x.getId().equals(pid)).findFirst().orElseThrow();
+        for (String code : campusCodes.stream().distinct().toList()) {
             WorkerScope s = new WorkerScope();
             s.setUserId(userId);
-            s.setPlaceId(pid);
-            s.setScopeType(p.getType().name());
+            s.setCampus(code);
             scopeMapper.insert(s);
         }
     }
 
     // ------------------------------------------------------------------
-    // 派单资格（§2.5）：启用在岗 + 技能匹配（"其他"跳过） + 范围覆盖 + 负载未满
+    // 派单资格（§2.5）：启用在岗 + 技能匹配（"其他"跳过） + 校区覆盖 + 负载未满
     // ------------------------------------------------------------------
 
     public List<EligibleWorkerVO> eligibleWorkersForOrder(RepairOrder order) {
         List<SysUser> users = userMapper.selectList(new LambdaQueryWrapper<SysUser>()
-                .eq(SysUser::getRole, com.campus.repair.common.Role.REPAIRER)
+                .eq(SysUser::getRole, Role.REPAIRER)
                 .eq(SysUser::getStatus, 1));
         if (users.isEmpty()) {
             return List.of();
@@ -278,23 +261,23 @@ public class WorkerService {
                 skillNames.computeIfAbsent(ws.getUserId(), k -> new HashSet<>()).add(s.getName());
             }
         }
-        Map<Long, Set<Long>> scopes = new HashMap<>();
+        Map<Long, Set<String>> campusScopes = new HashMap<>();
         for (WorkerScope s : scopeMapper.selectList(new LambdaQueryWrapper<WorkerScope>()
                 .in(WorkerScope::getUserId, ids))) {
-            scopes.computeIfAbsent(s.getUserId(), k -> new HashSet<>()).add(s.getPlaceId());
+            campusScopes.computeIfAbsent(s.getUserId(), k -> new HashSet<>()).add(s.getCampus());
         }
         Map<Long, Long> loads = new HashMap<>();
         for (Map<String, Object> row : workerMapper.countLoad(ids)) {
             loads.put(((Number) row.get("workerId")).longValue(), ((Number) row.get("cnt")).longValue());
         }
-        List<Long> ancestors = placeService.ancestorIds(order.getLocationId());
+        String campus = order.getCampus();
 
         List<EligibleWorkerVO> result = new ArrayList<>();
         for (SysUser u : users) {
             List<String> reasons = new ArrayList<>();
             WorkerProfile profile = profiles.get(u.getId());
             Set<String> skills = skillNames.getOrDefault(u.getId(), Set.of());
-            Set<Long> scopeIds = scopes.getOrDefault(u.getId(), Set.of());
+            Set<String> campuses = campusScopes.getOrDefault(u.getId(), Set.of());
             int load = loads.getOrDefault(u.getId(), 0L).intValue();
             int limit = profile == null || profile.getLoadLimit() == null ? 5 : profile.getLoadLimit();
 
@@ -306,15 +289,15 @@ public class WorkerService {
             if (!"其他".equals(order.getFaultType()) && !skills.contains(order.getFaultType())) {
                 reasons.add("技能不匹配（缺少 " + order.getFaultType() + "）");
             }
-            if (scopeIds.stream().noneMatch(ancestors::contains)) {
-                reasons.add("服务范围不含工单位置");
+            if (!campuses.contains(campus)) {
+                reasons.add("负责校区不含工单校区（" + Campus.labelOf(campus) + "）");
             }
             if (load >= limit) {
                 reasons.add("负载已满（" + load + "/" + limit + "）");
             }
 
             result.add(new EligibleWorkerVO(u.getId(), u.getName(),
-                    List.copyOf(skills), scopeNames(scopeIds), load, limit,
+                    List.copyOf(skills), campusNames(campuses), load, limit,
                     profile != null && Boolean.TRUE.equals(profile.getOnDuty()),
                     profile == null ? BigDecimal.ZERO : profile.getScore(),
                     reasons.isEmpty(), reasons));
@@ -327,7 +310,7 @@ public class WorkerService {
     /** 派单硬校验：不合格抛 40001（附原因） */
     public void assertEligible(Long workerId, RepairOrder order) {
         SysUser u = userMapper.selectById(workerId);
-        if (u == null || u.getRole() != com.campus.repair.common.Role.REPAIRER) {
+        if (u == null || u.getRole() != Role.REPAIRER) {
             throw BusinessException.param("所选维修工不存在");
         }
         for (EligibleWorkerVO v : eligibleWorkersForOrder(order)) {
@@ -341,11 +324,8 @@ public class WorkerService {
         throw BusinessException.param("所选维修工不存在或已停用");
     }
 
-    private List<String> scopeNames(Set<Long> scopeIds) {
-        if (scopeIds.isEmpty()) {
-            return List.of();
-        }
-        return placeMapper.selectBatchIds(scopeIds).stream().map(Place::getName).toList();
+    private List<String> campusNames(Set<String> codes) {
+        return codes.stream().map(Campus::labelOf).toList();
     }
 
     /**
@@ -353,10 +333,10 @@ public class WorkerService {
      * 返回不合格原因列表，空列表 = 有资格。
      */
     public List<String> selfFailReasons(RepairOrder order) {
-        Long uid = com.campus.repair.common.AuthContext.userId();
+        Long uid = AuthContext.userId();
         SysUser u = userMapper.selectById(uid);
         List<String> reasons = new ArrayList<>();
-        if (u == null || u.getRole() != com.campus.repair.common.Role.REPAIRER
+        if (u == null || u.getRole() != Role.REPAIRER
                 || u.getStatus() == null || u.getStatus() != 1) {
             reasons.add("账号不可用");
             return reasons;
@@ -378,14 +358,13 @@ public class WorkerService {
         if (!"其他".equals(order.getFaultType()) && !skills.contains(order.getFaultType())) {
             reasons.add("技能不匹配（缺少 " + order.getFaultType() + "）");
         }
-        Set<Long> scopeIds = new HashSet<>();
+        Set<String> campuses = new HashSet<>();
         for (WorkerScope s : scopeMapper.selectList(
                 new LambdaQueryWrapper<WorkerScope>().eq(WorkerScope::getUserId, uid))) {
-            scopeIds.add(s.getPlaceId());
+            campuses.add(s.getCampus());
         }
-        List<Long> ancestors = placeService.ancestorIds(order.getLocationId());
-        if (scopeIds.stream().noneMatch(ancestors::contains)) {
-            reasons.add("服务范围不含工单位置");
+        if (!campuses.contains(order.getCampus())) {
+            reasons.add("负责校区不含工单校区");
         }
         int limit = profile == null || profile.getLoadLimit() == null ? 5 : profile.getLoadLimit();
         int load = 0;

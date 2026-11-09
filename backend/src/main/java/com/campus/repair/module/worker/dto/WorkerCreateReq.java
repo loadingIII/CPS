@@ -10,6 +10,6 @@ public record WorkerCreateReq(@NotBlank(message = "工号不能为空") String j
                               String phone,
                               @NotBlank(message = "初始密码不能为空") String password,
                               @NotEmpty(message = "请至少选择一项技能") List<Long> skillIds,
-                              @NotEmpty(message = "请至少选择一个服务范围") List<Long> scopeIds,
+                              @NotEmpty(message = "请至少选择一个负责校区") List<String> campusCodes,
                               Integer loadLimit) {
 }

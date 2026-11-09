@@ -15,10 +15,9 @@ const routes = [
       { path: 'audit', component: () => import('../views/AuditWorkbench.vue'), meta: { title: '审核工作台', roles: ['ADMIN', 'SYS_ADMIN'] } },
       { path: 'dispatch', component: () => import('../views/DispatchWorkbench.vue'), meta: { title: '派单工作台', roles: ['ADMIN', 'SYS_ADMIN'] } },
       { path: 'orders', component: () => import('../views/OrderManage.vue'), meta: { title: '工单管理', roles: ['ADMIN', 'SYS_ADMIN'] } },
-      { path: 'places', component: () => import('../views/PlaceManage.vue'), meta: { title: '位置管理', roles: ['ADMIN', 'SYS_ADMIN'] } },
-      { path: 'skills', component: () => import('../views/SkillManage.vue'), meta: { title: '技能/故障类型', roles: ['ADMIN', 'SYS_ADMIN'] } },
+      { path: 'skills', redirect: '/workers' },
       { path: 'workers', component: () => import('../views/WorkerManage.vue'), meta: { title: '维修工管理', roles: ['ADMIN', 'SYS_ADMIN'] } },
-      { path: 'users', component: () => import('../views/UserManage.vue'), meta: { title: '账号管理', roles: ['SYS_ADMIN'] } },
+      { path: 'users', component: () => import('../views/UserManage.vue'), meta: { title: '用户管理', roles: ['SYS_ADMIN'] } },
     ],
   },
 ]

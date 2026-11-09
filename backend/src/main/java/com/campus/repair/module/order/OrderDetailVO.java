@@ -16,9 +16,10 @@ public class OrderDetailVO {
     private String orderNo;
     private Long reporterId;
     private Long workerId;
-    private Long locationId;
+    private String campus;
+    private String campusName;
     private String locationText;
-    /** 导航用坐标（工单地图选点优先，否则沿位置父链回退，可能为 null） */
+    /** 导航用坐标（工单地图选点优先，否则取校区默认中心坐标） */
     private Double locationLng;
     private Double locationLat;
     /** 报修时的地图选点 POI 名称（可空） */

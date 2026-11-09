@@ -17,15 +17,9 @@ const admin = (await req('POST', '/auth/login', { jobNo: 'admin1', password: '12
 const student = (await req('POST', '/auth/login', { jobNo: 'student01', password: '123456' })).json.data.token;
 const worker = (await req('POST', '/auth/login', { jobNo: 'worker02', password: '123456' })).json.data.token;
 
-// 找一教101
-const tree = (await req('GET', '/places/tree', null, student)).json.data;
-let spot = null;
-for (const c of tree) for (const a of c.children || []) for (const b of a.children || [])
-  for (const s of b.children || []) if (s.name === '一教101') spot = s;
-
 // 提交 + 审核 + 派给 worker02（从看板取 id）
 const submit = (await req('POST', '/orders', {
-  locationId: spot.id, faultType: '水电', urgency: 'NORMAL',
+  campus: 'EAST', locationDetail: '一教 101', faultType: '水电', urgency: 'NORMAL',
   description: '并发接单测试：走廊灯不亮，请检修',
 }, student)).json.data;
 await req('POST', '/orders/' + submit.orderId + '/audit', { pass: true }, admin);

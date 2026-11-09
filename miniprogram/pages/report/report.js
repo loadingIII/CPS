@@ -5,12 +5,12 @@ Page({
     BASE,
     greeting: '',
     userName: '',
-    tree: [],
+    campusList: [],
+    campusIndex: 0,
+    campusCode: '',
+    campusName: '',
+    locationDetail: '',
     skillNames: [],
-    columns: [[], [], [], []],
-    colIdx: [0, 0, 0, 0],
-    locationLabel: '',
-    locationId: null,
     mapPick: null,
     faultType: '',
     urgency: 'NORMAL',
@@ -18,12 +18,6 @@ Page({
     images: [],
     submitting: false,
   },
-
-  // 内部索引数据（不参与渲染）
-  campusList: [],
-  areaList: [],
-  buildingList: [],
-  spotList: [],
 
   onShow() {
     const tb = this.getTabBar && this.getTabBar()
@@ -35,71 +29,28 @@ Page({
     this.loadBase()
   },
 
+  /** 校区为唯一受控选项（后端枚举），其余位置由报修人自由填写 */
   async loadBase() {
-    if (!this.data.tree.length) {
-      const tree = await get('/places/tree')
-      const skills = await get('/skills')
-      this.setData({
-        tree,
-        skillNames: skills.map(s => s.name),
-      })
-      this.campusList = tree
-      this.refreshColumns()
-    }
-  },
-
-  /** 四级级联列刷新：校区 → 片区 → 楼栋 → 房间（可停在楼栋级） */
-  refreshColumns() {
-    const ci = Math.min(this.data.colIdx[0], this.campusList.length - 1)
-    this.areaList = (this.campusList[ci] && this.campusList[ci].children) || []
-    const ai = Math.min(this.data.colIdx[1], this.areaList.length - 1)
-    this.buildingList = (this.areaList[ai] && this.areaList[ai].children) || []
-    const bi = Math.min(this.data.colIdx[2], this.buildingList.length - 1)
-    this.spotList = (this.buildingList[bi] && this.buildingList[bi].children) || []
-
+    if (this.data.campusList.length) return
+    const [campuses, skills] = await Promise.all([get('/campuses'), get('/skills')])
+    const first = campuses[0] || null
     this.setData({
-      columns: [
-        this.campusList.map(x => x.name),
-        this.areaList.map(x => x.name),
-        this.buildingList.map(x => x.name),
-        ['（整栋楼/公共区域）'].concat(this.spotList.map(x => x.name)),
-      ],
-      colIdx: [ci, ai, bi, 0],
+      campusList: campuses,
+      campusIndex: 0,
+      campusCode: first ? first.code : '',
+      campusName: first ? first.name : '',
+      skillNames: skills.map(s => s.name),
     })
-    this.computeLocation()
   },
 
-  onPickColumn(e) {
-    const { column, value } = e.detail
-    const idx = this.data.colIdx.slice()
-    idx[column] = value
-    this.setData({ colIdx: idx })
-    this.refreshColumns()
+  onCampusChange(e) {
+    const i = Number(e.detail.value)
+    const c = this.data.campusList[i]
+    if (c) this.setData({ campusIndex: i, campusCode: c.code, campusName: c.name })
   },
 
-  onPick(e) {
-    this.setData({ colIdx: e.detail.value.map(Number) })
-    this.refreshColumns()
-  },
-
-  computeLocation() {
-    const { colIdx } = this.data
-    if (!this.buildingList.length) {
-      this.setData({ locationId: null, locationLabel: '' })
-      return
-    }
-    const b = this.buildingList[colIdx[2]]
-    const spot = this.spotList[colIdx[3]]
-    const labelParts = [
-      this.campusList[colIdx[0]] && this.campusList[colIdx[0]].name,
-      this.areaList[colIdx[1]] && this.areaList[colIdx[1]].name,
-      b && b.name,
-      colIdx[3] > 0 && spot ? spot.name : '',
-    ].filter(Boolean)
-    this.setData({
-      locationId: colIdx[3] > 0 && spot ? spot.id : b.id,
-      locationLabel: labelParts.join(' / '),
-    })
+  onLocationDetail(e) {
+    this.setData({ locationDetail: e.detail.value })
   },
 
   onFaultType(e) {
@@ -172,15 +123,17 @@ Page({
   },
 
   async onSubmit() {
-    const { locationId, faultType, urgency, desc, images } = this.data
-    if (!locationId) { wx.showToast({ title: '请选择报修位置', icon: 'none' }); return }
+    const { campusCode, locationDetail, faultType, urgency, desc, images } = this.data
+    if (!campusCode) { wx.showToast({ title: '请选择校区', icon: 'none' }); return }
+    if (!locationDetail.trim()) { wx.showToast({ title: '请填写详细位置', icon: 'none' }); return }
     if (!faultType) { wx.showToast({ title: '请选择故障类型', icon: 'none' }); return }
     if (desc.trim().length < 5) { wx.showToast({ title: '故障描述至少 5 个字', icon: 'none' }); return }
 
     this.setData({ submitting: true })
     try {
       const data = await post('/orders', {
-        locationId,
+        campus: campusCode,
+        locationDetail: locationDetail.trim(),
         faultType,
         urgency,
         description: desc.trim(),
@@ -196,7 +149,7 @@ Page({
         showCancel: false,
         confirmColor: '#0E4A54',
         success: () => {
-          this.setData({ faultType: '', desc: '', images: [], mapPick: null, locationLabel: '', locationId: null })
+          this.setData({ faultType: '', desc: '', images: [], mapPick: null, locationDetail: '' })
           wx.switchTab({ url: '/pages/my-orders/my-orders' })
         },
       })

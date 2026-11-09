@@ -21,11 +21,13 @@ public class RepairOrder {
 
     private Long workerId;
 
-    private Long locationId;
+    /** 校区枚举 code（Campus.name()）：位置模型中唯一受控的一层 */
+    private String campus;
 
+    /** 完整位置串：校区名 · 报修人自由填写的详细位置 */
     private String locationText;
 
-    /** 地图选点补充定位（DB-02，可空；导航时优先于位置表 geo） */
+    /** 地图选点补充定位（DB-02，可空；未选点时导航回退到校区中心坐标） */
     private String mapName;
 
     private Double mapLng;
