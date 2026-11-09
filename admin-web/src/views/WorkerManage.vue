@@ -35,7 +35,7 @@
       <el-table-column label="当前负载" width="140">
         <template #default="{ row }">
           <el-progress :percentage="Math.min(100, Math.round((row.currentLoad / (row.loadLimit || 5)) * 100))"
-                       :color="row.currentLoad >= row.loadLimit ? '#f56c6c' : '#67c23a'"
+                       :color="row.currentLoad >= row.loadLimit ? 'var(--el-color-danger)' : 'var(--el-color-success)'"
                        :format="() => `${row.currentLoad}/${row.loadLimit}`" />
         </template>
       </el-table-column>
@@ -250,19 +250,19 @@ onMounted(() => { load(); loadOptions() })
 <style scoped>
 .toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
 .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.sub { margin-left: 10px; font-size: 12px; color: #909399; font-weight: 400; }
+.sub { margin-left: 10px; font-size: 12px; color: var(--muted); font-weight: 400; }
 .section-title {
-  font-size: 14px; font-weight: 600; color: #303133;
-  border-left: 3px solid #409eff; padding-left: 8px; margin: 8px 0 14px;
+  font-size: 14px; font-weight: 700; color: var(--ink);
+  border-left: 3px solid var(--teal); padding-left: 8px; margin: 8px 0 14px;
 }
-.section-note { margin-left: 10px; font-size: 12px; font-weight: 400; color: #909399; }
+.section-note { margin-left: 10px; font-size: 12px; font-weight: 400; color: var(--muted); }
 .skill-picker { display: flex; gap: 8px; width: 100%; }
 .skill-add { flex-shrink: 0; }
 .dict-collapse { margin: 0 0 18px 90px; }
-.dict-hint { font-size: 12px; color: #909399; margin-bottom: 8px; line-height: 1.6; }
+.dict-hint { font-size: 12px; color: var(--muted); margin-bottom: 8px; line-height: 1.6; }
 .dict-row {
   display: flex; align-items: center; gap: 10px;
-  padding: 6px 0; border-top: 1px solid #ebeef5; font-size: 13px;
+  padding: 7px 0; border-top: 1px dashed var(--line); font-size: 13px;
 }
 .dict-name { flex: 1; min-width: 0; }
 </style>

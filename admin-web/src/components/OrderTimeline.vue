@@ -2,7 +2,7 @@
   <el-timeline>
     <el-timeline-item v-for="(l, i) in logs" :key="i"
                       :timestamp="l.createdAt" :type="i === logs.length - 1 ? 'primary' : ''"
-                      :color="COLORS[l.action] || '#909399'">
+                      :color="COLORS[l.action] || 'var(--muted)'">
       <div class="line">
         <b>{{ l.action }}</b>
         <span class="op">{{ l.operatorName || '系统' }}（{{ roleLabel(l.operatorRole) }}）</span>
@@ -16,9 +16,9 @@
 defineProps({ logs: { type: Array, default: () => [] } })
 
 const COLORS = {
-  提交: '#409eff', 审核通过: '#67c23a', 驳回: '#e6a23c', 派单: '#409eff',
-  接单: '#67c23a', 拒单: '#f56c6c', 转单: '#e6a23c', 完工: '#67c23a',
-  评价: '#909399', 取消: '#c0c4cc', 放弃: '#c0c4cc', 作废: '#f56c6c',
+  提交: '#0f7b7e', 审核通过: '#3c8b72', 驳回: '#b98527', 派单: '#0f7b7e',
+  接单: '#3c8b72', 拒单: '#c66575', 转单: '#b98527', 完工: '#3c8b72',
+  评价: '#71888c', 取消: '#8b9a9c', 放弃: '#8b9a9c', 作废: '#c66575',
 }
 
 function roleLabel(r) {
@@ -28,6 +28,6 @@ function roleLabel(r) {
 
 <style scoped>
 .line { display: flex; gap: 8px; align-items: center; }
-.op { color: #909399; font-size: 12px; }
-.remark { color: #606266; font-size: 13px; margin-top: 4px; background: #f5f7fa; padding: 6px 10px; border-radius: 4px; }
+.op { color: var(--muted); font-size: 12px; }
+.remark { color: var(--ink); font-size: 13px; margin-top: 6px; background: var(--paper-deep); padding: 7px 10px; border: 1px dashed var(--line); border-radius: 8px; }
 </style>

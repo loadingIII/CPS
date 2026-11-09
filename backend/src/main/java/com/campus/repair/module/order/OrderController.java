@@ -156,6 +156,13 @@ public class OrderController {
 
     // ---------------- 管理员 ----------------
 
+    @Operation(summary = "管理工作台工单统计")
+    @RequireRole({Role.ADMIN, Role.SYS_ADMIN})
+    @GetMapping("/statistics")
+    public Result<OrderStatisticsVO> statistics() {
+        return Result.ok(orderService.statistics());
+    }
+
     @Operation(summary = "工单列表（管理视角，审核队列复用）")
     @RequireRole({Role.ADMIN, Role.SYS_ADMIN})
     @GetMapping

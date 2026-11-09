@@ -201,6 +201,41 @@ public class OrderService {
         return new PageVO<>(toListVOs(p.getRecords()), p.getTotal());
     }
 
+    /** 管理工作台统计：全量状态、近 7 日趋势与近 30 日故障类型分布。 */
+    public OrderStatisticsVO statistics() {
+        List<Map<String, Object>> statusRows = orderMapper.countByStatus();
+        List<OrderStatisticsVO.StatusCount> statuses = statusRows.stream()
+                .map(row -> new OrderStatisticsVO.StatusCount(
+                        String.valueOf(row.get("status")), countValue(row.get("total"))))
+                .toList();
+        long total = statuses.stream().mapToLong(OrderStatisticsVO.StatusCount::count).sum();
+
+        LocalDate today = LocalDate.now();
+        LocalDateTime tomorrow = today.plusDays(1).atStartOfDay();
+        LocalDateTime weekStart = today.minusDays(6).atStartOfDay();
+        Map<String, Long> dailyCounts = orderMapper.countBySubmittedDay(weekStart, tomorrow).stream()
+                .collect(Collectors.toMap(row -> String.valueOf(row.get("day")),
+                        row -> countValue(row.get("total"))));
+        List<OrderStatisticsVO.DailyCount> daily = new ArrayList<>(7);
+        for (int offset = 6; offset >= 0; offset--) {
+            String day = today.minusDays(offset).toString();
+            daily.add(new OrderStatisticsVO.DailyCount(day, dailyCounts.getOrDefault(day, 0L)));
+        }
+
+        LocalDateTime monthStart = today.minusDays(29).atStartOfDay();
+        List<OrderStatisticsVO.FaultTypeCount> faultTypes = orderMapper.countByFaultType(monthStart, tomorrow).stream()
+                .map(row -> new OrderStatisticsVO.FaultTypeCount(
+                        row.get("faultType") == null ? "未分类" : String.valueOf(row.get("faultType")),
+                        countValue(row.get("total"))))
+                .toList();
+
+        return new OrderStatisticsVO(total, statuses, daily, faultTypes);
+    }
+
+    private long countValue(Object value) {
+        return value instanceof Number number ? number.longValue() : 0L;
+    }
+
     /** 维修工：派给我的工单（F5-1） */
     public PageVO<OrderListVO> mineAssigned(OrderStatus status, long page, long pageSize) {
         OrderStatus st = status == null ? OrderStatus.PENDING : status;
