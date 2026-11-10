@@ -1,6 +1,7 @@
 {
   "pages": [
     "pages/login/login",
+    "pages/home/home",
     "pages/report/report",
     "pages/my-orders/my-orders",
     "pages/worker-orders/worker-orders",
@@ -13,23 +14,23 @@
     "pages/worker-finish/worker-finish"
   ],
   "window": {
-    "navigationBarBackgroundColor": "#0C2F3A",
-    "navigationBarTextStyle": "white",
+    "navigationBarBackgroundColor": "#f5f6f7",
+    "navigationBarTextStyle": "black",
     "navigationBarTitleText": "校园报修",
-    "backgroundColor": "#F3F5F4",
+    "backgroundColor": "#f5f6f7",
     "backgroundTextStyle": "dark"
   },
   "tabBar": {
     "custom": true,
-    "color": "#909399",
-    "selectedColor": "#2c5364",
+    "color": "#86909c",
+    "selectedColor": "#0f7b7e",
     "backgroundColor": "#ffffff",
     "list": [
-      { "pagePath": "pages/report/report", "text": "我要报修" },
-      { "pagePath": "pages/my-orders/my-orders", "text": "我的报修" },
+      { "pagePath": "pages/home/home", "text": "首页" },
+      { "pagePath": "pages/report/report", "text": "报修服务" },
+      { "pagePath": "pages/profile/profile", "text": "个人中心" },
       { "pagePath": "pages/worker-orders/worker-orders", "text": "维修工单" },
-      { "pagePath": "pages/worker-map/worker-map", "text": "地图" },
-      { "pagePath": "pages/profile/profile", "text": "我的" }
+      { "pagePath": "pages/worker-map/worker-map", "text": "地图" }
     ]
   },
   "permission": {

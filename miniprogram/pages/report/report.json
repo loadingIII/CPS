@@ -1,3 +1,4 @@
 {
-  "navigationBarTitleText": "我要报修"
+  "navigationBarTitleText": "报修服务",
+  "enablePullDownRefresh": true
 }

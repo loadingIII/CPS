@@ -6,8 +6,16 @@ Page({
   onShow() {
     const tb = this.getTabBar && this.getTabBar()
     if (tb) { tb.init(); tb.setSelected('/pages/worker-orders/worker-orders') }
+    const app = getApp()
+    const homeStatus = app.globalData.homeWorkerStatus || ''
+    const currentStatus = homeStatus || this.data.status
+    if (homeStatus) {
+      app.globalData.homeWorkerStatus = ''
+      this.setData({ status: homeStatus, list: [] })
+    }
     this.loadHeader()
-    this.load()
+    if (currentStatus === 'GRAB') this.loadGrab()
+    else this.load()
   },
 
   onPullDownRefresh() {

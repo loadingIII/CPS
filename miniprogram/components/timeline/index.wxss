@@ -1,19 +1,10 @@
 .tl { padding-left: 6rpx; }
 .item { display: flex; }
 .left { display: flex; flex-direction: column; align-items: center; width: 36rpx; }
-.dot {
-  width: 18rpx; height: 18rpx; border-radius: 50%;
-  background: #C4D0D0; margin-top: 10rpx; flex-shrink: 0;
-}
-.dot-active {
-  background: #0E4A54;
-  box-shadow: 0 0 0 8rpx #E7F0F0;
-}
-.line { width: 3rpx; flex: 1; background: #E8EDEC; min-height: 56rpx; }
+.dot { width: 18rpx; height: 18rpx; border-radius: 50%; background: #c6cad0; margin-top: 10rpx; flex-shrink: 0; }
+.dot-active { background: #0f7b7e; box-shadow: 0 0 0 8rpx #d7ecec; }
+.line { width: 3rpx; flex: 1; background: #e0e4e6; min-height: 56rpx; }
 .right { flex: 1; padding: 0 0 34rpx 20rpx; }
-.action { font-size: 28rpx; font-weight: 600; }
-.op { font-size: 22rpx; color: #97A6AB; margin-top: 6rpx; }
-.remark {
-  margin-top: 12rpx; background: #F6F8F7; border-radius: 12rpx;
-  padding: 14rpx 18rpx; font-size: 24rpx; color: #5C6E74; line-height: 1.5;
-}
+.action { font-size: 28rpx; font-weight: 700; color: #2b3a3c; }
+.op { font-size: 22rpx; color: #758286; margin-top: 6rpx; }
+.remark { margin-top: 12rpx; background: #f5f6f7; border: 1rpx dashed #c6cad0; border-radius: 12rpx; padding: 14rpx 18rpx; font-size: 24rpx; color: #5b6e70; line-height: 1.5; }
