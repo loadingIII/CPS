@@ -39,4 +39,100 @@ public interface RepairOrderMapper extends BaseMapper<RepairOrder> {
             """)
     List<Map<String, Object>> countByFaultType(@Param("from") LocalDateTime from,
                                                 @Param("to") LocalDateTime to);
+
+    // ------------------------------------------------------------------
+    // 派单调度（§5 容量令牌 / §6 抢单池 / 超时扫描）
+    // ------------------------------------------------------------------
+
+    /** 在办负载：PENDING（已派待接）+ PROCESSING，可排除指定工单（改派场景） */
+    @Select("""
+            <script>
+            SELECT COUNT(*) FROM repair_order
+            WHERE worker_id = #{workerId} AND status IN ('PENDING', 'PROCESSING')
+            <if test="excludeOrderId != null"> AND id != #{excludeOrderId}</if>
+            </script>
+            """)
+    long countActiveByWorker(@Param("workerId") Long workerId,
+                             @Param("excludeOrderId") Long excludeOrderId);
+
+    /** 抢单池：资格（技能/校区/开放时间）下推 SQL，分页与总数同条件 */
+    @Select("""
+            SELECT o.* FROM repair_order o
+            WHERE o.status = 'PENDING' AND o.worker_id IS NULL
+              AND o.grab_open_at IS NOT NULL AND o.grab_open_at <= #{now}
+              AND (o.fault_type = '其他' OR EXISTS (
+                    SELECT 1 FROM worker_skill ws
+                    JOIN skill s ON s.id = ws.skill_id
+                    WHERE ws.user_id = #{workerId} AND s.name = o.fault_type AND s.enabled = 1))
+              AND EXISTS (
+                    SELECT 1 FROM worker_scope sc
+                    WHERE sc.user_id = #{workerId} AND sc.campus = o.campus)
+            ORDER BY o.urgency DESC, o.submitted_at ASC
+            LIMIT #{offset}, #{limit}
+            """)
+    List<RepairOrder> selectGrabPool(@Param("workerId") Long workerId,
+                                     @Param("now") LocalDateTime now,
+                                     @Param("offset") long offset,
+                                     @Param("limit") long limit);
+
+    @Select("""
+            SELECT COUNT(*) FROM repair_order o
+            WHERE o.status = 'PENDING' AND o.worker_id IS NULL
+              AND o.grab_open_at IS NOT NULL AND o.grab_open_at <= #{now}
+              AND (o.fault_type = '其他' OR EXISTS (
+                    SELECT 1 FROM worker_skill ws
+                    JOIN skill s ON s.id = ws.skill_id
+                    WHERE ws.user_id = #{workerId} AND s.name = o.fault_type AND s.enabled = 1))
+              AND EXISTS (
+                    SELECT 1 FROM worker_scope sc
+                    WHERE sc.user_id = #{workerId} AND sc.campus = o.campus)
+            """)
+    long countGrabPool(@Param("workerId") Long workerId, @Param("now") LocalDateTime now);
+
+    /** 接单超时：已派待接且超过 assign_expires_at */
+    @Select("""
+            SELECT * FROM repair_order
+            WHERE status = 'PENDING' AND worker_id IS NOT NULL
+              AND assign_expires_at IS NOT NULL AND assign_expires_at < #{now}
+            ORDER BY assign_expires_at ASC
+            LIMIT #{limit}
+            """)
+    List<RepairOrder> selectExpiredOffers(@Param("now") LocalDateTime now,
+                                          @Param("limit") int limit);
+
+    /** 处理超时：处理中且超过 due_at，尚未标记 */
+    @Select("""
+            SELECT * FROM repair_order
+            WHERE status = 'PROCESSING' AND is_overdue = 0
+              AND due_at IS NOT NULL AND due_at < #{now}
+            ORDER BY due_at ASC
+            LIMIT #{limit}
+            """)
+    List<RepairOrder> selectOverdueProcessing(@Param("now") LocalDateTime now,
+                                              @Param("limit") int limit);
+
+    /** 完工超过指定时间仍未评价 */
+    @Select("""
+            SELECT * FROM repair_order
+            WHERE status = 'COMPLETED' AND completed_at IS NOT NULL AND completed_at < #{before}
+            ORDER BY completed_at ASC
+            LIMIT #{limit}
+            """)
+    List<RepairOrder> selectCompletedBefore(@Param("before") LocalDateTime before,
+                                            @Param("limit") int limit);
+
+    /** 近 N 天按时完成统计（派单评分 Timeliness 因子） */
+    @Select("""
+            <script>
+            SELECT worker_id AS workerId, COUNT(*) AS done,
+                   SUM(CASE WHEN due_at IS NOT NULL AND completed_at &lt;= due_at THEN 1 ELSE 0 END) AS onTime
+            FROM repair_order
+            WHERE status IN ('COMPLETED', 'EVALUATED')
+              AND completed_at &gt;= #{from} AND worker_id IN
+              <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+            GROUP BY worker_id
+            </script>
+            """)
+    List<Map<String, Object>> countTimeliness(@Param("ids") List<Long> ids,
+                                              @Param("from") LocalDateTime from);
 }

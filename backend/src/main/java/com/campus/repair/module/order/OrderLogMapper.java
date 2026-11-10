@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Mapper
@@ -19,4 +20,15 @@ public interface OrderLogMapper extends BaseMapper<OrderLog> {
             ORDER BY l.id ASC
             """)
     List<OrderLogVO> selectByOrderId(@Param("orderId") Long orderId);
+
+    /** 近 N 小时内拒过/被超时回收过该单的维修工（冷却名单） */
+    @Select("""
+            SELECT DISTINCT operator_id FROM order_log
+            WHERE order_id = #{orderId}
+              AND action IN ('拒单', '超时回收')
+              AND operator_id IS NOT NULL
+              AND created_at >= #{since}
+            """)
+    List<Long> selectRecentRejectors(@Param("orderId") Long orderId,
+                                     @Param("since") LocalDateTime since);
 }

@@ -102,3 +102,14 @@
   border-radius: 999rpx;
   box-shadow: 3rpx 3rpx 0 #2b3a3c;
 }
+.match {
+  margin-left: auto;
+  color: #0f7b7e;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+.remain {
+  margin-left: auto;
+  color: #a35a1c;
+  font-size: 22rpx;
+}

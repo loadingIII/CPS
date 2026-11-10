@@ -33,6 +33,11 @@
     </view>
   </view>
 
+  <view class="card" wx:if="{{detail.finishSummary}}">
+    <view class="section-title">维修说明</view>
+    <view class="desc">{{detail.finishSummary}}</view>
+  </view>
+
   <view class="card" wx:if="{{detail.evaluation}}">
     <view class="section-title">服务评价</view>
     <view class="stars-static">{{detail.evaluation.starsText}}</view>
@@ -44,10 +49,17 @@
     <timeline logs="{{logs}}" />
   </view>
 
+  <view class="grab-note" wx:if="{{detail.status === 'PENDING' && !detail.workerId}}">
+    该工单已开放抢单，抢到即接单；接单后才会显示报修人电话
+  </view>
+
   <view class="actions">
-    <block wx:if="{{detail.status === 'PENDING'}}">
+    <block wx:if="{{detail.status === 'PENDING' && detail.workerId}}">
       <button class="btn-primary act" bindtap="onAccept">接 单</button>
       <button class="btn-warn act" bindtap="onReject">拒 单</button>
+    </block>
+    <block wx:if="{{detail.status === 'PENDING' && !detail.workerId}}">
+      <button class="btn-primary act" bindtap="onGrab">立即抢单</button>
     </block>
     <block wx:if="{{detail.status === 'PROCESSING'}}">
       <button class="btn-primary act" bindtap="goFinish">完工上报</button>

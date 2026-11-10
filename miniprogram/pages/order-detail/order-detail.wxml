@@ -35,9 +35,10 @@
     </view>
   </view>
 
-  <view class="card" wx:if="{{detail.finishImages.length}}">
-    <view class="section-title">完工图片</view>
-    <view class="imgs">
+  <view class="card" wx:if="{{detail.finishImages.length || detail.finishSummary}}">
+    <view class="section-title">完工信息</view>
+    <view class="desc" wx:if="{{detail.finishSummary}}">{{detail.finishSummary}}</view>
+    <view class="imgs" wx:if="{{detail.finishImages.length}}">
       <image class="img" wx:for="{{detail.finishImages}}" wx:key="*this"
              src="{{BASE}}{{item}}" mode="aspectFill" data-urls="{{detail.finishImages}}"
              data-idx="{{index}}" bindtap="preview" />

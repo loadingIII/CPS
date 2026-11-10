@@ -146,7 +146,7 @@ public class SeedRunner implements CommandLineRunner {
         RepairOrder o4 = newOrder(s01, Campus.EAST, "一教 101", "水电", Urgency.URGENT,
                 "一教101讲台插座打火冒烟，有安全隐患，请尽快处理", now.minusHours(2));
         audit(o4, admin1, now.minusHours(1).minusMinutes(48));
-        assign(o4, w02, admin1, now.minusHours(1).minusMinutes(30));
+        assign(o4, w02, admin1, now.minusMinutes(10));
         // 5 处理中
         RepairOrder o5 = newOrder(s04, Campus.EAST, "1号宿舍楼 301", "木工门窗", Urgency.NORMAL,
                 "宿舍阳台窗户合页断裂，窗扇无法固定，大风天有坠落风险", now.minusHours(26));
@@ -223,10 +223,13 @@ public class SeedRunner implements CommandLineRunner {
         p.setLoadLimit(5);
         p.setScore(new BigDecimal("5.00"));
         profileMapper.insert(p);
-        for (String sn : skillNames) {
+        // 演示数据：第一项为主修，其余为兼修（派单评分 SkillMatch 因子）
+        for (int i = 0; i < skillNames.size(); i++) {
             WorkerSkill ws = new WorkerSkill();
             ws.setUserId(u.getId());
-            ws.setSkillId(skillMap.get(sn));
+            ws.setSkillId(skillMap.get(skillNames.get(i)));
+            ws.setLevel(i == 0 ? com.campus.repair.module.worker.SkillLevel.PRIMARY
+                    : com.campus.repair.module.worker.SkillLevel.SECONDARY);
             skillRelMapper.insert(ws);
         }
         for (Campus c : campuses) {
@@ -250,6 +253,8 @@ public class SeedRunner implements CommandLineRunner {
         o.setStatus(OrderStatus.PENDING_AUDIT);
         o.setIsOverdue(false);
         o.setVersion(0);
+        o.setDispatchCount(0);
+        o.setRejectCount(0);
         o.setSubmittedAt(submittedAt);
         String prefix = "BX" + submittedAt.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         for (int attempt = 1; attempt <= 3; attempt++) {
@@ -271,6 +276,7 @@ public class SeedRunner implements CommandLineRunner {
     private void audit(RepairOrder o, SysUser admin, LocalDateTime t) {
         o.setStatus(OrderStatus.PENDING);
         o.setAuditedAt(t);
+        o.setGrabOpenAt(t.plusMinutes(o.getUrgency() == Urgency.URGENT ? 0 : 20));
         orderMapper.updateById(o);
         addLog(o.getId(), OrderAction.AUDIT_PASS, admin.getId(), admin.getRole(), null, t);
     }
@@ -285,6 +291,9 @@ public class SeedRunner implements CommandLineRunner {
     private void assign(RepairOrder o, SysUser worker, SysUser admin, LocalDateTime t) {
         o.setWorkerId(worker.getId());
         o.setAssignedAt(t);
+        o.setDispatchSource(com.campus.repair.module.order.DispatchSource.MANUAL);
+        o.setDispatchCount((o.getDispatchCount() == null ? 0 : o.getDispatchCount()) + 1);
+        o.setAssignExpiresAt(t.plusMinutes(o.getUrgency() == Urgency.URGENT ? 30 : 120));
         orderMapper.updateById(o);
         addLog(o.getId(), OrderAction.ASSIGN, admin.getId(), admin.getRole(),
                 "派单给 " + worker.getName(), t);
@@ -293,6 +302,8 @@ public class SeedRunner implements CommandLineRunner {
     private void accept(RepairOrder o, SysUser worker, LocalDateTime t) {
         o.setStatus(OrderStatus.PROCESSING);
         o.setAcceptedAt(t);
+        o.setAssignExpiresAt(null);
+        o.setDueAt(t.plusHours(o.getUrgency() == Urgency.URGENT ? 4 : 24));
         orderMapper.updateById(o);
         addLog(o.getId(), OrderAction.ACCEPT, worker.getId(), worker.getRole(), null, t);
     }
@@ -300,6 +311,7 @@ public class SeedRunner implements CommandLineRunner {
     private void finish(RepairOrder o, SysUser worker, LocalDateTime t, String summary) {
         o.setStatus(OrderStatus.COMPLETED);
         o.setCompletedAt(t);
+        o.setFinishSummary(summary);
         orderMapper.updateById(o);
         addLog(o.getId(), OrderAction.FINISH, worker.getId(), worker.getRole(), summary, t);
     }

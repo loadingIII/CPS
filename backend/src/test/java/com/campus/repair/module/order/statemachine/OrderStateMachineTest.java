@@ -147,13 +147,16 @@ class OrderStateMachineTest {
     // ---------- #8b 抢单 ----------
 
     @Test
-    @DisplayName("#8b 抢单：未派单可抢且回填本人；已被派单 40901；管理员无权抢单")
+    @DisplayName("#8b 抢单：未派单可抢，抢到即接单（直接进入处理中）；已被派单 40901；管理员无权抢单")
     void claim() {
         RepairOrder o = order(OrderStatus.PENDING);
+        o.setAssignExpiresAt(java.time.LocalDateTime.now());
         fire(o, OrderAction.CLAIM, Role.REPAIRER, WORKER_ID, null, WORKER_ID);
         assertThat(o.getWorkerId()).isEqualTo(WORKER_ID);
         assertThat(o.getAssignedAt()).isNotNull();
-        assertThat(o.getStatus()).isEqualTo(OrderStatus.PENDING);
+        assertThat(o.getAcceptedAt()).isNotNull();
+        assertThat(o.getAssignExpiresAt()).isNull();
+        assertThat(o.getStatus()).isEqualTo(OrderStatus.PROCESSING);
 
         RepairOrder assigned = order(OrderStatus.PENDING);
         assigned.setWorkerId(OTHER_ID);
@@ -185,10 +188,14 @@ class OrderStateMachineTest {
     }
 
     @Test
-    @DisplayName("#10 拒单必填理由；成功后清空维修工回池")
+    @DisplayName("#10 拒单必填理由；成功后清空承接信息回池")
     void rejectAssign() {
         RepairOrder o = order(OrderStatus.PENDING);
         o.setWorkerId(WORKER_ID);
+        o.setAssignedAt(java.time.LocalDateTime.now());
+        o.setAcceptedAt(java.time.LocalDateTime.now());
+        o.setAssignExpiresAt(java.time.LocalDateTime.now());
+        o.setDueAt(java.time.LocalDateTime.now());
         assertThatThrownBy(() -> fire(o, OrderAction.REJECT_ASSIGN, Role.REPAIRER, WORKER_ID, "  ", null))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getCode())
@@ -196,6 +203,10 @@ class OrderStateMachineTest {
         fire(o, OrderAction.REJECT_ASSIGN, Role.REPAIRER, WORKER_ID, "技能不符", null);
         assertThat(o.getStatus()).isEqualTo(OrderStatus.PENDING);
         assertThat(o.getWorkerId()).isNull();
+        assertThat(o.getAssignedAt()).isNull();
+        assertThat(o.getAcceptedAt()).isNull();
+        assertThat(o.getAssignExpiresAt()).isNull();
+        assertThat(o.getDueAt()).isNull();
     }
 
     // ---------- #11/#12 完工与转单 ----------
@@ -211,13 +222,19 @@ class OrderStateMachineTest {
     }
 
     @Test
-    @DisplayName("#12 转单必填理由；成功后回待处理池")
+    @DisplayName("#12 转单必填理由；成功后清空承接信息回待处理池")
     void transfer() {
         RepairOrder o = order(OrderStatus.PROCESSING);
         o.setWorkerId(WORKER_ID);
+        o.setAssignedAt(java.time.LocalDateTime.now());
+        o.setAcceptedAt(java.time.LocalDateTime.now());
+        o.setDueAt(java.time.LocalDateTime.now());
         fire(o, OrderAction.TRANSFER, Role.REPAIRER, WORKER_ID, "需专业设备", null);
         assertThat(o.getStatus()).isEqualTo(OrderStatus.PENDING);
         assertThat(o.getWorkerId()).isNull();
+        assertThat(o.getAssignedAt()).isNull();
+        assertThat(o.getAcceptedAt()).isNull();
+        assertThat(o.getDueAt()).isNull();
     }
 
     // ---------- #13 评价 ----------

@@ -45,6 +45,22 @@ Page({
     })
   },
 
+  onGrab() {
+    wx.showModal({
+      title: '确认抢单',
+      content: '抢单成功即接单，工单直接进入「在办」，请尽快联系报修人上门',
+      confirmColor: '#0F7B7E',
+      success: async r => {
+        if (!r.confirm) return
+        try {
+          await post(`/orders/${this.orderId}/claim`)
+          wx.showToast({ title: '抢单成功', icon: 'success' })
+          this.load()
+        } catch (e) { /* 已提示（含手慢了/负载已满） */ }
+      },
+    })
+  },
+
   onAccept() {
     wx.showModal({
       title: '确认接单',

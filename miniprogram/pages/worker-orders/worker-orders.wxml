@@ -29,7 +29,7 @@
   </view>
 
   <view class="grab-tip" wx:if="{{status === 'GRAB'}}">
-    以下为审核通过、尚未派单的工单，且与你的技能和服务范围匹配，先到先得
+    以下为已开放抢单、且与你的技能和服务范围匹配的工单，先到先得，抢到即接单
   </view>
 
   <view class="list">
@@ -44,6 +44,8 @@
         <view class="row2">
           <text class="chip">{{item.faultType}}</text>
           <text class="time">{{item.submittedAt}}</text>
+          <text class="match" wx:if="{{status === 'GRAB' && item.matchText !== ''}}">匹配 {{item.matchText}}</text>
+          <text class="remain" wx:if="{{status === 'PENDING' && item.remainText}}">接单剩余 {{item.remainText}}</text>
         </view>
         <view class="desc">{{item.description}}</view>
         <view class="grab-btn" wx:if="{{status === 'GRAB'}}" data-id="{{item.id}}" catchtap="onGrab">
