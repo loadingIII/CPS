@@ -4,7 +4,7 @@
 
   <view class="brand">
     <view class="logo"><view class="logo-icon"></view></view>
-    <view class="title">校园报修</view>
+    <view class="title">校园报修系统</view>
     <view class="subtitle">报修工单全流程管理平台</view>
   </view>
 

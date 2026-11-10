@@ -27,6 +27,33 @@ mybatis-plus:
 app:
   upload-dir: ./uploads
 
+# 派单调度参数（§7 派单与抢单调度设计）
+dispatch:
+  # 推荐评分权重（技能 / 负载余量 / 按时率 / 评分），和应为 1
+  weights:
+    skill: 0.40
+    capacity: 0.25
+    timeliness: 0.20
+    rating: 0.15
+  # 派单后接单时限（分钟）
+  accept-timeout-minutes:
+    URGENT: 30
+    NORMAL: 120
+  # 处理 SLA（小时，接单时写入 due_at）
+  sla-hours:
+    URGENT: 4
+    NORMAL: 24
+  # 普通单审核通过后延迟多久开放抢单（分钟）；紧急单为 0
+  grab-open-delay-minutes:
+    URGENT: 0
+    NORMAL: 20
+  # 拒单/超时回收后，同一师傅对该单的冷却时长（小时）
+  reject-cooldown-hours: 24
+  # 累计派单次数达到该值标记为难派单
+  hard-order-threshold: 3
+  # 完工后多少天未评价自动默认好评
+  auto-rate-days: 7
+
 jwt:
   # HS256 签名密钥（长度 ≥ 256bit）；课程设计演示用，生产环境应外部注入
   secret: CampusRepairSystemJwtSigningSecretKey0123456789ABCDEF

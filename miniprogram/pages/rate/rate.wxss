@@ -1,24 +1,10 @@
 .page { padding-bottom: calc(60rpx + env(safe-area-inset-bottom)); }
-.title {
-  text-align: center; font-size: 34rpx; font-weight: 700;
-  margin: 26rpx 0 30rpx; letter-spacing: 2rpx;
-}
+.title { text-align: center; font-size: 34rpx; font-weight: 800; color: #2b3a3c; margin: 26rpx 0 30rpx; letter-spacing: 1rpx; font-family: "STSong", "Songti SC", serif; }
 .stars { text-align: center; margin: 20rpx 0; }
-.star {
-  font-size: 84rpx; color: #E1E7E6;
-  margin: 0 18rpx; transition: transform 0.15s ease;
-}
-.star.on { color: #F2B33D; transform: scale(1.05); }
-.hint {
-  text-align: center; color: #97A6AB;
-  font-size: 25rpx; margin-bottom: 36rpx; letter-spacing: 2rpx;
-}
-.desc {
-  width: 100%; box-sizing: border-box;
-  background: #F6F8F7; border-radius: 14rpx;
-  padding: 22rpx; min-height: 190rpx;
-  font-size: 28rpx; line-height: 1.65;
-}
-.ph { color: #B8C4C7; }
+.star { font-size: 84rpx; color: #e0e4e6; margin: 0 18rpx; transition: transform 0.15s ease; }
+.star.on { color: #b98527; transform: scale(1.05); }
+.hint { text-align: center; color: #758286; font-size: 25rpx; margin-bottom: 36rpx; letter-spacing: 1rpx; }
+.desc { width: 100%; box-sizing: border-box; background: #f7f8f8; border: 1rpx dashed #c6cad0; border-radius: 14rpx; padding: 22rpx; min-height: 190rpx; font-size: 28rpx; line-height: 1.65; }
+.ph { color: #86909c; }
 .footer { padding: 10rpx 24rpx; }
 .submit { width: 100%; }

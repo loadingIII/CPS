@@ -31,11 +31,6 @@ Page({
   },
 
   goHome() {
-    const role = (wx.getStorageSync('user') || {}).role
-    if (role === 'REPAIRER') {
-      wx.switchTab({ url: '/pages/worker-orders/worker-orders' })
-    } else {
-      wx.switchTab({ url: '/pages/report/report' })
-    }
+    wx.switchTab({ url: '/pages/home/home' })
   },
 })

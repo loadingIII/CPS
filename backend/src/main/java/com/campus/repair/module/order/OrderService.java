@@ -10,8 +10,12 @@ import com.campus.repair.common.PageVO;
 import com.campus.repair.common.Role;
 import com.campus.repair.module.auth.SysUser;
 import com.campus.repair.module.auth.UserMapper;
-import com.campus.repair.module.order.dto.AuditReq;
+import com.campus.repair.module.dict.Campus;
+import com.campus.repair.module.dict.Skill;
+import com.campus.repair.module.dict.SkillMapper;
 import com.campus.repair.module.order.dto.AssignReq;
+import com.campus.repair.module.order.dto.AuditReq;
+import com.campus.repair.module.order.dto.DispatchInfoVO;
 import com.campus.repair.module.order.dto.EvaluationReq;
 import com.campus.repair.module.order.dto.FinishReq;
 import com.campus.repair.module.order.dto.MapOrderVO;
@@ -22,10 +26,9 @@ import com.campus.repair.module.order.dto.SubmitReq;
 import com.campus.repair.module.order.statemachine.OrderAction;
 import com.campus.repair.module.order.statemachine.OrderStateMachine;
 import com.campus.repair.module.order.statemachine.OrderStatus;
-import com.campus.repair.module.dict.Campus;
-import com.campus.repair.module.dict.Skill;
-import com.campus.repair.module.dict.SkillMapper;
 import com.campus.repair.module.worker.WorkerMapper;
+import com.campus.repair.module.worker.WorkerProfile;
+import com.campus.repair.module.worker.WorkerProfileMapper;
 import com.campus.repair.module.worker.WorkerService;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -36,6 +39,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -57,14 +61,17 @@ public class OrderService {
     private final UserMapper userMapper;
     private final WorkerMapper workerMapper;
     private final WorkerService workerService;
+    private final WorkerProfileMapper profileMapper;
     private final IdempotentStore idempotentStore;
+    private final DispatchProperties props;
 
     public OrderService(RepairOrderMapper orderMapper, AttachmentMapper attachmentMapper,
                         OrderLogMapper logMapper, EvaluationMapper evaluationMapper,
                         OrderStateMachine stateMachine, OrderLogService logService,
                         SkillMapper skillMapper, UserMapper userMapper,
                         WorkerMapper workerMapper, WorkerService workerService,
-                        IdempotentStore idempotentStore) {
+                        WorkerProfileMapper profileMapper,
+                        IdempotentStore idempotentStore, DispatchProperties props) {
         this.orderMapper = orderMapper;
         this.attachmentMapper = attachmentMapper;
         this.logMapper = logMapper;
@@ -75,7 +82,9 @@ public class OrderService {
         this.userMapper = userMapper;
         this.workerMapper = workerMapper;
         this.workerService = workerService;
+        this.profileMapper = profileMapper;
         this.idempotentStore = idempotentStore;
+        this.props = props;
     }
 
     // ==================================================================
@@ -124,6 +133,8 @@ public class OrderService {
         o.setStatus(OrderStatus.PENDING_AUDIT);
         o.setIsOverdue(false);
         o.setVersion(0);
+        o.setDispatchCount(0);
+        o.setRejectCount(0);
         o.setSubmittedAt(LocalDateTime.now());
 
         // 工单号：BX+yyyyMMdd+4位序号，唯一键冲突重试（§2.3，Redis 降级为查库 max+1）
@@ -173,13 +184,27 @@ public class OrderService {
         return new PageVO<>(toListVOs(p.getRecords()), p.getTotal());
     }
 
-    /** 管理视角工单列表（F3-1 审核队列复用：PENDING_AUDIT/PENDING 固定 紧急度优先+提交时间正序） */
+    /**
+     * 管理视角工单列表（F3-1 审核队列复用）。
+     * dispatchState 用于把「待派单」与「已派待接」拆成两个队列。
+     */
     public PageVO<OrderListVO> pageAdmin(OrderStatus status, Urgency urgency, String faultType,
-                                         String keyword, long page, long pageSize) {
+                                         String keyword, DispatchState dispatchState,
+                                         long page, long pageSize) {
         LambdaQueryWrapper<RepairOrder> w = new LambdaQueryWrapper<RepairOrder>()
                 .eq(status != null, RepairOrder::getStatus, status)
                 .eq(urgency != null, RepairOrder::getUrgency, urgency)
                 .eq(StringUtils.hasText(faultType), RepairOrder::getFaultType, faultType);
+        if (dispatchState != null) {
+            switch (dispatchState) {
+                case POOL -> w.eq(RepairOrder::getStatus, OrderStatus.PENDING)
+                        .isNull(RepairOrder::getWorkerId);
+                case OFFERED -> w.eq(RepairOrder::getStatus, OrderStatus.PENDING)
+                        .isNotNull(RepairOrder::getWorkerId);
+                case TAKEN -> w.isNotNull(RepairOrder::getWorkerId);
+                default -> { }
+            }
+        }
         if (StringUtils.hasText(keyword)) {
             List<Long> reporterIds = userMapper.selectList(new LambdaQueryWrapper<SysUser>()
                             .like(SysUser::getName, keyword))
@@ -192,7 +217,9 @@ public class OrderService {
                 }
             });
         }
-        if (status == OrderStatus.PENDING_AUDIT || status == OrderStatus.PENDING) {
+        if (dispatchState == DispatchState.OFFERED) {
+            w.orderByAsc(RepairOrder::getAssignExpiresAt);
+        } else if (status == OrderStatus.PENDING_AUDIT || status == OrderStatus.PENDING) {
             w.orderByDesc(RepairOrder::getUrgency).orderByAsc(RepairOrder::getSubmittedAt);
         } else {
             w.orderByDesc(RepairOrder::getSubmittedAt);
@@ -236,19 +263,31 @@ public class OrderService {
         return value instanceof Number number ? number.longValue() : 0L;
     }
 
-    /** 维修工：派给我的工单（F5-1） */
+    /**
+     * 维修工：我的工单（F5-1）。
+     * 已完成页签同时返回 EVALUATED，避免评价后记录从师傅列表消失。
+     */
     public PageVO<OrderListVO> mineAssigned(OrderStatus status, long page, long pageSize) {
         OrderStatus st = status == null ? OrderStatus.PENDING : status;
-        Page<RepairOrder> p = orderMapper.selectPage(new Page<>(page, pageSize),
-                new LambdaQueryWrapper<RepairOrder>()
-                        .eq(RepairOrder::getWorkerId, AuthContext.userId())
-                        .eq(RepairOrder::getStatus, st)
-                        .orderByDesc(RepairOrder::getUrgency)
-                        .orderByAsc(RepairOrder::getSubmittedAt));
+        LambdaQueryWrapper<RepairOrder> w = new LambdaQueryWrapper<RepairOrder>()
+                .eq(RepairOrder::getWorkerId, AuthContext.userId());
+        if (st == OrderStatus.COMPLETED) {
+            w.in(RepairOrder::getStatus, OrderStatus.COMPLETED, OrderStatus.EVALUATED);
+        } else {
+            w.eq(RepairOrder::getStatus, st);
+        }
+        if (st == OrderStatus.PENDING) {
+            w.orderByDesc(RepairOrder::getUrgency).orderByAsc(RepairOrder::getAssignedAt);
+        } else if (st == OrderStatus.COMPLETED) {
+            w.orderByDesc(RepairOrder::getCompletedAt);
+        } else {
+            w.orderByDesc(RepairOrder::getSubmittedAt);
+        }
+        Page<RepairOrder> p = orderMapper.selectPage(new Page<>(page, pageSize), w);
         return new PageVO<>(toListVOs(p.getRecords()), p.getTotal());
     }
 
-    /** 工单详情（本人相关单/管理员） */
+    /** 工单详情（本人相关单/管理员/抢单预览） */
     public OrderDetailVO detail(Long orderId) {
         RepairOrder o = load(orderId);
         checkReadPermission(o);
@@ -269,9 +308,19 @@ public class OrderService {
     @Transactional
     public void audit(Long orderId, AuditReq req) {
         RepairOrder o = load(orderId);
-        String remark = Boolean.TRUE.equals(req.pass()) ? null : req.reason();
-        transition(o, Boolean.TRUE.equals(req.pass()) ? OrderAction.AUDIT_PASS : OrderAction.AUDIT_REJECT,
-                remark, null);
+        boolean pass = Boolean.TRUE.equals(req.pass());
+        if (pass) {
+            // 审核通过即确定抢单开放时间：紧急单立即，普通单留给管理员一个定向派单窗口。
+            // 立即开放必须截断到秒：DATETIME(0) 会把毫秒四舍五入，可能把「现在」推到未来。
+            int delay = props.grabOpenDelayMinutes(o.getUrgency());
+            LocalDateTime openAt = LocalDateTime.now().plusMinutes(delay);
+            if (delay <= 0) {
+                openAt = openAt.truncatedTo(ChronoUnit.SECONDS);
+            }
+            o.setGrabOpenAt(openAt);
+        }
+        transition(o, pass ? OrderAction.AUDIT_PASS : OrderAction.AUDIT_REJECT,
+                pass ? null : req.reason(), null);
     }
 
     @Transactional
@@ -284,62 +333,96 @@ public class OrderService {
         transition(load(orderId), OrderAction.ABANDON, null, null);
     }
 
-    @Transactional
     public List<com.campus.repair.module.worker.dto.EligibleWorkerVO> eligibleWorkers(Long orderId) {
         return workerService.eligibleWorkersForOrder(load(orderId));
     }
 
+    /**
+     * 手动派单（F4-2，支持改派）。
+     *
+     * <p>并发安全：先锁目标师傅的容量行（worker_profile FOR UPDATE），再校验负载、条件更新工单。
+     * 锁序固定 worker → order，事务内只锁一个师傅，避免死锁。
+     */
     @Transactional
     public void assign(Long orderId, AssignReq req) {
-        RepairOrder o = load(orderId);
-        workerService.assertEligible(req.workerId(), o);
-        String remark = null;
-        if (o.getWorkerId() != null && !o.getWorkerId().equals(req.workerId())) {
-            SysUser old = userMapper.selectById(o.getWorkerId());
-            remark = "改派自 " + (old == null ? "未知" : old.getName());
+        WorkerProfile target = profileMapper.selectForUpdate(req.workerId());
+        if (target == null) {
+            throw BusinessException.param("所选维修工不存在或未建立档案");
         }
+
+        RepairOrder o = load(orderId);
+        if (o.getStatus() != OrderStatus.PENDING) {
+            throw BusinessException.conflict("工单当前状态[" + o.getStatus().label() + "]不允许派单");
+        }
+        if (req.workerId().equals(o.getWorkerId())) {
+            return; // 重复派给同一人：幂等，不重置接单倒计时
+        }
+        boolean reassign = o.getWorkerId() != null;
+        if (reassign && !StringUtils.hasText(req.reason())) {
+            throw BusinessException.param("改派必须填写理由");
+        }
+
+        List<String> reasons = workerService.failReasons(req.workerId(), o, false);
+        if (!reasons.isEmpty()) {
+            throw BusinessException.param("该维修工不可派单：" + String.join("；", reasons));
+        }
+        long load = orderMapper.countActiveByWorker(req.workerId(), orderId);
+        if (load >= target.getLoadLimit()) {
+            throw BusinessException.conflict("负载已满（" + load + "/" + target.getLoadLimit() + "）");
+        }
+
+        String remark = reassign
+                ? "改派自 " + workerName(o.getWorkerId())
+                    + (StringUtils.hasText(req.reason()) ? "：" + req.reason() : "")
+                : "派给 " + workerName(req.workerId())
+                    + (StringUtils.hasText(req.reason()) ? "：" + req.reason() : "");
+
+        o.setDispatchSource(DispatchSource.MANUAL);
+        o.setDispatchCount(nvl(o.getDispatchCount()) + 1);
+        o.setAssignExpiresAt(LocalDateTime.now()
+                .plusMinutes(props.acceptTimeoutMinutes(o.getUrgency())));
         transition(o, OrderAction.ASSIGN, remark, req.workerId());
     }
 
     @Transactional
     public void accept(Long orderId) {
-        transition(load(orderId), OrderAction.ACCEPT, null, null);
+        RepairOrder o = load(orderId);
+        o.setDueAt(LocalDateTime.now().plusHours(props.slaHours(o.getUrgency())));
+        transition(o, OrderAction.ACCEPT, null, null);
     }
 
-    /** 抢单大厅：未被派单的 PENDING 工单中，当前维修工有资格承接的部分（§2.5 硬约束过滤） */
+    /**
+     * 抢单大厅：资格（技能/校区/开放时间）在 SQL 层过滤，分页与总数同条件。
+     * 只返回当前维修工真正能抢的工单，避免「整页空白」与 total 错乱。
+     */
     public PageVO<OrderListVO> grabPool(long page, long pageSize) {
-        Page<RepairOrder> p = orderMapper.selectPage(new Page<>(page, Math.min(pageSize, 50)),
-                new LambdaQueryWrapper<RepairOrder>()
-                        .eq(RepairOrder::getStatus, OrderStatus.PENDING)
-                        .isNull(RepairOrder::getWorkerId)
-                        .orderByDesc(RepairOrder::getUrgency)
-                        .orderByAsc(RepairOrder::getSubmittedAt));
-        List<RepairOrder> eligible = p.getRecords().stream()
-                .filter(o -> workerService.selfFailReasons(o).isEmpty())
-                .toList();
-        return new PageVO<>(toListVOs(eligible), eligible.size());
+        Long uid = AuthContext.userId();
+        long size = Math.max(1, Math.min(pageSize, 50));
+        long offset = (Math.max(page, 1) - 1) * size;
+        LocalDateTime now = LocalDateTime.now();
+
+        List<RepairOrder> orders = orderMapper.selectGrabPool(uid, now, offset, size);
+        long total = orderMapper.countGrabPool(uid, now);
+        List<OrderListVO> vos = toListVOs(orders);
+        workerService.fillGrabMatch(vos, orders);
+        return new PageVO<>(vos, total);
     }
 
-    /** 维修工工单地图：已接单（待处理/处理中）+ 可抢单的坐标点 */
+    /** 维修工工单地图：已接单（待接/在办）+ 可抢单的坐标点 */
     public List<MapOrderVO> workerMap() {
         Long uid = AuthContext.userId();
         List<RepairOrder> mine = orderMapper.selectList(new LambdaQueryWrapper<RepairOrder>()
                 .eq(RepairOrder::getWorkerId, uid)
                 .in(RepairOrder::getStatus, OrderStatus.PENDING, OrderStatus.PROCESSING)
                 .orderByDesc(RepairOrder::getUrgency));
-        List<RepairOrder> pool = orderMapper.selectList(new LambdaQueryWrapper<RepairOrder>()
-                .eq(RepairOrder::getStatus, OrderStatus.PENDING)
-                .isNull(RepairOrder::getWorkerId)
-                .orderByDesc(RepairOrder::getUrgency)
-                .orderByAsc(RepairOrder::getSubmittedAt));
+        List<RepairOrder> pool = orderMapper.selectGrabPool(uid, LocalDateTime.now(), 0, 200);
+
         List<MapOrderVO> result = new ArrayList<>();
         for (RepairOrder o : mine) {
             addMapPoint(result, o, "MINE");
         }
         for (RepairOrder o : pool) {
-            if (workerService.selfFailReasons(o).isEmpty()) {
-                addMapPoint(result, o, "GRAB");
-            }
+            addMapPoint(result, o, "GRAB");
         }
         return result;
     }
@@ -361,33 +444,72 @@ public class OrderService {
                 o.getMapName(), lng, lat, kind));
     }
 
-    /** 抢单：维修工自助派单给自己（先到先得，乐观锁防并发抢同一单） */
+    /**
+     * 抢单：抢到即接单（PENDING → PROCESSING）。
+     * 容量行加锁 + 工单条件更新（version + worker_id IS NULL），先到先得。
+     */
     @Transactional
     public void claim(Long orderId) {
-        RepairOrder o = load(orderId);
         Long uid = AuthContext.userId();
-        List<String> reasons = workerService.selfFailReasons(o);
+        WorkerProfile profile = profileMapper.selectForUpdate(uid);
+        if (profile == null) {
+            throw BusinessException.param("缺少维修工档案");
+        }
+        if (!Boolean.TRUE.equals(profile.getOnDuty())) {
+            throw BusinessException.param("当前不在岗，无法抢单");
+        }
+
+        RepairOrder o = load(orderId);
+        if (o.getStatus() != OrderStatus.PENDING) {
+            throw BusinessException.conflict("工单当前状态[" + o.getStatus().label() + "]不允许抢单");
+        }
+        if (o.getWorkerId() != null) {
+            throw BusinessException.conflict("手慢了，该工单已被其他师傅承接");
+        }
+        if (o.getGrabOpenAt() == null || o.getGrabOpenAt().isAfter(LocalDateTime.now())) {
+            throw BusinessException.conflict("该工单尚未开放抢单");
+        }
+
+        List<String> reasons = workerService.failReasons(uid, o, false);
         if (!reasons.isEmpty()) {
             throw BusinessException.param("暂不满足承接条件：" + String.join("；", reasons));
         }
-        transition(o, OrderAction.CLAIM, "维修工抢单自助接派", uid);
+        long load = orderMapper.countActiveByWorker(uid, null);
+        if (load >= profile.getLoadLimit()) {
+            throw BusinessException.conflict("负载已满（" + load + "/" + profile.getLoadLimit() + "）");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        o.setAcceptedAt(now);
+        o.setDueAt(now.plusHours(props.slaHours(o.getUrgency())));
+        o.setDispatchSource(DispatchSource.GRAB);
+        o.setDispatchCount(nvl(o.getDispatchCount()) + 1);
+        o.setAssignExpiresAt(null);
+        transition(o, OrderAction.CLAIM, "维修工抢单自助承接", uid);
     }
 
     @Transactional
     public void rejectAssign(Long orderId, ReasonReq req) {
-        transition(load(orderId), OrderAction.REJECT_ASSIGN, req.reason(), null);
+        RepairOrder o = load(orderId);
+        o.setRejectCount(nvl(o.getRejectCount()) + 1);
+        // 回流后立即开放抢单，不再让难单在池子里干等
+        o.setGrabOpenAt(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
+        transition(o, OrderAction.REJECT_ASSIGN, req.reason(), null);
     }
 
     @Transactional
     public void finish(Long orderId, FinishReq req) {
         RepairOrder o = load(orderId);
-        transition(o, OrderAction.FINISH, null, null);
+        o.setFinishSummary(req.summary());
+        transition(o, OrderAction.FINISH, req.summary(), null);
         saveAttachments(orderId, req.finishImageUrls(), AttachmentType.FINISH);
     }
 
     @Transactional
     public void transfer(Long orderId, ReasonReq req) {
-        transition(load(orderId), OrderAction.TRANSFER, req.reason(), null);
+        RepairOrder o = load(orderId);
+        o.setGrabOpenAt(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
+        transition(o, OrderAction.TRANSFER, req.reason(), null);
     }
 
     @Transactional
@@ -419,11 +541,58 @@ public class OrderService {
                 .eq(Evaluation::getOrderId, orderId));
     }
 
+    /** 派单调度信息：子状态、来源、次数、剩余接单时间 */
+    public DispatchInfoVO dispatchInfo(Long orderId) {
+        RepairOrder o = load(orderId);
+        checkReadPermission(o);
+        long remain = 0;
+        if (o.getAssignExpiresAt() != null) {
+            remain = Math.max(0, Duration.between(LocalDateTime.now(), o.getAssignExpiresAt()).getSeconds());
+        }
+        return new DispatchInfoVO(
+                o.getId(),
+                DispatchState.of(o),
+                o.getDispatchSource(),
+                o.getGrabOpenAt(),
+                o.getAssignExpiresAt(),
+                o.getDueAt(),
+                nvl(o.getDispatchCount()),
+                nvl(o.getRejectCount()),
+                nvl(o.getDispatchCount()) >= props.getHardOrderThreshold(),
+                remain);
+    }
+
+    /** 管理员手动开放抢单（应对难派单） */
+    @Transactional
+    public void broadcast(Long orderId) {
+        RepairOrder o = load(orderId);
+        if (o.getStatus() != OrderStatus.PENDING || o.getWorkerId() != null) {
+            throw BusinessException.conflict("只有待派单工单可以开放抢单");
+        }
+        int rows = orderMapper.update(null, new LambdaUpdateWrapper<RepairOrder>()
+                .eq(RepairOrder::getId, orderId)
+                .eq(RepairOrder::getVersion, o.getVersion())
+                .eq(RepairOrder::getStatus, OrderStatus.PENDING)
+                .isNull(RepairOrder::getWorkerId)
+                .set(RepairOrder::getGrabOpenAt, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS))
+                .set(RepairOrder::getVersion, o.getVersion() + 1));
+        if (rows != 1) {
+            throw BusinessException.conflict("工单状态已变化，请刷新后重试");
+        }
+        logService.log(orderId, OrderAction.BROADCAST, AuthContext.userId(), AuthContext.role(),
+                "管理员开放抢单");
+    }
+
     // ==================================================================
     // 内部：乐观锁状态转移 + 时间线（§2.2 实现硬性要求）
     // ==================================================================
 
-    /** 校验 + 条件更新（版本号乐观锁）+ 同事务写 order_log；失败抛 40901 */
+    /**
+     * 校验 + 条件更新（版本号乐观锁）+ 同事务写 order_log；失败抛 40901。
+     *
+     * <p>所有可变字段都从内存实体整体写回（含 null），解决「回池时清不掉时间戳」的问题；
+     * 并发安全由 version + 状态条件保证，CLAIM/ACCEPT 再叠加业务条件。
+     */
     private RepairOrder transition(RepairOrder o, OrderAction action, String remark, Long extraWorkerId) {
         LoginUser op = AuthContext.get();
         OrderStatus beforeStatus = o.getStatus();
@@ -438,33 +607,26 @@ public class OrderService {
                 .eq(RepairOrder::getVersion, beforeVersion)
                 .eq(RepairOrder::getStatus, beforeStatus)
                 .set(RepairOrder::getStatus, o.getStatus())
-                .set(RepairOrder::getVersion, newVersion);
-        if (o.getAuditedAt() != null) {
-            w.set(RepairOrder::getAuditedAt, o.getAuditedAt());
-        }
-        if (o.getAssignedAt() != null) {
-            w.set(RepairOrder::getAssignedAt, o.getAssignedAt());
-        }
-        if (o.getAcceptedAt() != null) {
-            w.set(RepairOrder::getAcceptedAt, o.getAcceptedAt());
-        }
-        if (o.getCompletedAt() != null) {
-            w.set(RepairOrder::getCompletedAt, o.getCompletedAt());
-        }
-        if (o.getRatedAt() != null) {
-            w.set(RepairOrder::getRatedAt, o.getRatedAt());
-        }
+                .set(RepairOrder::getVersion, newVersion)
+                .set(RepairOrder::getWorkerId, o.getWorkerId())
+                .set(RepairOrder::getDescription, o.getDescription())
+                .set(RepairOrder::getAuditedAt, o.getAuditedAt())
+                .set(RepairOrder::getAssignedAt, o.getAssignedAt())
+                .set(RepairOrder::getAcceptedAt, o.getAcceptedAt())
+                .set(RepairOrder::getCompletedAt, o.getCompletedAt())
+                .set(RepairOrder::getRatedAt, o.getRatedAt())
+                .set(RepairOrder::getFinishSummary, o.getFinishSummary())
+                .set(RepairOrder::getDispatchSource, o.getDispatchSource())
+                .set(RepairOrder::getGrabOpenAt, o.getGrabOpenAt())
+                .set(RepairOrder::getAssignExpiresAt, o.getAssignExpiresAt())
+                .set(RepairOrder::getDueAt, o.getDueAt())
+                .set(RepairOrder::getDispatchCount, o.getDispatchCount())
+                .set(RepairOrder::getRejectCount, o.getRejectCount());
         switch (action) {
-            case ASSIGN -> w.set(RepairOrder::getWorkerId, extraWorkerId);
-            // 抢单并发：必须仍为未派单（先到先得，§2.4 同源乐观锁）
-            case CLAIM -> {
-                w.isNull(RepairOrder::getWorkerId);
-                w.set(RepairOrder::getWorkerId, extraWorkerId);
-            }
-            case REJECT_ASSIGN, TRANSFER -> w.set(RepairOrder::getWorkerId, null);
-            // 并发接单幂等：必须仍是被派给本人且处于 PENDING（§2.4）
+            // 抢单并发：必须仍为未派单（先到先得）
+            case CLAIM -> w.isNull(RepairOrder::getWorkerId);
+            // 并发接单幂等：必须仍是被派给本人
             case ACCEPT -> w.eq(RepairOrder::getWorkerId, op.userId());
-            case RESUBMIT -> w.set(RepairOrder::getDescription, o.getDescription());
             default -> { }
         }
         int rows = orderMapper.update(null, w);
@@ -483,7 +645,10 @@ public class OrderService {
         return o;
     }
 
-    /** 详情/时间线读权限：报修人本人、被派维修工、管理员 */
+    /**
+     * 详情/时间线读权限：报修人本人、被派维修工、管理员；
+     * 维修工额外可预览「已开放抢单且自己有资格」的待派单工单（电话脱敏）。
+     */
     private void checkReadPermission(RepairOrder o) {
         LoginUser u = AuthContext.get();
         switch (u.role()) {
@@ -494,9 +659,17 @@ public class OrderService {
                 }
             }
             case REPAIRER -> {
-                if (o.getWorkerId() == null || !u.userId().equals(o.getWorkerId())) {
-                    throw BusinessException.notFound("工单不存在");
+                if (u.userId().equals(o.getWorkerId())) {
+                    return;
                 }
+                boolean grabPreview = o.getStatus() == OrderStatus.PENDING
+                        && o.getWorkerId() == null
+                        && o.getGrabOpenAt() != null
+                        && !o.getGrabOpenAt().isAfter(LocalDateTime.now());
+                if (grabPreview && workerService.canPreview(u.userId(), o)) {
+                    return;
+                }
+                throw BusinessException.notFound("工单不存在");
             }
         }
     }
@@ -514,6 +687,15 @@ public class OrderService {
         }
     }
 
+    private String workerName(Long workerId) {
+        SysUser u = userMapper.selectById(workerId);
+        return u == null ? String.valueOf(workerId) : u.getName();
+    }
+
+    private int nvl(Integer v) {
+        return v == null ? 0 : v;
+    }
+
     // ==================================================================
     // VO 组装
     // ==================================================================
@@ -529,6 +711,12 @@ public class OrderService {
         v.setIsOverdue(o.getIsOverdue());
         v.setDescription(o.getDescription());
         v.setSubmittedAt(o.getSubmittedAt());
+        v.setWorkerId(o.getWorkerId());
+        v.setDispatchState(DispatchState.of(o));
+        v.setGrabOpenAt(o.getGrabOpenAt());
+        v.setAssignExpiresAt(o.getAssignExpiresAt());
+        v.setDispatchCount(o.getDispatchCount());
+        v.setRejectCount(o.getRejectCount());
         return v;
     }
 
@@ -555,6 +743,10 @@ public class OrderService {
     }
 
     private OrderDetailVO buildDetail(RepairOrder o) {
+        LoginUser u = AuthContext.get();
+        // 抢单预览（未承接）时不暴露报修人电话
+        boolean preview = u.role() == Role.REPAIRER && o.getWorkerId() == null;
+
         OrderDetailVO v = new OrderDetailVO();
         v.setId(o.getId());
         v.setOrderNo(o.getOrderNo());
@@ -587,6 +779,15 @@ public class OrderService {
         v.setCompletedAt(o.getCompletedAt());
         v.setRatedAt(o.getRatedAt());
 
+        v.setFinishSummary(o.getFinishSummary());
+        v.setDispatchState(DispatchState.of(o));
+        v.setDispatchSource(o.getDispatchSource());
+        v.setGrabOpenAt(o.getGrabOpenAt());
+        v.setAssignExpiresAt(o.getAssignExpiresAt());
+        v.setDueAt(o.getDueAt());
+        v.setDispatchCount(o.getDispatchCount());
+        v.setRejectCount(o.getRejectCount());
+
         List<Long> uids = new ArrayList<>();
         uids.add(o.getReporterId());
         if (o.getWorkerId() != null) {
@@ -597,7 +798,9 @@ public class OrderService {
         SysUser reporter = users.get(o.getReporterId());
         if (reporter != null) {
             v.setReporterName(reporter.getName());
-            v.setReporterPhone(reporter.getPhone());
+            if (!preview) {
+                v.setReporterPhone(reporter.getPhone());
+            }
         }
         if (o.getWorkerId() != null) {
             SysUser worker = users.get(o.getWorkerId());

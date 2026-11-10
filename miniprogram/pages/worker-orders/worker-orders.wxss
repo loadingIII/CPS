@@ -1,102 +1,115 @@
 .page { padding-bottom: 0; }
 
-/* 绩效头卡 */
+/* 维修工工作台：以纸白信息区承载个人负载与快捷分组 */
 .header-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(150deg, #10424E, #0C2F3A);
-  color: #FFFFFF;
-  box-shadow: 0 10rpx 26rpx rgba(9, 54, 65, 0.28);
+  background: #ffffff;
+  color: #2b3a3c;
+  border-top: 8rpx solid #0f7b7e;
+  box-shadow: 0 8rpx 24rpx rgba(43, 58, 60, 0.07);
 }
-.h-name { font-size: 32rpx; font-weight: 700; letter-spacing: 2rpx; }
+.h-name { font-size: 32rpx; font-weight: 800; letter-spacing: 1rpx; }
 .h-role {
-  font-size: 20rpx; font-weight: 500;
-  background: rgba(232, 163, 61, 0.9);
+  font-size: 20rpx; font-weight: 600;
+  background: #f4d58d; color: #5a430c;
   padding: 4rpx 14rpx; border-radius: 999rpx;
   margin-left: 8rpx; vertical-align: 4rpx;
 }
-.h-sub { font-size: 23rpx; color: rgba(255, 255, 255, 0.62); margin-top: 10rpx; }
+.h-sub { font-size: 23rpx; color: #758286; margin-top: 10rpx; }
 .h-skills { margin-top: 14rpx; }
 .h-skills .chip {
   display: inline-block;
   font-size: 20rpx;
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.85);
-  padding: 4rpx 14rpx; border-radius: 8rpx;
+  background: #d7ecec;
+  color: #0a5f62;
+  padding: 4rpx 14rpx; border-radius: 999rpx;
   margin-right: 8rpx;
 }
 .h-stats { display: flex; align-items: center; }
-.h-stat { text-align: center; padding: 0 26rpx; }
-.h-num { font-size: 44rpx; font-weight: 700; line-height: 1.1; }
-.h-label { font-size: 21rpx; color: rgba(255, 255, 255, 0.55); margin-top: 6rpx; }
-.h-divider { width: 2rpx; height: 60rpx; background: rgba(255, 255, 255, 0.14); }
+.h-stat { text-align: center; padding: 0 22rpx; }
+.h-num { font-size: 42rpx; font-weight: 800; line-height: 1.1; color: #0f7b7e; }
+.h-label { font-size: 21rpx; color: #758286; margin-top: 6rpx; }
+.h-divider { width: 2rpx; height: 60rpx; background: #c6cad0; }
 
 .segs {
   display: flex;
-  background: #FFFFFF;
+  background: #ffffff;
+  border: 2rpx solid #c6cad0;
   margin: 20rpx 24rpx 0;
   padding: 8rpx;
-  border-radius: 16rpx;
+  border-radius: 18rpx;
 }
 .seg {
   flex: 1;
   text-align: center;
   padding: 18rpx 0;
-  border-radius: 12rpx;
-  font-size: 27rpx;
-  color: #5C6E74;
+  border-radius: 999rpx;
+  font-size: 25rpx;
+  color: #5b6e70;
   transition: all 0.2s ease;
 }
 .seg.on {
-  background: #0E4A54;
-  color: #FFFFFF;
-  font-weight: 600;
-  box-shadow: 0 6rpx 16rpx rgba(14, 74, 84, 0.22);
+  background: #2b3a3c;
+  color: #f5f6f7;
+  font-weight: 700;
+  box-shadow: 3rpx 3rpx 0 #0f7b7e;
 }
 
 .order { display: flex; padding: 0; overflow: hidden; }
-.spine { width: 8rpx; background: #DCE4E3; flex-shrink: 0; }
-.spine-urgent { background: #D96A3B; }
+.spine { width: 8rpx; background: #c6cad0; flex-shrink: 0; }
+.spine-urgent { background: #d98a98; }
 .body { flex: 1; padding: 24rpx 26rpx; }
-
 .row1 { display: flex; justify-content: space-between; align-items: center; }
-.orderNo { font-size: 25rpx; font-weight: 600; color: #5C6E74; letter-spacing: 1rpx; }
-.loc { margin: 16rpx 0 14rpx; font-size: 30rpx; font-weight: 600; }
+.orderNo { font-size: 25rpx; font-weight: 700; color: #5b6e70; letter-spacing: 1rpx; }
+.loc { margin: 16rpx 0 14rpx; font-size: 30rpx; font-weight: 700; color: #2b3a3c; }
 .row2 { display: flex; align-items: center; }
 .chip {
-  font-size: 21rpx; color: #5C6E74;
-  background: #F3F5F4;
-  padding: 6rpx 16rpx; border-radius: 8rpx;
+  font-size: 21rpx; color: #5b6e70;
+  background: #f5f6f7;
+  padding: 6rpx 16rpx; border-radius: 999rpx;
   margin-right: 10rpx;
 }
-.time { margin-left: auto; color: #B8C4C7; font-size: 21rpx; }
+.time { margin-left: auto; color: #86909c; font-size: 21rpx; }
 .desc {
   margin-top: 14rpx;
-  color: #5C6E74; font-size: 25rpx; line-height: 1.5;
+  color: #5b6e70; font-size: 25rpx; line-height: 1.5;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-
 .grab-tip {
   margin: 0 24rpx;
-  background: #FBF3E2;
-  color: #A9761B;
+  background: #fbf0d8;
+  border: 1rpx dashed #e2ca91;
+  color: #795915;
   font-size: 22rpx;
   line-height: 1.6;
   padding: 16rpx 22rpx;
   border-radius: 12rpx;
 }
-
 .grab-btn {
   margin-top: 18rpx;
   height: 76rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #E8A33D, #D96A3B);
-  color: #FFFFFF;
+  background: #0f7b7e;
+  color: #ffffff;
   font-size: 28rpx;
-  font-weight: 600;
-  letter-spacing: 4rpx;
-  border-radius: 12rpx;
+  font-weight: 700;
+  letter-spacing: 3rpx;
+  border: 2rpx solid #2b3a3c;
+  border-radius: 999rpx;
+  box-shadow: 3rpx 3rpx 0 #2b3a3c;
+}
+.match {
+  margin-left: auto;
+  color: #0f7b7e;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+.remain {
+  margin-left: auto;
+  color: #a35a1c;
+  font-size: 22rpx;
 }

@@ -35,5 +35,5 @@
   </view>
 
   <button class="logout" bindtap="onLogout">退出登录</button>
-  <view class="bottom-space"></view>
+  <view class="bottom-space profile-bottom-space"></view>
 </view>

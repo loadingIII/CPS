@@ -42,6 +42,18 @@ public class OrderDetailVO {
     private LocalDateTime completedAt;
     private LocalDateTime ratedAt;
 
+    /** 完工维修说明（故障原因/处理方式） */
+    private String finishSummary;
+
+    /** 派单调度信息 */
+    private DispatchState dispatchState;
+    private DispatchSource dispatchSource;
+    private LocalDateTime grabOpenAt;
+    private LocalDateTime assignExpiresAt;
+    private LocalDateTime dueAt;
+    private Integer dispatchCount;
+    private Integer rejectCount;
+
     private List<String> reportImages;
     private List<String> finishImages;
 

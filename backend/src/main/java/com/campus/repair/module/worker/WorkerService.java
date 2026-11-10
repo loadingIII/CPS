@@ -13,6 +13,7 @@ import com.campus.repair.module.auth.UserMapper;
 import com.campus.repair.module.dict.Campus;
 import com.campus.repair.module.dict.Skill;
 import com.campus.repair.module.dict.SkillMapper;
+import com.campus.repair.module.order.OrderListVO;
 import com.campus.repair.module.order.RepairOrder;
 import com.campus.repair.module.worker.dto.EligibleWorkerVO;
 import com.campus.repair.module.worker.dto.WorkerCreateReq;
@@ -21,9 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,10 +39,12 @@ public class WorkerService {
     private final WorkerScopeMapper scopeMapper;
     private final SkillMapper skillMapper;
     private final AuthService authService;
+    private final DispatchPolicy dispatchPolicy;
 
     public WorkerService(WorkerMapper workerMapper, UserMapper userMapper,
                          WorkerProfileMapper profileMapper, WorkerSkillMapper skillRelMapper,
-                         WorkerScopeMapper scopeMapper, SkillMapper skillMapper, AuthService authService) {
+                         WorkerScopeMapper scopeMapper, SkillMapper skillMapper,
+                         AuthService authService, DispatchPolicy dispatchPolicy) {
         this.workerMapper = workerMapper;
         this.userMapper = userMapper;
         this.profileMapper = profileMapper;
@@ -51,6 +52,7 @@ public class WorkerService {
         this.scopeMapper = scopeMapper;
         this.skillMapper = skillMapper;
         this.authService = authService;
+        this.dispatchPolicy = dispatchPolicy;
     }
 
     public PageVO<WorkerVO> page(String keyword, Long skillId, Boolean onDuty, long page, long pageSize) {
@@ -214,6 +216,7 @@ public class WorkerService {
             WorkerSkill ws = new WorkerSkill();
             ws.setUserId(userId);
             ws.setSkillId(sid);
+            ws.setLevel(SkillLevel.PRIMARY);
             skillRelMapper.insert(ws);
         }
     }
@@ -238,7 +241,7 @@ public class WorkerService {
     }
 
     // ------------------------------------------------------------------
-    // 派单资格（§2.5）：启用在岗 + 技能匹配（"其他"跳过） + 校区覆盖 + 负载未满
+    // 派单资格与推荐（规则统一收敛到 DispatchPolicy）
     // ------------------------------------------------------------------
 
     public List<EligibleWorkerVO> eligibleWorkersForOrder(RepairOrder order) {
@@ -248,132 +251,90 @@ public class WorkerService {
         if (users.isEmpty()) {
             return List.of();
         }
-        List<Long> ids = users.stream().map(SysUser::getId).toList();
-        Map<Long, WorkerProfile> profiles = profileMapper.selectList(
-                        new LambdaQueryWrapper<WorkerProfile>().in(WorkerProfile::getUserId, ids))
-                .stream().collect(Collectors.toMap(WorkerProfile::getUserId, Function.identity()));
+        List<DispatchPolicy.Context> contexts = dispatchPolicy.loadContexts(users);
+        Set<Long> cooling = dispatchPolicy.coolingWorkerIds(order.getId());
 
-        Map<Long, Set<String>> skillNames = new HashMap<>();
-        for (WorkerSkill ws : skillRelMapper.selectList(new LambdaQueryWrapper<WorkerSkill>()
-                .in(WorkerSkill::getUserId, ids))) {
-            Skill s = skillMapper.selectById(ws.getSkillId());
-            if (s != null && Boolean.TRUE.equals(s.getEnabled())) {
-                skillNames.computeIfAbsent(ws.getUserId(), k -> new HashSet<>()).add(s.getName());
-            }
+        List<EligibleWorkerVO> result = new ArrayList<>(contexts.size());
+        for (DispatchPolicy.Context c : contexts) {
+            List<String> reasons = dispatchPolicy.failReasons(c, order, cooling, true);
+            boolean eligible = reasons.isEmpty();
+            DispatchPolicy.Score score = eligible ? dispatchPolicy.score(c, order) : null;
+            result.add(new EligibleWorkerVO(
+                    c.workerId(), c.name(),
+                    List.copyOf(c.skills().keySet()),
+                    c.campuses().stream().map(Campus::labelOf).toList(),
+                    c.load(), c.loadLimit(), c.onDuty(), c.score(),
+                    eligible, reasons,
+                    score == null ? null : score.total(),
+                    score == null ? Map.of() : score.breakdown(),
+                    score == null ? List.of() : score.reasons()));
         }
-        Map<Long, Set<String>> campusScopes = new HashMap<>();
-        for (WorkerScope s : scopeMapper.selectList(new LambdaQueryWrapper<WorkerScope>()
-                .in(WorkerScope::getUserId, ids))) {
-            campusScopes.computeIfAbsent(s.getUserId(), k -> new HashSet<>()).add(s.getCampus());
-        }
-        Map<Long, Long> loads = new HashMap<>();
-        for (Map<String, Object> row : workerMapper.countLoad(ids)) {
-            loads.put(((Number) row.get("workerId")).longValue(), ((Number) row.get("cnt")).longValue());
-        }
-        String campus = order.getCampus();
-
-        List<EligibleWorkerVO> result = new ArrayList<>();
-        for (SysUser u : users) {
-            List<String> reasons = new ArrayList<>();
-            WorkerProfile profile = profiles.get(u.getId());
-            Set<String> skills = skillNames.getOrDefault(u.getId(), Set.of());
-            Set<String> campuses = campusScopes.getOrDefault(u.getId(), Set.of());
-            int load = loads.getOrDefault(u.getId(), 0L).intValue();
-            int limit = profile == null || profile.getLoadLimit() == null ? 5 : profile.getLoadLimit();
-
-            if (profile == null) {
-                reasons.add("缺少维修工档案");
-            } else if (!Boolean.TRUE.equals(profile.getOnDuty())) {
-                reasons.add("不在岗");
+        result.sort((a, b) -> {
+            if (a.eligible() != b.eligible()) {
+                return a.eligible() ? -1 : 1;
             }
-            if (!"其他".equals(order.getFaultType()) && !skills.contains(order.getFaultType())) {
-                reasons.add("技能不匹配（缺少 " + order.getFaultType() + "）");
+            double sa = a.matchScore() == null ? 0 : a.matchScore();
+            double sb = b.matchScore() == null ? 0 : b.matchScore();
+            if (Double.compare(sb, sa) != 0) {
+                return Double.compare(sb, sa);
             }
-            if (!campuses.contains(campus)) {
-                reasons.add("负责校区不含工单校区（" + Campus.labelOf(campus) + "）");
-            }
-            if (load >= limit) {
-                reasons.add("负载已满（" + load + "/" + limit + "）");
-            }
-
-            result.add(new EligibleWorkerVO(u.getId(), u.getName(),
-                    List.copyOf(skills), campusNames(campuses), load, limit,
-                    profile != null && Boolean.TRUE.equals(profile.getOnDuty()),
-                    profile == null ? BigDecimal.ZERO : profile.getScore(),
-                    reasons.isEmpty(), reasons));
-        }
-        result.sort(Comparator.comparing(EligibleWorkerVO::eligible).reversed()
-                .thenComparing(Comparator.comparing(EligibleWorkerVO::score).reversed()));
+            return Integer.compare(a.currentLoad(), b.currentLoad());
+        });
         return result;
+    }
+
+    /** 指定维修工对某工单的不可派原因；checkLoad=false 时忽略负载（用于详情预览） */
+    public List<String> failReasons(Long workerId, RepairOrder order, boolean checkLoad) {
+        SysUser u = userMapper.selectById(workerId);
+        if (u == null || u.getRole() != Role.REPAIRER
+                || u.getStatus() == null || u.getStatus() != 1) {
+            return List.of("账号不可用");
+        }
+        DispatchPolicy.Context c = dispatchPolicy.loadContext(u);
+        return dispatchPolicy.failReasons(c, order, dispatchPolicy.coolingWorkerIds(order.getId()), checkLoad);
+    }
+
+    public boolean isEligible(Long workerId, RepairOrder order) {
+        return failReasons(workerId, order, true).isEmpty();
+    }
+
+    public boolean canPreview(Long workerId, RepairOrder order) {
+        return failReasons(workerId, order, false).isEmpty();
+    }
+
+    /** 当前登录维修工对某工单的自助承接资格 */
+    public List<String> selfFailReasons(RepairOrder order) {
+        return failReasons(AuthContext.userId(), order, true);
     }
 
     /** 派单硬校验：不合格抛 40001（附原因） */
     public void assertEligible(Long workerId, RepairOrder order) {
-        SysUser u = userMapper.selectById(workerId);
-        if (u == null || u.getRole() != Role.REPAIRER) {
-            throw BusinessException.param("所选维修工不存在");
+        List<String> reasons = failReasons(workerId, order, true);
+        if (!reasons.isEmpty()) {
+            throw BusinessException.param("该维修工不可派单: " + String.join("；", reasons));
         }
-        for (EligibleWorkerVO v : eligibleWorkersForOrder(order)) {
-            if (v.workerId().equals(workerId)) {
-                if (!v.eligible()) {
-                    throw BusinessException.param("该维修工不可派单: " + String.join("；", v.failReasons()));
-                }
-                return;
-            }
-        }
-        throw BusinessException.param("所选维修工不存在或已停用");
     }
 
-    private List<String> campusNames(Set<String> codes) {
-        return codes.stream().map(Campus::labelOf).toList();
-    }
-
-    /**
-     * 当前登录维修工对某工单的自助承接资格（规则同 §2.5，用于抢单大厅过滤与抢单校验）。
-     * 返回不合格原因列表，空列表 = 有资格。
-     */
-    public List<String> selfFailReasons(RepairOrder order) {
-        Long uid = AuthContext.userId();
-        SysUser u = userMapper.selectById(uid);
-        List<String> reasons = new ArrayList<>();
-        if (u == null || u.getRole() != Role.REPAIRER
-                || u.getStatus() == null || u.getStatus() != 1) {
-            reasons.add("账号不可用");
-            return reasons;
+    /** 抢单大厅：给列表补匹配分与推荐理由（当前登录维修工视角） */
+    public void fillGrabMatch(List<OrderListVO> vos, List<RepairOrder> orders) {
+        if (vos.isEmpty() || orders.isEmpty()) {
+            return;
         }
-        WorkerProfile profile = profileMapper.selectById(uid);
-        if (profile == null) {
-            reasons.add("缺少维修工档案");
-        } else if (!Boolean.TRUE.equals(profile.getOnDuty())) {
-            reasons.add("当前不在岗");
+        SysUser u = userMapper.selectById(AuthContext.userId());
+        if (u == null) {
+            return;
         }
-        Set<String> skills = new HashSet<>();
-        for (WorkerSkill ws : skillRelMapper.selectList(
-                new LambdaQueryWrapper<WorkerSkill>().eq(WorkerSkill::getUserId, uid))) {
-            Skill s = skillMapper.selectById(ws.getSkillId());
-            if (s != null && Boolean.TRUE.equals(s.getEnabled())) {
-                skills.add(s.getName());
+        DispatchPolicy.Context c = dispatchPolicy.loadContext(u);
+        Map<Long, RepairOrder> byId = orders.stream()
+                .collect(Collectors.toMap(RepairOrder::getId, Function.identity(), (a, b) -> a));
+        for (OrderListVO v : vos) {
+            RepairOrder o = byId.get(v.getId());
+            if (o == null) {
+                continue;
             }
+            DispatchPolicy.Score s = dispatchPolicy.score(c, o);
+            v.setMatchScore(s.total());
+            v.setMatchReasons(s.reasons());
         }
-        if (!"其他".equals(order.getFaultType()) && !skills.contains(order.getFaultType())) {
-            reasons.add("技能不匹配（缺少 " + order.getFaultType() + "）");
-        }
-        Set<String> campuses = new HashSet<>();
-        for (WorkerScope s : scopeMapper.selectList(
-                new LambdaQueryWrapper<WorkerScope>().eq(WorkerScope::getUserId, uid))) {
-            campuses.add(s.getCampus());
-        }
-        if (!campuses.contains(order.getCampus())) {
-            reasons.add("负责校区不含工单校区");
-        }
-        int limit = profile == null || profile.getLoadLimit() == null ? 5 : profile.getLoadLimit();
-        int load = 0;
-        for (Map<String, Object> row : workerMapper.countLoad(List.of(uid))) {
-            load = ((Number) row.get("cnt")).intValue();
-        }
-        if (load >= limit) {
-            reasons.add("负载已满（" + load + "/" + limit + "）");
-        }
-        return reasons;
     }
 }

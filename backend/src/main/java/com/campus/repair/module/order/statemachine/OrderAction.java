@@ -16,7 +16,11 @@ public enum OrderAction {
     REJECT_ASSIGN("拒单"),
     FINISH("完工"),
     TRANSFER("转单"),
-    RATE("评价");
+    RATE("评价"),
+    RECYCLE("超时回收"),
+    BROADCAST("开放抢单"),
+    DEFAULT_RATE("默认好评"),
+    OVERDUE("超时预警");
 
     private final String label;
 

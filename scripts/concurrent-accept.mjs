@@ -19,7 +19,7 @@ const worker = (await req('POST', '/auth/login', { jobNo: 'worker02', password: 
 
 // 提交 + 审核 + 派给 worker02（从看板取 id）
 const submit = (await req('POST', '/orders', {
-  campus: 'EAST', locationDetail: '一教 101', faultType: '水电', urgency: 'NORMAL',
+  campus: 'UNIVERSITY_TOWN', locationDetail: '一教 101', faultType: '水电', urgency: 'NORMAL',
   description: '并发接单测试：走廊灯不亮，请检修',
 }, student)).json.data;
 await req('POST', '/orders/' + submit.orderId + '/audit', { pass: true }, admin);

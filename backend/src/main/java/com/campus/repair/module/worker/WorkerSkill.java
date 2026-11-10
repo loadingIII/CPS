@@ -10,4 +10,7 @@ public class WorkerSkill {
     private Long userId;
 
     private Long skillId;
+
+    /** 主修 / 兼修（派单评分因子） */
+    private SkillLevel level;
 }

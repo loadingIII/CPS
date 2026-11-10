@@ -1,13 +1,14 @@
 const tabsByRole = {
   REPORTER: [
-    { path: '/pages/report/report', text: '我要报修', icon: 'tool' },
-    { path: '/pages/my-orders/my-orders', text: '我的报修', icon: 'file' },
-    { path: '/pages/profile/profile', text: '我的', icon: 'user' },
+    { path: '/pages/home/home', text: '首页', icon: 'home' },
+    { path: '/pages/report/report', text: '报修服务', icon: 'tool' },
+    { path: '/pages/profile/profile', text: '个人中心', icon: 'user' },
   ],
   REPAIRER: [
+    { path: '/pages/home/home', text: '首页', icon: 'home' },
     { path: '/pages/worker-orders/worker-orders', text: '维修工单', icon: 'case' },
     { path: '/pages/worker-map/worker-map', text: '工单地图', icon: 'map' },
-    { path: '/pages/profile/profile', text: '我的', icon: 'user' },
+    { path: '/pages/profile/profile', text: '个人中心', icon: 'user' },
   ],
 }
 

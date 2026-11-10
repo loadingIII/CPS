@@ -1,0 +1,121 @@
+<view class="home-page">
+  <view class="welcome-wrap">
+    <view class="eyebrow"><text>校园修缮服务站</text></view>
+    <view class="greeting">{{greeting}}，{{userName}}</view>
+    <view class="welcome-sub">{{role === 'REPAIRER' ? '以下是当前任务与处理进度' : '校园设施报修服务，处理进度随时可查'}}</view>
+  </view>
+
+  <block wx:if="{{role === 'REPORTER'}}">
+    <view class="hero-panel reporter-hero">
+      <view class="hero-orbit orbit-one"></view>
+      <view class="hero-orbit orbit-two"></view>
+      <view class="hero-content">
+        <view class="hero-kicker">校园报修 · 师生服务</view>
+        <view class="hero-title">发现设施故障？</view>
+        <view class="hero-copy">填写位置与故障描述，师傅会跟进处理</view>
+        <button class="hero-button" bindtap="goReport">立即报修 <text class="hero-arrow">›</text></button>
+      </view>
+    </view>
+
+    <view class="section-row">
+      <view class="section-heading">工单概览</view>
+      <view class="section-link" bindtap="goAll">全部工单 <text>›</text></view>
+    </view>
+    <view class="stats-grid" wx:if="{{!loading}}">
+      <view class="stat-card tone-teal"><view class="stat-value">{{summary.total}}</view><view class="stat-label">累计报修</view><view class="stat-rule"></view></view>
+      <view class="stat-card tone-butter"><view class="stat-value">{{summary.pending}}</view><view class="stat-label">待处理</view><view class="stat-rule"></view></view>
+      <view class="stat-card tone-sky"><view class="stat-value">{{summary.processing}}</view><view class="stat-label">维修中</view><view class="stat-rule"></view></view>
+    </view>
+    <view class="stats-grid" wx:else>
+      <view class="stat-loading" wx:for="{{skeletons}}" wx:key="*this"></view>
+    </view>
+
+    <view class="section-row category-head">
+      <view class="section-heading">快捷报修</view>
+      <view class="section-note">选中类别，自动带入报修表单</view>
+    </view>
+    <view class="category-grid" wx:if="{{skills.length}}">
+      <view class="category-tile tone-{{item.tone}}" wx:for="{{skills}}" wx:key="id" data-index="{{index}}" bindtap="onSkill">
+        <view class="category-icon icon-{{item.icon}}" aria-hidden="true"></view>
+        <view class="category-name">{{item.name}}</view>
+        <view class="category-arrow">›</view>
+      </view>
+    </view>
+    <view class="category-empty" wx:else>{{skillsLoading ? '正在整理报修类型…' : '暂时无法获取类别，可点“立即报修”后手动选择'}}</view>
+
+    <view class="section-row recent-head">
+      <view class="section-heading">最近工单</view>
+      <view class="section-note">查看当前处理进度</view>
+    </view>
+    <view class="ticket-list" wx:if="{{recent.length}}">
+      <view class="ticket-card" wx:for="{{recent}}" wx:key="id" data-id="{{item.id}}" bindtap="goTicket">
+        <view class="ticket-side {{item.urgency === 'URGENT' ? 'side-urgent' : ''}}"></view>
+        <view class="ticket-main">
+          <view class="ticket-top"><text class="ticket-title">{{item.locationText}}</text><text class="status-pill {{item.statusClass}}">{{item.statusLabel}}</text></view>
+          <view class="ticket-meta"><text class="ticket-type">{{item.faultType}}</text><text class="ticket-time">{{item.submittedAt}}</text></view>
+        </view>
+      </view>
+    </view>
+    <view class="empty-card" wx:elif="{{!loading && !loadError}}">
+      <view class="empty-mark">单</view>
+      <view class="empty-title">还没有报修工单</view>
+      <view class="empty-copy">发现设施问题时，提交一张工单即可开始处理</view>
+      <view class="empty-action" bindtap="goReport">创建第一张工单 <text>›</text></view>
+    </view>
+
+  </block>
+
+  <block wx:elif="{{role === 'REPAIRER'}}">
+    <view class="hero-panel worker-hero" wx:if="{{worker}}">
+      <view class="hero-orbit orbit-one"></view>
+      <view class="worker-hero-content">
+        <view class="hero-kicker">维修工作台</view>
+        <view class="worker-name">{{worker.name}} <text>维修师傅</text></view>
+        <view class="worker-sub">综合评分 {{worker.score}} <text class="worker-divider">/</text> 技能 {{worker.skillText}}</view>
+        <view class="load-row"><text>当前负载</text><text>{{worker.currentLoad}} / {{worker.loadLimit}}</text></view>
+        <view class="load-track"><view class="load-value" style="width: {{worker.loadPercent}}%"></view></view>
+      </view>
+    </view>
+    <view class="worker-fallback" wx:elif="{{!loading}}">维修档案暂时无法加载</view>
+
+    <view class="section-row">
+      <view class="section-heading">工单概览</view>
+      <view class="section-link" bindtap="goWorkerOrders">打开工单 <text>›</text></view>
+    </view>
+    <view class="stats-grid worker-stats" wx:if="{{!loading}}">
+      <view class="stat-card tone-butter" data-status="PENDING" bindtap="goWorkerOrders"><view class="stat-value">{{summary.pending}}</view><view class="stat-label">待接单</view><view class="stat-rule"></view></view>
+      <view class="stat-card tone-teal" data-status="PROCESSING" bindtap="goWorkerOrders"><view class="stat-value">{{summary.processing}}</view><view class="stat-label">维修中</view><view class="stat-rule"></view></view>
+      <view class="stat-card tone-blush" data-status="GRAB" bindtap="goWorkerOrders"><view class="stat-value">{{summary.grab}}</view><view class="stat-label">可抢工单</view><view class="stat-rule"></view></view>
+    </view>
+    <view class="stats-grid" wx:else>
+      <view class="stat-loading" wx:for="{{skeletons}}" wx:key="*this"></view>
+    </view>
+
+    <view class="section-row recent-head">
+      <view class="section-heading">待处理工单</view>
+      <view class="section-note">优先跟进已派给你的任务</view>
+    </view>
+    <view class="ticket-list" wx:if="{{recent.length}}">
+      <view class="ticket-card" wx:for="{{recent}}" wx:key="id" data-id="{{item.id}}" bindtap="goTicket">
+        <view class="ticket-side {{item.urgency === 'URGENT' ? 'side-urgent' : ''}}"></view>
+        <view class="ticket-main">
+          <view class="ticket-top"><text class="ticket-title">{{item.locationText}}</text><text class="status-pill {{item.statusClass}}">{{item.statusLabel}}</text></view>
+          <view class="ticket-meta"><text class="ticket-type">{{item.faultType}}</text><text class="ticket-time">{{item.submittedAt}}</text></view>
+        </view>
+      </view>
+    </view>
+    <view class="empty-card" wx:elif="{{!loading && !loadError}}">
+      <view class="empty-mark">修</view>
+      <view class="empty-title">当前没有待处理工单</view>
+      <view class="empty-copy">可以去抢单大厅查看符合技能与服务范围的工单</view>
+      <view class="empty-action" bindtap="goWorkerOrders">查看维修工单 <text>›</text></view>
+    </view>
+
+  </block>
+
+  <view class="load-error" wx:if="{{loadError}}">
+    <text>首页数据暂时无法加载</text>
+    <view bindtap="onRetry">重新加载</view>
+  </view>
+  <view class="bottom-space"></view>
+</view>

@@ -1,14 +1,27 @@
 const { get, post, upload, BASE } = require('../../utils/request')
+const { STATUS_LABEL, STATUS_TAG } = require('../../utils/util')
+
+const ORDER_TABS = [
+  { value: '', label: '全部' },
+  { value: 'PENDING_AUDIT', label: '待审核' },
+  { value: 'PENDING', label: '待处理' },
+  { value: 'PROCESSING', label: '处理中' },
+  { value: 'COMPLETED', label: '待评价' },
+  { value: 'EVALUATED', label: '已评价' },
+  { value: 'REJECTED', label: '已驳回' },
+]
 
 Page({
   data: {
     BASE,
     greeting: '',
     userName: '',
+    serviceView: 'form',
     campusList: [],
     campusIndex: 0,
     campusCode: '',
     campusName: '',
+    campusAddress: '',
     locationDetail: '',
     skillNames: [],
     mapPick: null,
@@ -17,6 +30,15 @@ Page({
     desc: '',
     images: [],
     submitting: false,
+    orderTabs: ORDER_TABS,
+    STATUS_LABEL,
+    STATUS_TAG,
+    orderStatus: '',
+    orderList: [],
+    orderPage: 1,
+    orderTotal: 0,
+    ordersLoading: false,
+    ordersError: false,
   },
 
   onShow() {
@@ -25,8 +47,82 @@ Page({
     const user = wx.getStorageSync('user') || {}
     const h = new Date().getHours()
     const greeting = h < 6 ? '夜深了' : h < 12 ? '早上好' : h < 14 ? '中午好' : h < 18 ? '下午好' : '晚上好'
-    this.setData({ userName: user.name || '', greeting })
+    const app = getApp()
+    const requestedView = app.globalData.reportView || this.data.serviceView || 'form'
+    app.globalData.reportView = ''
+    const homeFaultType = app.globalData.homeFaultType || ''
+    if (homeFaultType) app.globalData.homeFaultType = ''
+    this.setData({
+      userName: user.name || '',
+      greeting,
+      serviceView: requestedView,
+      faultType: homeFaultType || this.data.faultType,
+    })
     this.loadBase()
+    if (requestedView === 'orders') this.reloadOrders()
+  },
+
+  onPullDownRefresh() {
+    const task = this.data.serviceView === 'orders' ? this.reloadOrders() : this.loadBase()
+    Promise.resolve(task).finally(() => wx.stopPullDownRefresh())
+  },
+
+  onReachBottom() {
+    if (this.data.serviceView !== 'orders' || this.data.ordersLoading) return
+    if (this.data.orderList.length < this.data.orderTotal) {
+      this.loadOrders(this.data.orderPage + 1)
+    }
+  },
+
+  onServiceView(e) {
+    const serviceView = e.currentTarget.dataset.view
+    if (!serviceView || serviceView === this.data.serviceView) return
+    this.setData({ serviceView })
+    if (serviceView === 'orders') this.reloadOrders()
+  },
+
+  onOrderStatus(e) {
+    const orderStatus = e.currentTarget.dataset.value
+    this.setData({ orderStatus }, () => this.reloadOrders())
+  },
+
+  reloadOrders() {
+    const requestId = (this._ordersRequestId || 0) + 1
+    this._ordersRequestId = requestId
+    this.setData({
+      orderPage: 1,
+      orderList: [],
+      orderTotal: 0,
+      ordersLoading: true,
+      ordersError: false,
+    })
+    return this.loadOrders(1, requestId)
+  },
+
+  async loadOrders(page, requestId) {
+    if (!requestId && this.data.ordersLoading) return
+    const currentRequest = requestId || ((this._ordersRequestId || 0) + 1)
+    this._ordersRequestId = currentRequest
+    const status = this.data.orderStatus
+    this.setData({ ordersLoading: true, ordersError: false })
+    try {
+      const result = await get(`/orders/my?page=${page}&pageSize=10${status ? '&status=' + status : ''}`)
+      if (currentRequest !== this._ordersRequestId) return
+      const nextList = page === 1 ? (result.list || []) : this.data.orderList.concat(result.list || [])
+      this.setData({
+        orderList: nextList,
+        orderPage: page,
+        orderTotal: result.total || 0,
+      })
+    } catch (e) {
+      if (currentRequest === this._ordersRequestId) this.setData({ ordersError: true })
+    } finally {
+      if (currentRequest === this._ordersRequestId) this.setData({ ordersLoading: false })
+    }
+  },
+
+  goOrderDetail(e) {
+    wx.navigateTo({ url: '/pages/order-detail/order-detail?id=' + e.currentTarget.dataset.id })
   },
 
   /** 校区为唯一受控选项（后端枚举），其余位置由报修人自由填写 */
@@ -39,6 +135,7 @@ Page({
       campusIndex: 0,
       campusCode: first ? first.code : '',
       campusName: first ? first.name : '',
+      campusAddress: first ? (first.address || '') : '',
       skillNames: skills.map(s => s.name),
     })
   },
@@ -46,7 +143,7 @@ Page({
   onCampusChange(e) {
     const i = Number(e.detail.value)
     const c = this.data.campusList[i]
-    if (c) this.setData({ campusIndex: i, campusCode: c.code, campusName: c.name })
+    if (c) this.setData({ campusIndex: i, campusCode: c.code, campusName: c.name, campusAddress: c.address || '' })
   },
 
   onLocationDetail(e) {
@@ -149,8 +246,10 @@ Page({
         showCancel: false,
         confirmColor: '#0E4A54',
         success: () => {
-          this.setData({ faultType: '', desc: '', images: [], mapPick: null, locationDetail: '' })
-          wx.switchTab({ url: '/pages/my-orders/my-orders' })
+          this.setData({
+            faultType: '', desc: '', images: [], mapPick: null, locationDetail: '',
+            serviceView: 'orders', orderStatus: '',
+          }, () => this.reloadOrders())
         },
       })
     } catch (e) { /* 拦截器已提示 */ }

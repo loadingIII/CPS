@@ -1,59 +1,66 @@
 .wrap {
   min-height: 100vh;
-  background: linear-gradient(155deg, #10424E 0%, #0C2F3A 58%, #092530 100%);
-  padding: 150rpx 48rpx 0;
   box-sizing: border-box;
+  padding: 112rpx 40rpx 60rpx;
   position: relative;
   overflow: hidden;
+  background-color: #f5f6f7;
+  background-image:
+    linear-gradient(rgba(15, 123, 126, 0.045) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(15, 123, 126, 0.045) 1rpx, transparent 1rpx);
+  background-size: 64rpx 64rpx;
 }
-/* 环境光装饰环 */
 .ring {
   position: absolute;
   border-radius: 50%;
-  border: 2rpx solid rgba(255, 255, 255, 0.06);
+  border: 2rpx dashed rgba(15, 123, 126, 0.12);
+  pointer-events: none;
 }
 .ring-a {
   width: 620rpx; height: 620rpx;
-  top: -180rpx; right: -200rpx;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.05), transparent 60%);
+  top: -210rpx; right: -250rpx;
+  background: radial-gradient(circle at 30% 30%, rgba(188, 223, 230, 0.22), transparent 65%);
 }
 .ring-b {
   width: 420rpx; height: 420rpx;
-  top: 60rpx; right: -120rpx;
-  border-color: rgba(255, 255, 255, 0.08);
+  top: 20rpx; right: -160rpx;
+  border-color: rgba(244, 213, 141, 0.3);
 }
 
-.brand { position: relative; margin-bottom: 64rpx; }
+.brand { position: relative; margin-bottom: 42rpx; }
 .logo {
   width: 104rpx; height: 104rpx;
-  border-radius: 28rpx;
-  background: linear-gradient(135deg, #E8A33D, #D96A3B);
-  box-shadow: 0 16rpx 32rpx rgba(217, 106, 59, 0.35);
+  border-radius: 50%;
+  background: #0f7b7e;
+  border: 5rpx solid #ffffff;
+  box-shadow: 0 0 0 2rpx #0f7b7e, 5rpx 5rpx 0 #2b3a3c;
   display: flex; align-items: center; justify-content: center;
-  margin-bottom: 32rpx;
+  margin-bottom: 30rpx;
+  transform: rotate(-5deg);
 }
 .logo-icon {
   width: 56rpx; height: 56rpx;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z'/%3E%3C/svg%3E") no-repeat center / contain;
 }
-.title { color: #FFFFFF; font-size: 52rpx; font-weight: 700; letter-spacing: 6rpx; }
-.subtitle {
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 24rpx; margin-top: 12rpx; letter-spacing: 3rpx;
-}
+.title { color: #2b3a3c; font-size: 48rpx; font-weight: 800; letter-spacing: 4rpx; font-family: "STSong", "Songti SC", serif; }
+.subtitle { color: #758286; font-size: 24rpx; margin-top: 12rpx; letter-spacing: 2rpx; }
 
-.form { padding: 40rpx 36rpx 44rpx; }
-.welcome { font-size: 34rpx; font-weight: 700; margin-bottom: 28rpx; }
+.form {
+  position: relative;
+  background: #ffffff;
+  border: 2rpx solid #c6cad0;
+  border-radius: 24rpx;
+  padding: 34rpx 32rpx 38rpx;
+  box-shadow: 0 10rpx 28rpx rgba(43, 58, 60, 0.08);
+}
+.welcome { font-size: 34rpx; font-weight: 800; color: #2b3a3c; margin-bottom: 24rpx; }
 .field {
   display: flex; align-items: center;
-  border-bottom: 1rpx solid #EEF1F1;
-  padding: 28rpx 0;
+  border-bottom: 2rpx dashed #c6cad0;
+  padding: 26rpx 0;
 }
-.label { width: 130rpx; color: #5C6E74; font-size: 27rpx; }
-.input { flex: 1; font-size: 29rpx; color: #1B2A30; }
-.ph { color: #B8C4C7; }
-.login-btn { margin-top: 48rpx; }
-.tip {
-  text-align: center; color: #B8C4C7;
-  font-size: 22rpx; margin-top: 26rpx; letter-spacing: 1rpx;
-}
+.label { width: 130rpx; color: #5b6e70; font-size: 27rpx; font-weight: 600; }
+.input { flex: 1; font-size: 29rpx; color: #2b3a3c; }
+.ph { color: #86909c; }
+.login-btn { margin-top: 42rpx; }
+.tip { text-align: center; color: #758286; font-size: 22rpx; margin-top: 24rpx; letter-spacing: 1rpx; }

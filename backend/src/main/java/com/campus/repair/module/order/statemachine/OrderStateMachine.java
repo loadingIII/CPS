@@ -89,31 +89,55 @@ public class OrderStateMachine {
                     Set.of(Role.ADMIN, Role.SYS_ADMIN), Identity.NONE, false,
                     o -> true, null,
                     (o, x) -> { o.setWorkerId(x); o.setAssignedAt(now()); }),
-            // #8b 抢单：维修工自助接派（仅未派单工单；资格硬校验由服务层完成，先到先得）
+            // #8b 抢单：维修工自助承接（仅未派单工单；资格与容量由服务层校验，先到先得）
+            // 抢到即接单：直接进入处理中，不再要求二次确认
             new Rule(OrderStatus.PENDING, OrderAction.CLAIM,
                     Set.of(Role.REPAIRER), Identity.NONE, false,
-                    o -> o.getWorkerId() == null, "该工单已被派给其他师傅",
-                    (o, x) -> { o.setWorkerId(x); o.setAssignedAt(now()); }),
+                    o -> o.getWorkerId() == null, "手慢了，该工单已被其他师傅抢走",
+                    (o, x) -> {
+                        o.setWorkerId(x);
+                        o.setAssignedAt(now());
+                        o.setAcceptedAt(now());
+                        o.setAssignExpiresAt(null);
+                        o.setStatus(OrderStatus.PROCESSING);
+                    }),
             // #9 接单：待处理 → 处理中（仅被派人；并发由乐观锁保证，§2.4）
             new Rule(OrderStatus.PENDING, OrderAction.ACCEPT,
                     Set.of(Role.REPAIRER), Identity.WORKER, false,
                     o -> true, null,
-                    (o, x) -> { o.setStatus(OrderStatus.PROCESSING); o.setAcceptedAt(now()); }),
-            // #10 拒单：待处理 → 待处理（清空维修工回池，理由必填）
+                    (o, x) -> {
+                        o.setStatus(OrderStatus.PROCESSING);
+                        o.setAcceptedAt(now());
+                        o.setAssignExpiresAt(null);
+                    }),
+            // #10 拒单：待处理 → 待处理（清空承接信息回池，理由必填）
             new Rule(OrderStatus.PENDING, OrderAction.REJECT_ASSIGN,
                     Set.of(Role.REPAIRER), Identity.WORKER, true,
                     o -> true, null,
-                    (o, x) -> o.setWorkerId(null)),
+                    (o, x) -> {
+                        o.setWorkerId(null);
+                        o.setAssignedAt(null);
+                        o.setAcceptedAt(null);
+                        o.setAssignExpiresAt(null);
+                        o.setDueAt(null);
+                    }),
             // #11 完工：处理中 → 已完成
             new Rule(OrderStatus.PROCESSING, OrderAction.FINISH,
                     Set.of(Role.REPAIRER), Identity.WORKER, false,
                     o -> true, null,
                     (o, x) -> { o.setStatus(OrderStatus.COMPLETED); o.setCompletedAt(now()); }),
-            // #12 转单：处理中 → 待处理（清空维修工，理由必填；加分项）
+            // #12 转单：处理中 → 待处理（清空承接信息，理由必填；加分项）
             new Rule(OrderStatus.PROCESSING, OrderAction.TRANSFER,
                     Set.of(Role.REPAIRER), Identity.WORKER, true,
                     o -> true, null,
-                    (o, x) -> { o.setWorkerId(null); o.setStatus(OrderStatus.PENDING); }),
+                    (o, x) -> {
+                        o.setWorkerId(null);
+                        o.setAssignedAt(null);
+                        o.setAcceptedAt(null);
+                        o.setAssignExpiresAt(null);
+                        o.setDueAt(null);
+                        o.setStatus(OrderStatus.PENDING);
+                    }),
             // #13 评价：已完成 → 已评价（一单一评价由服务层 + uk_order 双重保证）
             new Rule(OrderStatus.COMPLETED, OrderAction.RATE,
                     Set.of(Role.REPORTER), Identity.REPORTER, false,

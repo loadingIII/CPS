@@ -6,6 +6,7 @@ import com.campus.repair.common.Result;
 import com.campus.repair.common.Role;
 import com.campus.repair.module.order.dto.AuditReq;
 import com.campus.repair.module.order.dto.AssignReq;
+import com.campus.repair.module.order.dto.DispatchInfoVO;
 import com.campus.repair.module.order.dto.EvaluationReq;
 import com.campus.repair.module.order.dto.FinishReq;
 import com.campus.repair.module.order.dto.MapOrderVO;
@@ -66,6 +67,7 @@ public class OrderController {
     }
 
     @Operation(summary = "报修人撤单（待审核/未派单的待处理）")
+    @RequireRole({Role.REPORTER, Role.ADMIN, Role.SYS_ADMIN})
     @PostMapping("/{id}/cancel")
     public Result<Void> cancel(@PathVariable Long id) {
         orderService.cancel(id);
@@ -107,7 +109,7 @@ public class OrderController {
         return Result.ok();
     }
 
-    @Operation(summary = "抢单大厅：我可承接的待派单工单（F4-4 自助抢单）")
+    @Operation(summary = "抢单大厅：我可承接的待派单工单（F4-4 自助抢单，抢到即接单）")
     @RequireRole(Role.REPAIRER)
     @GetMapping("/grab-pool")
     public Result<PageVO<OrderListVO>> grabPool(@RequestParam(defaultValue = "1") long page,
@@ -115,7 +117,7 @@ public class OrderController {
         return Result.ok(orderService.grabPool(page, pageSize));
     }
 
-    @Operation(summary = "抢单（先到先得，乐观锁防并发）")
+    @Operation(summary = "抢单（先到先得，抢到即接单）")
     @RequireRole(Role.REPAIRER)
     @PostMapping("/{id}/claim")
     public Result<Void> claim(@PathVariable Long id) {
@@ -163,16 +165,18 @@ public class OrderController {
         return Result.ok(orderService.statistics());
     }
 
-    @Operation(summary = "工单列表（管理视角，审核队列复用）")
+    @Operation(summary = "工单列表（管理视角，审核队列复用；dispatchState=POOL/OFFERED 拆分待派单与已派待接）")
     @RequireRole({Role.ADMIN, Role.SYS_ADMIN})
     @GetMapping
     public Result<PageVO<OrderListVO>> adminPage(@RequestParam(required = false) OrderStatus status,
                                                  @RequestParam(required = false) Urgency urgency,
                                                  @RequestParam(required = false) String faultType,
                                                  @RequestParam(required = false) String keyword,
+                                                 @RequestParam(required = false) DispatchState dispatchState,
                                                  @RequestParam(defaultValue = "1") long page,
                                                  @RequestParam(defaultValue = "10") long pageSize) {
-        return Result.ok(orderService.pageAdmin(status, urgency, faultType, keyword, page, pageSize));
+        return Result.ok(orderService.pageAdmin(status, urgency, faultType, keyword,
+                dispatchState, page, pageSize));
     }
 
     @Operation(summary = "审核（通过/驳回，F3-2）")
@@ -198,11 +202,25 @@ public class OrderController {
         return Result.ok(orderService.eligibleWorkers(id));
     }
 
-    @Operation(summary = "手动派单（F4-2，支持改派）")
+    @Operation(summary = "手动派单（F4-2，支持改派；改派必须填写理由）")
     @RequireRole({Role.ADMIN, Role.SYS_ADMIN})
     @PostMapping("/{id}/assign")
     public Result<Void> assign(@PathVariable Long id, @Valid @RequestBody AssignReq req) {
         orderService.assign(id, req);
+        return Result.ok();
+    }
+
+    @Operation(summary = "派单调度信息（子状态/来源/次数/剩余接单时间）")
+    @GetMapping("/{id}/dispatch-info")
+    public Result<DispatchInfoVO> dispatchInfo(@PathVariable Long id) {
+        return Result.ok(orderService.dispatchInfo(id));
+    }
+
+    @Operation(summary = "管理员开放抢单（应对难派单）")
+    @RequireRole({Role.ADMIN, Role.SYS_ADMIN})
+    @PostMapping("/{id}/broadcast")
+    public Result<Void> broadcast(@PathVariable Long id) {
+        orderService.broadcast(id);
         return Result.ok();
     }
 

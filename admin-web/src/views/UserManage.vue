@@ -34,13 +34,15 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="180">
+      <el-table-column label="操作" width="220" class-name="user-actions-column">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-          <el-button link :type="row.status === 1 ? 'danger' : 'success'" @click="toggle(row)">
-            {{ row.status === 1 ? '停用' : '启用' }}
-          </el-button>
-          <el-button link type="warning" @click="resetPwd(row)">重置密码</el-button>
+          <div class="user-actions">
+            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
+            <el-button link :type="row.status === 1 ? 'danger' : 'success'" @click="toggle(row)">
+              {{ row.status === 1 ? '停用' : '启用' }}
+            </el-button>
+            <el-button link type="warning" @click="resetPwd(row)">重置密码</el-button>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -141,4 +143,7 @@ onMounted(load)
 <style scoped>
 .toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
 .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.user-actions-column :deep(.cell) { overflow: visible; }
+.user-actions { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; white-space: nowrap; }
+.user-actions :deep(.el-button) { flex: 0 0 auto; min-height: 22px; margin: 0; padding: 2px 3px; line-height: 1.2; white-space: nowrap; }
 </style>
