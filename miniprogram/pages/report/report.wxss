@@ -31,8 +31,7 @@
 .submit { width: 100%; }
 
 .service-head { padding: 28rpx 30rpx 18rpx; }
-.service-kicker { display: flex; align-items: center; gap: 12rpx; color: #0a5f62; font-size: 21rpx; font-weight: 700; letter-spacing: 2rpx; }
-.service-mark { width: 38rpx; height: 38rpx; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #0f7b7e; color: #fff; font-family: "STSong", "Songti SC", serif; font-size: 23rpx; }
+.service-kicker { color: #0a5f62; font-size: 21rpx; font-weight: 700; letter-spacing: 2rpx; }
 .service-title { margin-top: 10rpx; color: #2b3a3c; font-family: "STSong", "Songti SC", serif; font-size: 42rpx; font-weight: 800; letter-spacing: 2rpx; }
 .service-sub { margin-top: 8rpx; color: #758286; font-size: 23rpx; line-height: 1.55; }
 .service-switch { display: flex; gap: 8rpx; margin-top: 22rpx; padding: 8rpx; background: #e9ebed; border: 2rpx dashed #c6cad0; border-radius: 20rpx; }

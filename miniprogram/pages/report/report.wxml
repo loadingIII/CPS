@@ -1,6 +1,6 @@
 <view class="page service-page">
   <view class="service-head">
-    <view class="service-kicker"><text class="service-mark">禾</text><text>青禾维修 · 校园服务</text></view>
+    <view class="service-kicker"><text>校园报修 · 师生服务</text></view>
     <view class="service-title">报修服务</view>
     <view class="service-sub">{{greeting}}，{{userName}} · 报修申请与进度查询，一个入口完成</view>
     <view class="service-switch">

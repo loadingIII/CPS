@@ -1,6 +1,6 @@
 <view class="home-page">
   <view class="welcome-wrap">
-    <view class="eyebrow"><text class="eyebrow-mark">禾</text><text>校园修缮服务站</text></view>
+    <view class="eyebrow"><text>校园修缮服务站</text></view>
     <view class="greeting">{{greeting}}，{{userName}}</view>
     <view class="welcome-sub">{{role === 'REPAIRER' ? '以下是当前任务与处理进度' : '校园设施报修服务，处理进度随时可查'}}</view>
   </view>
@@ -10,12 +10,11 @@
       <view class="hero-orbit orbit-one"></view>
       <view class="hero-orbit orbit-two"></view>
       <view class="hero-content">
-        <view class="hero-kicker">青禾维修 · 师生服务</view>
+        <view class="hero-kicker">校园报修 · 师生服务</view>
         <view class="hero-title">发现设施故障？</view>
         <view class="hero-copy">填写位置与故障描述，师傅会跟进处理</view>
         <button class="hero-button" bindtap="goReport">立即报修 <text class="hero-arrow">›</text></button>
       </view>
-      <view class="hero-seal">青禾</view>
     </view>
 
     <view class="section-row">
@@ -76,7 +75,6 @@
         <view class="load-row"><text>当前负载</text><text>{{worker.currentLoad}} / {{worker.loadLimit}}</text></view>
         <view class="load-track"><view class="load-value" style="width: {{worker.loadPercent}}%"></view></view>
       </view>
-      <view class="hero-seal worker-seal">匠</view>
     </view>
     <view class="worker-fallback" wx:elif="{{!loading}}">维修档案暂时无法加载</view>
 
