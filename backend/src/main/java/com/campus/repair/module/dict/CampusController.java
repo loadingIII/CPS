@@ -19,7 +19,7 @@ public class CampusController {
     @GetMapping
     public Result<List<CampusVO>> list() {
         return Result.ok(Arrays.stream(Campus.values())
-                .map(c -> new CampusVO(c.name(), c.label(), c.lng(), c.lat()))
+                .map(c -> new CampusVO(c.name(), c.label(), c.address(), c.lng(), c.lat()))
                 .toList());
     }
 }

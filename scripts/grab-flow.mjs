@@ -22,12 +22,12 @@ const check = (name, cond, detail) => {
 
 const student = (await req('POST', '/auth/login', { jobNo: 'student01', password: '123456' })).json.data.token;
 const admin = (await req('POST', '/auth/login', { jobNo: 'admin1', password: '123456' })).json.data.token;
-const worker01 = (await req('POST', '/auth/login', { jobNo: 'worker01', password: '123456' })).json.data.token; // 水电主修+空调兼修，东校区
-const workerOut = (await req('POST', '/auth/login', { jobNo: 'worker03', password: '123456' })).json.data.token; // 网络+实验，西校区
+const worker01 = (await req('POST', '/auth/login', { jobNo: 'worker01', password: '123456' })).json.data.token; // 水电主修+空调兼修，大学城校区
+const workerOut = (await req('POST', '/auth/login', { jobNo: 'worker03', password: '123456' })).json.data.token; // 网络+实验，龙洞校区
 
 // 1. 紧急单：审核通过即开放抢单
 const urgent = (await req('POST', '/orders', {
-  campus: 'EAST', locationDetail: '1号宿舍楼 101', faultType: '水电', urgency: 'URGENT',
+  campus: 'UNIVERSITY_TOWN', locationDetail: '1号宿舍楼 101', faultType: '水电', urgency: 'URGENT',
   description: '抢单流程测试：宿舍水龙头爆裂漏水，请立即处理',
 }, student)).json.data;
 check('提交紧急工单', !!urgent?.orderId, urgent);
@@ -69,7 +69,7 @@ check('时间线含「抢单」', (logs || []).some(l => l.action === '抢单'),
 
 // 8. 普通单延迟开放，管理员可手动开放
 const normal = (await req('POST', '/orders', {
-  campus: 'EAST', locationDetail: '一教 201', faultType: '水电', urgency: 'NORMAL',
+  campus: 'UNIVERSITY_TOWN', locationDetail: '一教 201', faultType: '水电', urgency: 'NORMAL',
   description: '抢单流程测试：一教201走廊灯不亮，请检修',
 }, student)).json.data;
 await req('POST', '/orders/' + normal.orderId + '/audit', { pass: true }, admin);

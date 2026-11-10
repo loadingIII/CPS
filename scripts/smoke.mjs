@@ -52,8 +52,9 @@ check('TC02b 未登录访问被拒(401)', noAuth.status === 401, noAuth.json);
 
 // ---------- TC03/04 基础数据 ----------
 const campuses = await req('GET', '/campuses', null, studentToken);
-check('TC03 校区字典只读返回', campuses.json?.code === 0 && (campuses.json?.data?.length ?? 0) >= 3, campuses.json);
-check('TC03b 含东校区枚举', (campuses.json?.data || []).some(c => c.code === 'EAST' && c.name === '东校区'), campuses.json?.data);
+check('TC03 校区字典只读返回(六校区)', campuses.json?.code === 0 && (campuses.json?.data?.length ?? 0) === 6, campuses.json);
+check('TC03c 校区均含详细地址', (campuses.json?.data || []).every(c => c.address && c.address.length > 0), campuses.json?.data);
+check('TC03b 含大学城校区枚举', (campuses.json?.data || []).some(c => c.code === 'UNIVERSITY_TOWN' && c.name === '大学城校区'), campuses.json?.data);
 
 const skills = await req('GET', '/skills', null, studentToken);
 check('TC04 技能列表 ≥7 项', skills.json?.code === 0 && (skills.json?.data?.length ?? 0) >= 7, skills.json);
@@ -62,18 +63,18 @@ check('TC04 技能列表 ≥7 项', skills.json?.code === 0 && (skills.json?.dat
 const desc = '冒烟测试：一教101讲台插座接触不良，偶发打火，请尽快检修';
 const clientToken = 'smoke-' + Date.now();
 const submit = await req('POST', '/orders', {
-  campus: 'EAST', locationDetail: '一教 101', faultType: '水电', urgency: 'URGENT', description: desc, clientToken,
+  campus: 'UNIVERSITY_TOWN', locationDetail: '一教 101', faultType: '水电', urgency: 'URGENT', description: desc, clientToken,
 }, studentToken);
 check('TC05 提交工单(BX工单号)', submit.json?.code === 0 && submit.json?.data?.orderNo?.startsWith('BX'), submit.json);
 const orderId = submit.json?.data?.orderId;
 
 const submitDup = await req('POST', '/orders', {
-  campus: 'EAST', locationDetail: '一教 101', faultType: '水电', urgency: 'URGENT', description: desc, clientToken,
+  campus: 'UNIVERSITY_TOWN', locationDetail: '一教 101', faultType: '水电', urgency: 'URGENT', description: desc, clientToken,
 }, studentToken);
 check('TC05b 幂等：同 token 不产生新单', submitDup.json?.data?.orderId === orderId, submitDup.json);
 
 const badSubmit = await req('POST', '/orders', {
-  campus: 'EAST', locationDetail: '一教 101', faultType: '水电', urgency: 'URGENT', description: '短',
+  campus: 'UNIVERSITY_TOWN', locationDetail: '一教 101', faultType: '水电', urgency: 'URGENT', description: '短',
 }, studentToken);
 check('TC05c 描述过短被拒(40001)', badSubmit.json?.code === 40001, badSubmit.json);
 
@@ -98,9 +99,9 @@ check('TC09 审核通过', audit.json?.code === 0, audit.json);
 const board = await req('GET', '/orders/' + orderId + '/eligible-workers', null, adminToken);
 check('TC10 看板返回维修工', board.json?.code === 0 && (board.json?.data?.length ?? 0) >= 6, board.json);
 const w02 = (board.json?.data || []).find(w => w.name === '李国栋');
-check('TC10b 李国栋合格(水电技能+负责东校区)', w02?.eligible === true, w02);
+check('TC10b 李国栋合格(水电技能+负责大学城校区)', w02?.eligible === true, w02);
 const w03 = (board.json?.data || []).find(w => w.name === '赵敏');
-check('TC10c 赵敏不合格(负责西校区)', w03?.eligible === false && (w03?.failReasons || []).some(r => r.includes('校区')), w03);
+check('TC10c 赵敏不合格(负责龙洞校区)', w03?.eligible === false && (w03?.failReasons || []).some(r => r.includes('校区')), w03);
 
 // ---------- TC11/12 派单 ----------
 const assign = await req('POST', '/orders/' + orderId + '/assign', { workerId: w02.workerId }, adminToken);

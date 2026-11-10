@@ -23,9 +23,9 @@ const check = (name, cond, detail) => {
 const login = async (jobNo) => (await req('POST', '/auth/login', { jobNo, password: '123456' })).json.data.token
 const student = await login('student01')
 const admin = await login('admin1')
-const w01 = await login('worker01') // 张强：水电主修 + 空调兼修，东校区
-const w02 = await login('worker02') // 李国栋：水电主修，东校区
-const w03 = await login('worker03') // 赵敏：网络/实验，西校区
+const w01 = await login('worker01') // 张强：水电主修 + 空调兼修，大学城校区
+const w02 = await login('worker02') // 李国栋：水电主修，大学城校区
+const w03 = await login('worker03') // 赵敏：网络/实验，龙洞校区
 
 const workers = (await req('GET', '/workers?page=1&pageSize=200', null, admin)).json.data.list
 const byName = (n) => workers.find(w => w.name === n)
@@ -37,7 +37,7 @@ async function setLimit(id, limit) {
 }
 async function submitAudit(urgency = 'NORMAL') {
   const o = (await req('POST', '/orders', {
-    campus: 'EAST', locationDetail: '派单验证 ' + Date.now(), faultType: '水电', urgency,
+    campus: 'UNIVERSITY_TOWN', locationDetail: '派单验证 ' + Date.now(), faultType: '水电', urgency,
     description: '派单调度验证用例：走廊照明回路故障，请检修',
   }, student)).json.data
   await req('POST', '/orders/' + o.orderId + '/audit', { pass: true }, admin)

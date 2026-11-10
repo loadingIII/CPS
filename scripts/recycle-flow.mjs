@@ -24,7 +24,7 @@ const workers = (await req('GET', '/workers?page=1&pageSize=200', null, admin)).
 const li = workers.find(w => w.name === '李国栋')
 
 const order = (await req('POST', '/orders', {
-  campus: 'EAST', locationDetail: '超时回收验证 ' + Date.now(), faultType: '水电', urgency: 'NORMAL',
+  campus: 'UNIVERSITY_TOWN', locationDetail: '超时回收验证 ' + Date.now(), faultType: '水电', urgency: 'NORMAL',
   description: '超时回收验证用例：配电箱异响，请安排检修',
 }, student)).json.data
 await req('POST', '/orders/' + order.orderId + '/audit', { pass: true }, admin)

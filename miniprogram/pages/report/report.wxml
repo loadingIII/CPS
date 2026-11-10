@@ -25,6 +25,7 @@
             <view class="chevron"></view>
           </view>
         </picker>
+        <view wx:if="{{campusAddress}}" class="campus-address">{{campusAddress}}</view>
         <view class="loc-detail">
           <input class="loc-input" placeholder="楼栋 / 房间 / 具体点位，如：1号宿舍楼 101"
                  placeholder-class="ph" maxlength="200" value="{{locationDetail}}"

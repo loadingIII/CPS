@@ -38,8 +38,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * T13 种子数据：首次启动（用户表为空）时初始化基础数据与 11 张演示工单，幂等（重复启动不重复插入）。
- * 账号密码统一 123456。校区为代码枚举，不落库；详细位置为报修人自由填写的文本。
+ * T13 种子数据：首次启动（用户表为空）时初始化基础数据与 12 张演示工单，幂等（重复启动不重复插入）。
+ * 账号密码统一 123456。校区为代码枚举（六校区），不落库；详细位置为报修人自由填写的文本。
+ * 演示工单覆盖全部六个校区，维修工负责范围主要覆盖广州五校区。
  */
 @Component
 public class SeedRunner implements CommandLineRunner {
@@ -114,13 +115,17 @@ public class SeedRunner implements CommandLineRunner {
         SysUser w04 = insertUser("worker04", "孙志刚", Role.REPAIRER, "13900000104", null, null, hash);
         SysUser w05 = insertUser("worker05", "周建国", Role.REPAIRER, "13900000105", null, null, hash);
         SysUser w06 = insertUser("worker06", "吴秀兰", Role.REPAIRER, "13900000106", null, null, hash);
-        // 负责校区只按校区枚举配置；东校区单派给西校区师傅会被资格校验拦下（演示点）
-        insertWorker(w01, List.of("水电", "空调家电"), List.of(Campus.EAST), skillMap);
-        insertWorker(w02, List.of("水电"), List.of(Campus.EAST), skillMap);
-        insertWorker(w03, List.of("网络多媒体", "实验设备"), List.of(Campus.WEST), skillMap);
-        insertWorker(w04, List.of("木工门窗"), List.of(Campus.EAST), skillMap);
-        insertWorker(w05, List.of("空调家电", "电梯"), List.of(Campus.EAST), skillMap);
-        insertWorker(w06, List.of("水电", "木工门窗"), List.of(Campus.WEST, Campus.SOUTH), skillMap);
+        // 负责校区只按校区枚举配置；大学城校区单派给不负责该校区（龙洞/东风路）的师傅会被资格校验拦下（演示点）
+        insertWorker(w01, List.of("水电", "空调家电"), List.of(Campus.UNIVERSITY_TOWN), skillMap);
+        insertWorker(w02, List.of("水电"), List.of(Campus.UNIVERSITY_TOWN), skillMap);
+        insertWorker(w03, List.of("网络多媒体", "实验设备"),
+                List.of(Campus.LONGDONG, Campus.DONGFENG_ROAD), skillMap);
+        insertWorker(w04, List.of("木工门窗"), List.of(Campus.UNIVERSITY_TOWN), skillMap);
+        insertWorker(w05, List.of("空调家电", "电梯"),
+                List.of(Campus.UNIVERSITY_TOWN, Campus.SHAHE), skillMap);
+        insertWorker(w06, List.of("水电", "木工门窗"),
+                List.of(Campus.LONGDONG, Campus.PANYU), skillMap);
+        // 揭阳校区跨市，演示数据中暂不配置驻点维修工，用于展示「候选为空」的派单降级提示
 
         SysUser s01 = insertUser("student01", "陈明", Role.REPORTER, "13900000201", null, "1号宿舍楼101", hash);
         SysUser s02 = insertUser("student02", "刘婷", Role.REPORTER, "13900000202", null, "2号宿舍楼301", hash);
@@ -133,63 +138,66 @@ public class SeedRunner implements CommandLineRunner {
         LocalDateTime now = LocalDateTime.now();
 
         // 1 待审核（紧急）
-        RepairOrder o1 = newOrder(s01, Campus.EAST, "1号宿舍楼 101", "空调家电", Urgency.URGENT,
+        RepairOrder o1 = newOrder(s01, Campus.UNIVERSITY_TOWN, "1号宿舍楼 101", "空调家电", Urgency.URGENT,
                 "宿舍空调不制冷，出风只有常温，晚上热得没法睡", now.minusHours(1));
-        // 2 待审核（普通）
-        RepairOrder o2 = newOrder(s02, Campus.EAST, "一教 201", "网络多媒体",
+        // 2 待审核（普通，东风路校区）
+        RepairOrder o2 = newOrder(s02, Campus.DONGFENG_ROAD, "一教 201", "网络多媒体",
                 Urgency.NORMAL, "一教201多媒体讲台无法开机，投影无信号", now.minusHours(3));
-        // 3 待处理（未派单，西校区）
-        RepairOrder o3 = newOrder(s03, Campus.WEST, "3号宿舍楼 101", "水电", Urgency.NORMAL,
+        // 3 待处理（未派单，龙洞校区）
+        RepairOrder o3 = newOrder(s03, Campus.LONGDONG, "3号宿舍楼 101", "水电", Urgency.NORMAL,
                 "宿舍卫生间水龙头关不严，一直在滴水", now.minusHours(5));
         audit(o3, admin1, now.minusHours(4).minusMinutes(30));
         // 4 待处理（已派单）
-        RepairOrder o4 = newOrder(s01, Campus.EAST, "一教 101", "水电", Urgency.URGENT,
+        RepairOrder o4 = newOrder(s01, Campus.UNIVERSITY_TOWN, "一教 101", "水电", Urgency.URGENT,
                 "一教101讲台插座打火冒烟，有安全隐患，请尽快处理", now.minusHours(2));
         audit(o4, admin1, now.minusHours(1).minusMinutes(48));
         assign(o4, w02, admin1, now.minusMinutes(10));
         // 5 处理中
-        RepairOrder o5 = newOrder(s04, Campus.EAST, "1号宿舍楼 301", "木工门窗", Urgency.NORMAL,
+        RepairOrder o5 = newOrder(s04, Campus.UNIVERSITY_TOWN, "1号宿舍楼 301", "木工门窗", Urgency.NORMAL,
                 "宿舍阳台窗户合页断裂，窗扇无法固定，大风天有坠落风险", now.minusHours(26));
         audit(o5, admin1, now.minusHours(25));
         assign(o5, w04, admin1, now.minusHours(24));
         accept(o5, w04, now.minusHours(23));
         // 6 处理中（其他类型，跳过技能匹配）
-        RepairOrder o6 = newOrder(s05, Campus.EAST, "一教 102", "其他", Urgency.NORMAL,
+        RepairOrder o6 = newOrder(s05, Campus.UNIVERSITY_TOWN, "一教 102", "其他", Urgency.NORMAL,
                 "一教102门锁卡死，钥匙拧不动，影响上课", now.minusHours(8));
         audit(o6, admin2, now.minusHours(7));
         assign(o6, w01, admin2, now.minusHours(6));
         accept(o6, w01, now.minusHours(5));
         // 7 已完成
-        RepairOrder o7 = newOrder(s02, Campus.EAST, "1号宿舍楼 102", "水电", Urgency.NORMAL,
+        RepairOrder o7 = newOrder(s02, Campus.UNIVERSITY_TOWN, "1号宿舍楼 102", "水电", Urgency.NORMAL,
                 "宿舍灯管闪烁，疑似镇流器故障需要更换", now.minusHours(50));
         audit(o7, admin1, now.minusHours(49));
         assign(o7, w01, admin1, now.minusHours(48));
         accept(o7, w01, now.minusHours(47));
         finish(o7, w01, now.minusHours(46), "更换 LED 灯管与镇流器，测试正常发光");
         // 8 已评价
-        RepairOrder o8 = newOrder(s03, Campus.EAST, "二教 101", "空调家电", Urgency.NORMAL,
+        RepairOrder o8 = newOrder(s03, Campus.UNIVERSITY_TOWN, "二教 101", "空调家电", Urgency.NORMAL,
                 "二教101柜机启动后自动跳闸，无法制冷", now.minusHours(80));
         audit(o8, admin1, now.minusHours(79));
         assign(o8, w05, admin1, now.minusHours(78));
         accept(o8, w05, now.minusHours(77));
         finish(o8, w05, now.minusHours(76), "检查为压缩机启动电容损坏，更换电容后运行正常");
         rate(o8, s03, 5, "师傅很专业，处理很快！", now.minusHours(75));
-        // 9 已评价（西校区）
-        RepairOrder o9 = newOrder(s04, Campus.WEST, "3号宿舍楼 202", "木工门窗", Urgency.NORMAL,
+        // 9 已评价（龙洞校区）
+        RepairOrder o9 = newOrder(s04, Campus.LONGDONG, "3号宿舍楼 202", "木工门窗", Urgency.NORMAL,
                 "宿舍衣柜柜门脱落，铰链螺丝滑丝", now.minusHours(100));
         audit(o9, admin2, now.minusHours(99));
         assign(o9, w06, admin2, now.minusHours(98));
         accept(o9, w06, now.minusHours(97));
         finish(o9, w06, now.minusHours(96), "更换铰链并加固螺丝，柜门开合正常");
         rate(o9, s04, 4, "修好了，态度不错，稍慢了一点", now.minusHours(95));
-        // 10 已驳回
-        RepairOrder o10 = newOrder(s05, Campus.WEST, "体育馆 北侧卫生间", "水电", Urgency.NORMAL,
+        // 10 已驳回（沙河校区）
+        RepairOrder o10 = newOrder(s05, Campus.SHAHE, "体育馆 北侧卫生间", "水电", Urgency.NORMAL,
                 "卫生间顶灯不亮了", now.minusHours(6));
         reject(o10, admin1, "照片无法看清故障位置，请补充清晰图片与具体位置", now.minusHours(5));
-        // 11 已取消（南校区）
-        RepairOrder o11 = newOrder(s01, Campus.SOUTH, "图书馆 电梯厅", "电梯", Urgency.NORMAL,
+        // 11 已取消（番禺校区）
+        RepairOrder o11 = newOrder(s01, Campus.PANYU, "图书馆 电梯厅", "电梯", Urgency.NORMAL,
                 "图书馆电梯按钮失灵（后发现是自己看错楼层）", now.minusHours(48));
         cancel(o11, s01, now.minusHours(47));
+        // 12 待审核（揭阳校区，跨市且暂无驻点维修工，用于演示派单候选为空的降级提示）
+        newOrder(s02, Campus.JIEYANG, "教学楼 A 栋 301", "水电", Urgency.NORMAL,
+                "教学楼三层走廊照明跳闸，需排查配电箱", now.minusHours(4));
 
         // ---------------- 评分重算 ----------------
         workerMapper.recalcScore(w05.getId());

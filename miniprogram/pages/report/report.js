@@ -21,6 +21,7 @@ Page({
     campusIndex: 0,
     campusCode: '',
     campusName: '',
+    campusAddress: '',
     locationDetail: '',
     skillNames: [],
     mapPick: null,
@@ -134,6 +135,7 @@ Page({
       campusIndex: 0,
       campusCode: first ? first.code : '',
       campusName: first ? first.name : '',
+      campusAddress: first ? (first.address || '') : '',
       skillNames: skills.map(s => s.name),
     })
   },
@@ -141,7 +143,7 @@ Page({
   onCampusChange(e) {
     const i = Number(e.detail.value)
     const c = this.data.campusList[i]
-    if (c) this.setData({ campusIndex: i, campusCode: c.code, campusName: c.name })
+    if (c) this.setData({ campusIndex: i, campusCode: c.code, campusName: c.name, campusAddress: c.address || '' })
   },
 
   onLocationDetail(e) {
