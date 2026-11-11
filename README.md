@@ -25,7 +25,7 @@ assign_expires_at / due_at / dispatch_count / reject_count / finish_summary` 与
 
 ### 1. 后端（端口 8080）
 ```bash
-cd CPS/backend
+cd backend
 mvn spring-boot:run        # 或 mvn package 后 java -jar target/repair-backend-1.0.0.jar
 ```
 - 接口文档：http://localhost:8080/doc.html
@@ -33,7 +33,7 @@ mvn spring-boot:run        # 或 mvn package 后 java -jar target/repair-backend
 
 ### 2. 管理端（端口 5173）
 ```bash
-cd CPS/admin-web
+cd admin-web
 npm install     # 首次
 npm run dev     # 开发模式，已代理 /api 与 /uploads 到 8080
 ```
