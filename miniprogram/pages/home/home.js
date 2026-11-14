@@ -79,28 +79,6 @@ Page({
 
   async loadReporterHome() {
     try {
-      const [all, audit, pending, processing, recent] = await Promise.all([
-        get('/orders/my?page=1&pageSize=1'),
-        get('/orders/my?status=PENDING_AUDIT&page=1&pageSize=1'),
-        get('/orders/my?status=PENDING&page=1&pageSize=1'),
-        get('/orders/my?status=PROCESSING&page=1&pageSize=1'),
-        get('/orders/my?page=1&pageSize=3'),
-      ])
-      this.setData({
-        summary: {
-          total: all.total || 0,
-          pending: (audit.total || 0) + (pending.total || 0),
-          processing: processing.total || 0,
-          grab: 0,
-        },
-        recent: (recent.list || []).map(decorateOrder),
-        loading: false,
-      })
-    } catch (e) {
-      this.setData({ loading: false, loadError: true })
-    }
-
-    try {
       const skills = await get('/skills')
       const tones = ['teal', 'butter', 'sky', 'blush', 'teal', 'paper']
       this.setData({
@@ -109,9 +87,10 @@ Page({
           icon: getSkillIcon(item.name),
         })),
         skillsLoading: false,
+        loading: false,
       })
     } catch (e) {
-      this.setData({ skills: [], skillsLoading: false })
+      this.setData({ skills: [], skillsLoading: false, loading: false, loadError: true })
     }
   },
 
@@ -144,6 +123,10 @@ Page({
   goReport() {
     getApp().globalData.reportView = 'form'
     wx.switchTab({ url: '/pages/report/report' })
+  },
+
+  goAgent() {
+    wx.navigateTo({ url: '/pages/kb/agent' })
   },
 
   onSkill(e) {

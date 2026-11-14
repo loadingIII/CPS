@@ -1,0 +1,40 @@
+<view class="chat-page">
+  <scroll-view class="chat-list" scroll-y scroll-top="{{scrollTop}}" scroll-with-animation>
+    <view wx:for="{{messages}}" wx:key="id" class="msg-row {{item.role}}">
+      <view class="avatar" wx:if="{{item.role === 'agent'}}">AI</view>
+      <view class="msg-main">
+        <view class="bubble" wx:if="{{!item.typing}}">{{item.text}}</view>
+        <view class="typing" wx:else>
+          <text class="dot"></text><text class="dot"></text><text class="dot"></text>
+          <text class="typing-text">正在查知识库</text>
+        </view>
+
+        <view class="article-list" wx:if="{{item.articles.length}}">
+          <view class="article" wx:for="{{item.articles}}" wx:for-item="a" wx:key="id"
+                data-id="{{a.id}}" bindtap="openArticle">
+            <view class="article-main">
+              <view class="article-title">{{a.title}}</view>
+              <view class="article-meta">{{a.faultType}} · 查看教程</view>
+            </view>
+            <view class="article-arrow">›</view>
+          </view>
+        </view>
+
+        <view class="report-action" wx:if="{{item.faultType}}" data-type="{{item.faultType}}" bindtap="goReport">
+          按「{{item.faultType}}」去报修 ›
+        </view>
+      </view>
+    </view>
+    <view class="list-bottom"></view>
+  </scroll-view>
+
+  <scroll-view class="quick-row" scroll-x="true" wx:if="{{messages.length <= 1}}">
+    <view class="quick-chip" wx:for="{{quickReplies}}" wx:key="*this" data-q="{{item}}" bindtap="sendQuick">{{item}}</view>
+  </scroll-view>
+
+  <view class="input-bar">
+    <input class="chat-input" value="{{input}}" bindinput="onInput" bindconfirm="onSend"
+           confirm-type="send" maxlength="200" placeholder="描述故障现象，如：空调不制冷" placeholder-class="ph" />
+    <view class="send-btn {{input && !sending ? 'on' : ''}}" bindtap="onSend">{{sending ? '发送中' : '发送'}}</view>
+  </view>
+</view>

@@ -14,9 +14,7 @@ const ORDER_TABS = [
 Page({
   data: {
     BASE,
-    greeting: '',
-    userName: '',
-    serviceView: 'form',
+    serviceView: 'home',
     campusList: [],
     campusIndex: 0,
     campusCode: '',
@@ -44,26 +42,28 @@ Page({
   onShow() {
     const tb = this.getTabBar && this.getTabBar()
     if (tb) { tb.init(); tb.setSelected('/pages/report/report') }
-    const user = wx.getStorageSync('user') || {}
-    const h = new Date().getHours()
-    const greeting = h < 6 ? '夜深了' : h < 12 ? '早上好' : h < 14 ? '中午好' : h < 18 ? '下午好' : '晚上好'
     const app = getApp()
-    const requestedView = app.globalData.reportView || this.data.serviceView || 'form'
+    // 默认落在「我要报修 / 我的报修」两个入口；从首页快捷报修进来才直接打开表单
+    let requestedView = app.globalData.reportView || this.data.serviceView || 'home'
     app.globalData.reportView = ''
     const homeFaultType = app.globalData.homeFaultType || ''
     if (homeFaultType) app.globalData.homeFaultType = ''
+    if (homeFaultType) requestedView = 'form'
     this.setData({
-      userName: user.name || '',
-      greeting,
       serviceView: requestedView,
       faultType: homeFaultType || this.data.faultType,
     })
     this.loadBase()
     if (requestedView === 'orders') this.reloadOrders()
+    else if (requestedView === 'home') this.loadOrderSummary()
   },
 
   onPullDownRefresh() {
-    const task = this.data.serviceView === 'orders' ? this.reloadOrders() : this.loadBase()
+    const view = this.data.serviceView
+    let task
+    if (view === 'orders') task = this.reloadOrders()
+    else if (view === 'home') task = Promise.all([this.loadBase(), this.loadOrderSummary()])
+    else task = this.loadBase()
     Promise.resolve(task).finally(() => wx.stopPullDownRefresh())
   },
 
@@ -74,11 +74,30 @@ Page({
     }
   },
 
-  onServiceView(e) {
-    const serviceView = e.currentTarget.dataset.view
-    if (!serviceView || serviceView === this.data.serviceView) return
-    this.setData({ serviceView })
-    if (serviceView === 'orders') this.reloadOrders()
+  /** 进入报修表单 */
+  enterForm() {
+    this.setData({ serviceView: 'form' })
+    this.loadBase()
+  },
+
+  /** 进入我的报修列表 */
+  enterOrders() {
+    this.setData({ serviceView: 'orders' })
+    this.reloadOrders()
+  },
+
+  /** 回到两个入口的首页 */
+  goServiceHome() {
+    this.setData({ serviceView: 'home' })
+    this.loadOrderSummary()
+  },
+
+  /** 入口页展示工单总数（失败静默，不阻断页面） */
+  async loadOrderSummary() {
+    try {
+      const d = await get('/orders/my?page=1&pageSize=1')
+      this.setData({ orderTotal: d.total || 0 })
+    } catch (e) { /* 静默 */ }
   },
 
   onOrderStatus(e) {

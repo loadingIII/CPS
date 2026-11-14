@@ -2,19 +2,52 @@
   <view class="service-head">
     <view class="service-kicker"><text>校园报修 · 师生服务</text></view>
     <view class="service-title">报修服务</view>
-    <view class="service-sub">{{greeting}}，{{userName}} · 报修申请与进度查询，一个入口完成</view>
-    <view class="service-switch">
-      <view class="service-tab {{serviceView === 'form' ? 'active' : ''}}" data-view="form" bindtap="onServiceView">
-        <text class="service-tab-mark">＋</text><text>我要报修</text>
+  </view>
+
+  <view wx:if="{{serviceView === 'home'}}" class="service-home">
+    <view class="module-card module-repair" bindtap="enterForm">
+      <view class="deco deco-orb"></view>
+      <view class="deco deco-ring"></view>
+      <view class="deco deco-dot deco-dot-1"></view>
+      <view class="deco deco-dot deco-dot-2"></view>
+      <text class="deco deco-spark">✦</text>
+      <view class="module-mark mark-repair">
+        <view class="module-icon icon-repair"></view>
       </view>
-      <view class="service-tab {{serviceView === 'orders' ? 'active' : ''}}" data-view="orders" bindtap="onServiceView">
-        <text class="service-tab-mark">单</text><text>我的报修</text>
-        <text class="service-count" wx:if="{{orderTotal > 0}}">{{orderTotal}}</text>
+      <view class="module-body">
+        <view class="module-title">我要报修</view>
+        <view class="module-desc">提交故障与位置</view>
       </view>
+      <view class="module-arrow">›</view>
+    </view>
+
+    <view class="module-card module-orders" bindtap="enterOrders">
+      <view class="deco deco-orb"></view>
+      <view class="deco deco-ring"></view>
+      <view class="deco deco-dot deco-dot-1"></view>
+      <view class="deco deco-dot deco-dot-2"></view>
+      <text class="deco deco-spark">✦</text>
+      <view class="module-mark mark-orders">
+        <view class="module-icon icon-orders"></view>
+      </view>
+      <view class="module-body">
+        <view class="module-title">我的报修<text class="module-count" wx:if="{{orderTotal > 0}}">{{orderTotal}}</text></view>
+        <view class="module-desc">查看进度与评价</view>
+      </view>
+      <view class="module-arrow">›</view>
     </view>
   </view>
 
-  <view wx:if="{{serviceView === 'form'}}" class="service-panel">
+  <view wx:elif="{{serviceView === 'form'}}" class="service-panel">
+    <view class="panel-head">
+      <view class="panel-top">
+        <view class="panel-back" bindtap="goServiceHome">‹ 报修服务</view>
+        <view class="panel-switch" bindtap="enterOrders">我的报修 ›</view>
+      </view>
+      <view class="panel-title">我要报修</view>
+      <view class="panel-sub">填写位置与故障，提交后由后勤审核派单</view>
+    </view>
+
     <view class="card">
       <view class="item">
         <view class="field-label">报修位置<text class="req">*</text></view>
@@ -99,12 +132,13 @@
   </view>
 
   <view wx:else class="orders-panel">
-    <view class="orders-heading">
-      <view>
-        <view class="orders-title">我的报修</view>
-        <view class="orders-sub">跟进每一张工单的处理进度</view>
+    <view class="panel-head">
+      <view class="panel-top">
+        <view class="panel-back" bindtap="goServiceHome">‹ 报修服务</view>
+        <view class="panel-switch" bindtap="enterForm">去报修 ›</view>
       </view>
-      <view class="orders-total"><text>{{orderTotal}}</text><text class="orders-total-label">张工单</text></view>
+      <view class="panel-title">我的报修</view>
+      <view class="panel-sub">共 {{orderTotal}} 张工单 · 跟进处理进度</view>
     </view>
 
     <scroll-view class="order-tabs" scroll-x="true">
@@ -139,7 +173,7 @@
         <view class="empty-mark">单</view>
         <view class="empty-title">还没有报修记录</view>
         <view class="empty-copy">提交一张工单，维修进度会持续更新在这里</view>
-        <view class="empty-action" data-view="form" bindtap="onServiceView">创建第一张工单 <text>›</text></view>
+        <view class="empty-action" bindtap="enterForm">创建第一张工单 <text>›</text></view>
       </view>
       <view class="orders-more" wx:if="{{orderList.length && orderList.length < orderTotal}}">上拉加载更多工单</view>
       <view class="orders-end" wx:if="{{orderList.length && orderList.length >= orderTotal}}">已展示全部工单</view>
