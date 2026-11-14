@@ -87,12 +87,13 @@
 .home-mode .service-home {
   flex: 1;
   display: flex; flex-direction: column;
-  gap: 22rpx;
-  padding: 6rpx 0 4rpx;
+  justify-content: center;
+  gap: 24rpx;
+  padding: 0 0 60rpx;
 }
 .home-mode .module-card {
-  flex: 1;
-  min-height: 200rpx;
+  flex: none;
+  height: 300rpx;
   margin: 0 24rpx;
 }
 .home-mode .module-mark { width: 112rpx; height: 112rpx; }
