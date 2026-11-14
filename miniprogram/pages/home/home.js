@@ -125,10 +125,6 @@ Page({
     wx.switchTab({ url: '/pages/report/report' })
   },
 
-  goAgent() {
-    wx.navigateTo({ url: '/pages/kb/agent' })
-  },
-
   onSkill(e) {
     const item = this.data.skills[e.currentTarget.dataset.index]
     if (!item) return this.goReport()

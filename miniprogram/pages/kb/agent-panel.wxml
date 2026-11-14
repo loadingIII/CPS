@@ -1,0 +1,71 @@
+<view class="agent-root">
+  <!-- 全屏时压暗背景，点半屏遮罩回到半屏 -->
+  <view class="agent-mask {{full && !ball ? 'show' : ''}}" bindtap="toHalf"></view>
+
+  <!-- 常驻面板：默认半屏，上滑展开全屏；右上角按钮收起为悬浮球 -->
+  <view class="agent-panel {{full && !ball ? 'full' : 'half'}} {{ball ? 'minimized' : ''}} {{dragging ? 'dragging' : ''}} {{entered ? 'entered' : ''}}"
+        style="height: {{panelHeight}}px; padding-bottom: {{keyboardHeight}}px;">
+    <view class="sheet-top" bindtouchstart="onHandleStart" catchtouchmove="onHandleMove" bindtouchend="onHandleEnd">
+      <view class="sheet-handle"></view>
+      <view class="sheet-head">
+        <view class="sheet-title-wrap">
+          <view class="sheet-avatar">AI</view>
+          <view class="sheet-title-box">
+            <view class="sheet-title">智能报修助手</view>
+            <view class="sheet-sub">{{full ? '知识库问答 · 下滑回到半屏' : '知识库问答 · 上滑展开全屏'}}</view>
+          </view>
+        </view>
+        <view class="sheet-min" bindtap="minimize" hover-class="sheet-min-hover">
+          <view class="min-icon"></view>
+        </view>
+      </view>
+    </view>
+
+  <scroll-view class="sheet-chat" scroll-y scroll-top="{{scrollTop}}" scroll-with-animation>
+    <view wx:for="{{messages}}" wx:key="id" class="msg-row {{item.role}}">
+      <view class="avatar" wx:if="{{item.role === 'agent'}}">AI</view>
+      <view class="msg-main">
+        <view class="bubble" wx:if="{{!item.typing}}">{{item.text}}</view>
+        <view class="typing" wx:else>
+          <text class="dot"></text><text class="dot"></text><text class="dot"></text>
+          <text class="typing-text">正在查知识库</text>
+        </view>
+
+        <view class="article-list" wx:if="{{item.articles.length}}">
+          <view class="article" wx:for="{{item.articles}}" wx:for-item="a" wx:key="id"
+                data-id="{{a.id}}" bindtap="openArticle">
+            <view class="article-main">
+              <view class="article-title">{{a.title}}</view>
+              <view class="article-meta">{{a.faultType}} · 查看教程</view>
+            </view>
+            <view class="article-arrow">›</view>
+          </view>
+        </view>
+
+        <view class="report-action" wx:if="{{item.faultType}}" data-type="{{item.faultType}}" bindtap="goReport">
+          按「{{item.faultType}}」去报修 ›
+        </view>
+      </view>
+    </view>
+    <view class="list-bottom"></view>
+  </scroll-view>
+
+  <scroll-view class="sheet-quick" scroll-x="true" wx:if="{{messages.length <= 1}}">
+    <view class="quick-chip" wx:for="{{quickReplies}}" wx:key="*this" data-q="{{item}}" bindtap="sendQuick">{{item}}</view>
+  </scroll-view>
+
+  <view class="sheet-input">
+    <input class="chat-input" value="{{input}}" bindinput="onInput" bindconfirm="onSend"
+           bindfocus="onInputFocus" confirm-type="send" maxlength="200"
+           placeholder="描述故障现象，如：空调不制冷" placeholder-class="ph" placeholder-style="color:#a8b1b3" />
+    <view class="send-btn {{input && !sending ? 'on' : ''}}" bindtap="onSend">{{sending ? '发送中' : '发送'}}</view>
+  </view>
+  </view>
+
+  <!-- 收起后的悬浮球：点击回到全屏 -->
+  <view class="agent-ball" wx:if="{{ball}}" bindtap="restore">
+    <view class="ball-ring"></view>
+    <view class="ball-core">AI</view>
+    <view class="ball-dot"></view>
+  </view>
+</view>

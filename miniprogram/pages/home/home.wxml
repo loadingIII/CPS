@@ -6,15 +6,6 @@
   </view>
 
   <block wx:if="{{role === 'REPORTER'}}">
-    <view class="agent-entry" bindtap="goAgent">
-      <view class="agent-mark">AI</view>
-      <view class="agent-copy">
-        <view class="agent-title">智能报修助手</view>
-        <view class="agent-desc">描述故障，先查知识库，再帮你报修</view>
-      </view>
-      <view class="agent-arrow">›</view>
-    </view>
-
     <view class="section-row category-head">
       <view class="section-heading">快捷报修</view>
       <view class="section-note">选中类别，自动带入报修表单</view>
@@ -27,6 +18,9 @@
       </view>
     </view>
     <view class="category-empty" wx:else>{{skillsLoading ? '正在整理报修类型…' : '暂时无法获取类别，可点“报修服务”手动选择'}}</view>
+
+    <view class="agent-space"></view>
+    <agent-panel></agent-panel>
   </block>
 
   <block wx:elif="{{role === 'REPAIRER'}}">

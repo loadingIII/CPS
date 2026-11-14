@@ -15,7 +15,6 @@
     "pages/worker-finish/worker-finish",
     "pages/messages/messages",
     "pages/kb/kb",
-    "pages/kb/agent",
     "pages/kb-detail/kb-detail"
   ],
   "window": {
