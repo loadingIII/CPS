@@ -4,10 +4,7 @@
       <div class="toolbar">
         <b>维修知识库</b>
         <div class="filters">
-          <el-select v-model="faultType" placeholder="故障类型" clearable style="width: 150px" @change="reload">
-            <el-option v-for="s in skills" :key="s.id" :label="s.name" :value="s.name" />
-          </el-select>
-          <el-input v-model="keyword" placeholder="标题 / 内容关键词" clearable style="width: 220px"
+          <el-input v-model="keyword" placeholder="标题 / 内容关键词" clearable style="width: 240px"
                     @keyup.enter="reload" />
           <el-button type="primary" plain @click="reload">查询</el-button>
         </div>
@@ -24,8 +21,7 @@
     </template>
 
     <el-table :data="list" border>
-      <el-table-column prop="title" label="标题" min-width="220" show-overflow-tooltip />
-      <el-table-column prop="faultType" label="故障类型" width="120" />
+      <el-table-column prop="title" label="标题" min-width="260" show-overflow-tooltip />
       <el-table-column label="状态" width="90">
         <template #default="{ row }">
           <el-tag :type="row.status ? 'success' : 'info'" size="small">{{ row.status ? '启用' : '停用' }}</el-tag>
@@ -35,7 +31,7 @@
       <el-table-column prop="updatedAt" label="更新时间" width="165" />
       <el-table-column label="操作" width="130" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
+          <el-button link type="primary" @click="openView(row)">查看</el-button>
           <el-button link type="danger" @click="remove(row)">删除</el-button>
         </template>
       </el-table-column>
@@ -44,28 +40,21 @@
     <el-pagination style="margin-top: 12px; justify-content: flex-end" layout="total, prev, pager, next"
                    :total="total" :page-size="pageSize" v-model:current-page="page" @current-change="load" />
 
-    <el-dialog v-model="dialog" title="编辑文章" width="640px">
-      <el-form label-width="80px">
+    <el-dialog v-model="dialog" title="查看文章" width="720px" top="6vh">
+      <el-form label-width="64px">
         <el-form-item label="标题">
           <el-input v-model="form.title" maxlength="128" show-word-limit />
         </el-form-item>
-        <el-form-item label="类型">
-          <el-select v-model="form.faultType" placeholder="选择故障类型" style="width: 200px">
-            <el-option v-for="s in skills" :key="s.id" :label="s.name" :value="s.name" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="内容">
-          <el-input v-model="form.content" type="textarea" :rows="10"
-                    placeholder="Markdown 正文，保存后按标题分节 + 滑动窗口切片" />
-          <div class="hint">保存后会自动切片写入向量库，智能助手即可检索到本文。</div>
-        </el-form-item>
-        <el-form-item label="启用">
-          <el-switch v-model="form.status" />
+        <el-form-item label="状态">
+          <el-switch v-model="form.status" active-text="启用" inactive-text="停用" />
         </el-form-item>
       </el-form>
+      <div class="md-wrap">
+        <div class="md-body" v-html="previewHtml"></div>
+      </div>
       <template #footer>
-        <el-button @click="dialog = false">取消</el-button>
-        <el-button type="primary" @click="submit">保存</el-button>
+        <el-button @click="dialog = false">关闭</el-button>
+        <el-button type="primary" @click="submit">保存标题 / 状态</el-button>
       </template>
     </el-dialog>
   </el-card>
@@ -74,24 +63,24 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import api from '../api'
 
-const skills = ref([])
 const list = ref([])
 const total = ref(0)
 const page = ref(1)
 const pageSize = 10
-const faultType = ref(null)
 const keyword = ref('')
 const dialog = ref(false)
-const form = reactive({ id: null, title: '', faultType: '', content: '', status: true })
+const previewHtml = ref('')
+const form = reactive({ id: null, title: '', status: true })
 const reindexing = ref(false)
 const importing = ref(false)
 
 async function load() {
   const d = await api.get('/kb/articles/manage', {
     params: {
-      faultType: faultType.value || undefined,
       keyword: keyword.value.trim() || undefined,
       page: page.value, pageSize,
     },
@@ -105,13 +94,41 @@ function reload() {
   load()
 }
 
-function openEdit(row) {
+/** 用 marked 渲染后用 DOMPurify 清洗，避免上传文件里的脚本被执行 */
+function renderMarkdown(text) {
+  const html = marked.parse(String(text || ''), { gfm: true, breaks: true })
+  return DOMPurify.sanitize(html)
+}
+
+function openView(row) {
   form.id = row.id
   form.title = row.title
-  form.faultType = row.faultType
-  form.content = row.content
   form.status = !!row.status
+  previewHtml.value = renderMarkdown(row.content)
   dialog.value = true
+}
+
+async function submit() {
+  if (!form.id) return
+  if (!form.title.trim()) {
+    ElMessage.warning('标题不能为空')
+    return
+  }
+  await api.put(`/kb/articles/${form.id}`, { title: form.title.trim(), status: form.status })
+  ElMessage.success('已保存')
+  dialog.value = false
+  await load()
+}
+
+async function remove(row) {
+  await ElMessageBox.confirm(
+    `确定删除《${row.title}》？向量库中对应的切片也会一并清理。`,
+    '删除文章',
+    { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
+  )
+  await api.delete(`/kb/articles/${row.id}`)
+  ElMessage.success('已删除')
+  await load()
 }
 
 function beforeImport(file) {
@@ -126,7 +143,7 @@ function beforeImport(file) {
   return true
 }
 
-/** 上传即入库：后端解析 front-matter、切片、向量化 */
+/** 上传即入库：后端解析、切片、向量化 */
 async function importMd(options) {
   const data = new FormData()
   data.append('file', options.file)
@@ -147,35 +164,6 @@ async function importMd(options) {
   }
 }
 
-async function submit() {
-  if (!form.id) return
-  if (!form.title.trim() || !form.faultType || !form.content.trim()) {
-    ElMessage.warning('标题、类型、内容都不能为空')
-    return
-  }
-  const body = {
-    title: form.title.trim(),
-    faultType: form.faultType,
-    content: form.content,
-    status: form.status,
-  }
-  await api.put(`/kb/articles/${form.id}`, body)
-  ElMessage.success('已保存，向量索引已更新')
-  dialog.value = false
-  await load()
-}
-
-async function remove(row) {
-  await ElMessageBox.confirm(
-    `确定删除《${row.title}》？向量库中对应的切片也会一并清理。`,
-    '删除文章',
-    { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
-  )
-  await api.delete(`/kb/articles/${row.id}`)
-  ElMessage.success('已删除')
-  await load()
-}
-
 async function reindex() {
   reindexing.value = true
   try {
@@ -187,10 +175,7 @@ async function reindex() {
   }
 }
 
-onMounted(async () => {
-  load()
-  skills.value = await api.get('/skills')
-})
+onMounted(load)
 </script>
 
 <style scoped>
@@ -199,5 +184,35 @@ onMounted(async () => {
 .actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .inline-hint { color: #909399; font-size: 12px; }
 .inline-upload { display: inline-flex; }
-.hint { margin-top: 6px; color: #909399; font-size: 12px; line-height: 1.6; }
+
+.md-wrap {
+  max-height: 56vh; overflow: auto; padding: 4px 18px 8px;
+  border: 1px solid #ebeef5; border-radius: 8px; background: #fcfdfd;
+}
+.md-body { color: #33464a; font-size: 14px; line-height: 1.8; word-break: break-word; }
+.md-body :deep(h1) { font-size: 22px; font-weight: 800; margin: 18px 0 12px; color: #22343a; }
+.md-body :deep(h2) { font-size: 19px; font-weight: 800; margin: 18px 0 10px; color: #22343a; }
+.md-body :deep(h3) { font-size: 16.5px; font-weight: 700; margin: 16px 0 8px; }
+.md-body :deep(h4), .md-body :deep(h5), .md-body :deep(h6) { font-size: 15px; font-weight: 700; margin: 14px 0 6px; }
+.md-body :deep(p) { margin: 0 0 10px; }
+.md-body :deep(blockquote) {
+  margin: 10px 0; padding: 8px 14px; color: #52686b;
+  border-left: 3px solid #bcdcdc; background: #f6fbfb; border-radius: 0 8px 8px 0;
+}
+.md-body :deep(code) {
+  font-family: Menlo, Consolas, monospace; font-size: 13px; color: #0a5f62;
+  background: #eef4f4; padding: 1px 5px; border-radius: 4px;
+}
+.md-body :deep(pre) {
+  background: #f5f8f8; border: 1px solid #e6ecec; border-radius: 8px;
+  padding: 12px; overflow: auto;
+}
+.md-body :deep(pre code) { background: none; padding: 0; }
+.md-body :deep(ul), .md-body :deep(ol) { margin: 6px 0 10px; padding-left: 22px; }
+.md-body :deep(li) { margin: 4px 0; }
+.md-body :deep(table) { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13px; }
+.md-body :deep(th), .md-body :deep(td) { border: 1px solid #e6ecec; padding: 7px 9px; vertical-align: top; }
+.md-body :deep(th) { background: #f0f6f6; text-align: left; font-weight: 700; }
+.md-body :deep(img) { max-width: 100%; border-radius: 8px; }
+.md-body :deep(hr) { border: none; border-top: 1px dashed #d8e0e0; margin: 16px 0; }
 </style>

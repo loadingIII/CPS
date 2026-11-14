@@ -1,64 +1,43 @@
 package com.campus.repair.module.kb;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Markdown 上传解析：取 front-matter 的 title / fault_type，正文去掉 front-matter。
+ * Markdown 上传解析：去掉 front-matter，正文原样保存；标题取文件名。
  *
- * <p>与前端 {@code admin-web/src/utils/markdown.js} 规则一致：
- * front-matter 优先，其次一级标题，再退文件名。</p>
+ * <p>front-matter 里的 title / fault_type 不再参与入库——标题固定用文件名，
+ * 知识库也不再按故障类型分类。</p>
  */
 public final class MarkdownDocParser {
 
     private static final Pattern FRONT_MATTER =
-            Pattern.compile("^---\\r?\\n([\\s\\S]*?)\\r?\\n---\\r?\\n?");
-    private static final Pattern HEADING = Pattern.compile("(?m)^#{1,6}\\s+(.+)$");
+            Pattern.compile("^---\\r?\\n[\\s\\S]*?\\r?\\n---\\r?\\n?");
     private static final Pattern EXT = Pattern.compile("\\.(md|markdown)$", Pattern.CASE_INSENSITIVE);
 
     private MarkdownDocParser() {
     }
 
-    public record Parsed(String title, String faultType, String content) {
+    public record Parsed(String content) {
     }
 
-    public static Parsed parse(String raw, String fileName) {
+    /** 去掉 front-matter，返回正文 */
+    public static Parsed parse(String raw) {
         String text = raw == null ? "" : raw.replace("\uFEFF", "");
-        Map<String, String> meta = new LinkedHashMap<>();
-        String body = text;
-
         Matcher matcher = FRONT_MATTER.matcher(text);
         if (matcher.find()) {
-            for (String line : matcher.group(1).split("\\r?\\n")) {
-                int idx = line.indexOf(':');
-                if (idx <= 0) {
-                    continue;
-                }
-                String key = line.substring(0, idx).trim().toLowerCase();
-                String value = line.substring(idx + 1).trim().replaceAll("^[\"']|[\"']$", "");
-                if (!key.isEmpty() && !value.isEmpty()) {
-                    meta.put(key, value);
-                }
-            }
-            body = text.substring(matcher.end());
+            text = text.substring(matcher.end());
         }
-
-        String content = body.strip();
-        String title = meta.getOrDefault("title", "");
-        if (title.isBlank()) {
-            Matcher heading = HEADING.matcher(content);
-            title = heading.find() ? heading.group(1).trim() : baseName(fileName);
-        }
-        if (title.length() > 128) {
-            title = title.substring(0, 128);
-        }
-        return new Parsed(title, meta.getOrDefault("fault_type", ""), content);
+        return new Parsed(text.strip());
     }
 
-    private static String baseName(String fileName) {
-        String name = fileName == null ? "" : fileName.replaceAll("^.*[\\\\/]", "");
-        return EXT.matcher(name).replaceAll("");
+    /** 文件名 → 标题：去目录、去扩展名，空则「未命名文档」，最长 128 字 */
+    public static String titleFromFileName(String fileName) {
+        String name = fileName == null ? "" : fileName.replaceAll("^.*[\\\\/]", "").trim();
+        name = EXT.matcher(name).replaceAll("").trim();
+        if (name.isEmpty()) {
+            name = "未命名文档";
+        }
+        return name.length() > 128 ? name.substring(0, 128) : name;
     }
 }

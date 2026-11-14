@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.campus.repair.common.BusinessException;
 import com.campus.repair.common.PageVO;
-import com.campus.repair.module.agent.KeywordAgentFallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -17,8 +16,10 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 
 /**
- * 知识库（R2-F10-1/F10-2）：分类浏览、关键词搜索、详情与浏览量。
- * 文章增删改会同步到向量库（{@link KbVectorIndexService}），供智能助手检索。
+ * 知识库：Markdown 文章的上传、浏览与检索语料同步。
+ *
+ * <p>文章只能通过上传 Markdown 创建，标题取文件名；正文不再由管理端编辑。
+ * 增删改会同步到向量库（{@link KbVectorIndexService}），供智能助手检索。</p>
  */
 @Service
 public class KbArticleService {
@@ -30,22 +31,17 @@ public class KbArticleService {
 
     private final KbArticleMapper kbArticleMapper;
     private final KbVectorIndexService vectorIndex;
-    private final KeywordAgentFallback faultTypeGuesser;
 
-    public KbArticleService(KbArticleMapper kbArticleMapper,
-                            KbVectorIndexService vectorIndex,
-                            KeywordAgentFallback faultTypeGuesser) {
+    public KbArticleService(KbArticleMapper kbArticleMapper, KbVectorIndexService vectorIndex) {
         this.kbArticleMapper = kbArticleMapper;
         this.vectorIndex = vectorIndex;
-        this.faultTypeGuesser = faultTypeGuesser;
     }
 
     /** 小程序/登录用户：只返回启用文章；列表不带全文，避免列表页背大字段 */
-    public PageVO<KbArticle> pagePublished(String faultType, String keyword, long page, long pageSize) {
+    public PageVO<KbArticle> pagePublished(String keyword, long page, long pageSize) {
         Page<KbArticle> p = kbArticleMapper.selectPage(new Page<>(page, pageSize),
                 new LambdaQueryWrapper<KbArticle>()
                         .eq(KbArticle::getStatus, true)
-                        .eq(StringUtils.hasText(faultType), KbArticle::getFaultType, faultType)
                         .and(StringUtils.hasText(keyword), w -> w
                                 .like(KbArticle::getTitle, keyword)
                                 .or().like(KbArticle::getContent, keyword))
@@ -55,10 +51,9 @@ public class KbArticleService {
     }
 
     /** 管理端：含停用文章 */
-    public PageVO<KbArticle> pageAdmin(String faultType, String keyword, long page, long pageSize) {
+    public PageVO<KbArticle> pageAdmin(String keyword, long page, long pageSize) {
         Page<KbArticle> p = kbArticleMapper.selectPage(new Page<>(page, pageSize),
                 new LambdaQueryWrapper<KbArticle>()
-                        .eq(StringUtils.hasText(faultType), KbArticle::getFaultType, faultType)
                         .and(StringUtils.hasText(keyword), w -> w
                                 .like(KbArticle::getTitle, keyword)
                                 .or().like(KbArticle::getContent, keyword))
@@ -81,17 +76,7 @@ public class KbArticleService {
         return a;
     }
 
-    public Long create(KbReq req) {
-        KbArticle a = new KbArticle();
-        apply(a, req);
-        a.setViewCount(0);
-        a.setCreatedAt(LocalDateTime.now());
-        a.setUpdatedAt(LocalDateTime.now());
-        kbArticleMapper.insert(a);
-        syncQuietly(a);
-        return a.getId();
-    }
-
+    /** 只允许改标题与启用状态；正文由上传的 Markdown 决定 */
     public void update(Long id, KbReq req) {
         KbArticle exists = kbArticleMapper.selectById(id);
         if (exists == null) {
@@ -99,10 +84,13 @@ public class KbArticleService {
         }
         KbArticle a = new KbArticle();
         a.setId(id);
-        apply(a, req);
+        a.setTitle(req.title());
+        if (req.status() != null) {
+            a.setStatus(req.status());
+        }
         a.setUpdatedAt(LocalDateTime.now());
         kbArticleMapper.updateById(a);
-        // 重新查一次，保证同步用的是完整字段
+        // 停用会删除向量块，启用会重新写入，所以同步一次
         syncQuietly(kbArticleMapper.selectById(id));
     }
 
@@ -122,7 +110,7 @@ public class KbArticleService {
 
     /**
      * 上传 Markdown：解析 → 建文章 → 切片 → 向量化入库，一步完成。
-     * 向量库不可用时文章仍会保存，结果里给出 warning。
+     * 标题取文件名，向量库不可用时文章仍会保存并返回 warning。
      */
     public KbImportResult importMarkdown(MultipartFile file) {
         if (file == null || file.isEmpty()) {
@@ -144,23 +132,13 @@ public class KbArticleService {
             throw BusinessException.param("读取文件失败：" + e.getMessage());
         }
 
-        MarkdownDocParser.Parsed parsed = MarkdownDocParser.parse(raw, fileName);
+        MarkdownDocParser.Parsed parsed = MarkdownDocParser.parse(raw);
         if (!StringUtils.hasText(parsed.content())) {
             throw BusinessException.param("文件内容为空");
         }
 
-        String faultType = parsed.faultType();
-        if (!StringUtils.hasText(faultType)) {
-            // 没写 front-matter 时按标题 + 正文关键词猜一个，猜不到归「其他」
-            faultType = faultTypeGuesser.classify(parsed.title() + "\n" + parsed.content());
-        }
-        if (!StringUtils.hasText(faultType)) {
-            faultType = "其他";
-        }
-
         KbArticle article = new KbArticle();
-        article.setTitle(parsed.title());
-        article.setFaultType(faultType);
+        article.setTitle(MarkdownDocParser.titleFromFileName(fileName));
         article.setContent(parsed.content());
         article.setStatus(Boolean.TRUE);
         article.setViewCount(0);
@@ -183,7 +161,7 @@ public class KbArticleService {
             }
         }
         log.info("[KB] 导入《{}》#{}：{} 块，indexed={}", article.getTitle(), article.getId(), chunks, indexed);
-        return new KbImportResult(article.getId(), article.getTitle(), faultType, chunks, indexed, warning);
+        return new KbImportResult(article.getId(), article.getTitle(), chunks, indexed, warning);
     }
 
     /** 全量重建向量索引（管理端「重建索引」按钮） */
@@ -209,12 +187,5 @@ public class KbArticleService {
         } catch (Exception e) {
             log.warn("[KB] 文章 #{} 向量同步失败：{}", article.getId(), e.getMessage());
         }
-    }
-
-    private void apply(KbArticle a, KbReq req) {
-        a.setTitle(req.title());
-        a.setFaultType(req.faultType());
-        a.setContent(req.content());
-        a.setStatus(req.status() == null ? Boolean.TRUE : req.status());
     }
 }

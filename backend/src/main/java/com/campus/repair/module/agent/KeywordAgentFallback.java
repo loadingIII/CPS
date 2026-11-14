@@ -65,7 +65,7 @@ public class KeywordAgentFallback {
         String bestType = classify(message);
         Map<Long, Integer> scores = new HashMap<>();
         for (KbArticle article : articles) {
-            scores.put(article.getId(), score(article, message, bestType));
+            scores.put(article.getId(), score(article, message));
         }
         List<KbArticle> top = articles.stream()
                 .filter(a -> scores.getOrDefault(a.getId(), 0) >= MIN_SCORE)
@@ -85,13 +85,14 @@ public class KeywordAgentFallback {
                 .collect(Collectors.joining("\n"));
         String answer = "我先查到《" + first.getTitle() + "》，可以按这几步试试：\n"
                 + steps
-                + "\n如果处理后仍未解决，直接提交报修，我可以帮你把类型选成「" + first.getFaultType() + "」。";
+                + "\n如果处理后仍未解决，直接提交报修"
+                + (bestType == null ? "。" : "，我可以帮你把类型选成「" + bestType + "」。");
 
         List<AgentChatResp.ArticleRef> refs = top.stream()
                 .map(a -> new AgentChatResp.ArticleRef(
-                        a.getId(), a.getTitle(), a.getFaultType(), excerpt(a.getContent())))
+                        a.getId(), a.getTitle(), bestType, excerpt(a.getContent())))
                 .collect(Collectors.toList());
-        return new AgentChatResp(answer, refs, first.getFaultType());
+        return new AgentChatResp(answer, refs, bestType);
     }
 
     /** 选出与描述最匹配的故障类型；没有命中返回 null */
@@ -123,19 +124,12 @@ public class KeywordAgentFallback {
                 || text.contains("在吗") || text.contains("hi") || text.contains("hello"));
     }
 
-    /** 标题命中权重 3、正文命中 1；类型直接命中与最佳类型再加权 */
-    private int score(KbArticle article, String message, String bestType) {
-        String fault = nullToEmpty(article.getFaultType());
+    /** 标题命中权重 3、正文命中 1；知识库已不分类别，只用关键词相关性排序 */
+    private int score(KbArticle article, String message) {
         String title = nullToEmpty(article.getTitle());
         String content = nullToEmpty(article.getContent());
 
         int score = 0;
-        if (!fault.isEmpty() && message.contains(fault)) {
-            score += 10;
-        }
-        if (bestType != null && bestType.equals(fault)) {
-            score += 4;
-        }
         for (List<String> terms : FAULT_TERMS.values()) {
             for (String term : terms) {
                 if (!message.contains(term)) {

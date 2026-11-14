@@ -32,13 +32,12 @@ public class KbController {
         this.kbArticleService = kbArticleService;
     }
 
-    @Operation(summary = "知识库列表（分类 + 关键词）")
+    @Operation(summary = "知识库列表（关键词搜索）")
     @GetMapping
-    public Result<PageVO<KbArticle>> list(@RequestParam(required = false) String faultType,
-                                          @RequestParam(required = false) String keyword,
+    public Result<PageVO<KbArticle>> list(@RequestParam(required = false) String keyword,
                                           @RequestParam(defaultValue = "1") long page,
                                           @RequestParam(defaultValue = "10") long pageSize) {
-        return Result.ok(kbArticleService.pagePublished(faultType, keyword, page, pageSize));
+        return Result.ok(kbArticleService.pagePublished(keyword, page, pageSize));
     }
 
     @Operation(summary = "知识库详情（浏览量 +1）")
@@ -51,26 +50,10 @@ public class KbController {
     @Operation(summary = "管理端知识库列表（含停用）")
     @RequireRole({Role.ADMIN, Role.SYS_ADMIN})
     @GetMapping("/manage")
-    public Result<PageVO<KbArticle>> manage(@RequestParam(required = false) String faultType,
-                                            @RequestParam(required = false) String keyword,
+    public Result<PageVO<KbArticle>> manage(@RequestParam(required = false) String keyword,
                                             @RequestParam(defaultValue = "1") long page,
                                             @RequestParam(defaultValue = "10") long pageSize) {
-        return Result.ok(kbArticleService.pageAdmin(faultType, keyword, page, pageSize));
-    }
-
-    @Operation(summary = "新增文章")
-    @RequireRole({Role.ADMIN, Role.SYS_ADMIN})
-    @PostMapping
-    public Result<Long> create(@Valid @RequestBody KbReq req) {
-        return Result.ok(kbArticleService.create(req));
-    }
-
-    @Operation(summary = "修改文章")
-    @RequireRole({Role.ADMIN, Role.SYS_ADMIN})
-    @PutMapping("/{id}")
-    public Result<Void> update(@PathVariable Long id, @Valid @RequestBody KbReq req) {
-        kbArticleService.update(id, req);
-        return Result.ok();
+        return Result.ok(kbArticleService.pageAdmin(keyword, page, pageSize));
     }
 
     @Operation(summary = "上传 Markdown 并直接入库（切分 + 向量化）")
@@ -78,6 +61,14 @@ public class KbController {
     @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Result<KbImportResult> importMarkdown(@RequestPart("file") MultipartFile file) {
         return Result.ok(kbArticleService.importMarkdown(file));
+    }
+
+    @Operation(summary = "修改标题 / 启用状态（正文不可改）")
+    @RequireRole({Role.ADMIN, Role.SYS_ADMIN})
+    @PutMapping("/{id}")
+    public Result<Void> update(@PathVariable Long id, @Valid @RequestBody KbReq req) {
+        kbArticleService.update(id, req);
+        return Result.ok();
     }
 
     @Operation(summary = "删除文章（同时清理向量块）")

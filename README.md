@@ -133,7 +133,7 @@ python ingest_kb.py --path ../knowledge_md --exclude README.md --reset   # 排�
 - `--recreate`：删除并重建集合，用于换 embedding 模型/维度；**执行后需重启后端**
 
 - 支持单个 `.md` 或整个目录（递归），可重复 `--path`；`--exclude` 按文件名/通配排除
-- 可选 front-matter：`title` / `fault_type`；缺省时取第一个 H1 与文件名
+- 可选 front-matter：`title` / `fault_type`（仅影响写入 Chroma 的元数据，管理端上传不读它）
 - 切分：按标题分节后做**滑动窗口**（默认 500 字 / 重叠 80，尽量在段落或句号处断开）
 - 写入：`collection.delete(where doc_id)` 后 upsert，重复执行不会产生重复块
 - `--mock-embedding`：无密钥时用占位向量验证写库链路（不可检索）
@@ -170,13 +170,14 @@ curl -N -X POST http://localhost:8080/api/agent/chat/stream \
 ### 5. 管理端知识库同步
 
 管理端「维修知识库」的增删改会实时同步到 Chroma。**新增文章 = 直接上传 `.md`**：
-点「上传 Markdown」选文件后，后端解析 front-matter（`title` / `fault_type`）、切分、向量化并落库，
+点「上传 Markdown」选文件后，后端去掉 front-matter、按文件名生成标题、切分、向量化并落库，
 一步完成，不再需要手工填正文。
 
-- 类型缺失时按标题 + 正文关键词推断，仍无命中归「其他」
+- 标题 = 文件名（去 `.md` 后缀），front-matter 的 title 与一级标题都不参与命名
+- 知识库不再按故障类型分类，`kb_article` 也没有 `fault_type` 字段
 - 只收 `.md` / `.markdown`，≤1MB，UTF-8
-- 返回 `{id,title,faultType,chunks,indexed,warning}`；文章已存但索引失败时 `warning` 给出原因
-- 「编辑」仍是表单，可改标题、类型、正文，保存后重新切片
+- 返回 `{id,title,chunks,indexed,warning}`；文章已存但索引失败时 `warning` 给出原因
+- 管理端只能「查看」（渲染 Markdown）、改标题、启停与删除，不能编辑正文
 
 | 操作 | 向量库行为 |
 |---|---|
@@ -192,7 +193,7 @@ curl -N -X POST http://localhost:8080/api/agent/chat/stream \
 ```json
 {
   "kb_id": 1, "doc_id": "kb:1", "source": "kb_article",
-  "title": "空调不制冷先查这三处", "fault_type": "空调家电",
+  "title": "空调不制冷先查这三处",
   "section": "1. 检查遥控器", "chunk_index": 0,
   "char_start": 0, "char_end": 120, "updated_at": "2026-11-14T22:26:29"
 }
@@ -220,7 +221,7 @@ Chroma 不可用时文章本身的增删改不受影响，只记一条 WARN 日�
 | 评价标签 / 差评回访 | 小程序评价页 / 管理端「差评回访」 | 4 个固定标签；≤2 星自动生成回访任务，状态为待回访/已回访/已关闭 |
 | 重复报修 | 报修提交前 | 同校区 + 同类型 + 48 小时 + 位置相似，提示并可直接查看已有单；管理员可合并（副单作废并关联主单） |
 | 批量审核 | 审核工作台 | 多选后批量通过/驳回，逐条返回结果，单条失败不影响其他 |
-| 知识库 | 小程序「维修知识库」/ 管理端 | 分类浏览、关键词搜索、详情浏览量；管理端增删改会自动切片同步到 Chroma，供智能助手检索 |
+| 知识库 | 小程序「维修知识库」/ 管理端 | 关键词搜索、详情浏览量；管理端上传 Markdown 即切片入库，只能查看/改标题/启停/删除 |
 | 配件登记 | 小程序完工上报页 | 承接维修工在完工前登记配件名称与数量 |
 | 统计绩效 | 工作台 | 近 14 日按时完成率、近 30 日维修工绩效排行（完工 <5 单标注样本不足） |
 | 智能助手 | 小程序首页底部悬浮窗 | Spring AI + Chroma 的 RAG 问答：只暴露一个知识库检索工具，SSE 流式逐字输出；默认半屏悬浮在 TabBar 上方，上滑展开全屏、下滑回半屏；右上角可收起为悬浮球；识别故障类型、命中教程可查看、一键带类型去报修；未配密钥时回落关键词问答 |

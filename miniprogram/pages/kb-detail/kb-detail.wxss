@@ -1,9 +1,5 @@
 .page { padding: 30rpx 24rpx; }
 .head { margin-bottom: 24rpx; }
-.type {
-  display: inline-block; font-size: 23rpx; color: #0f7b7e; background: #eef6f6;
-  padding: 6rpx 18rpx; border-radius: 999rpx; margin-bottom: 16rpx;
-}
 .title { font-size: 38rpx; font-weight: 800; color: #2b3a3c; line-height: 1.45; font-family: "STSong", "Songti SC", serif; }
 .meta { margin-top: 12rpx; font-size: 22rpx; color: #86909c; }
 .card {

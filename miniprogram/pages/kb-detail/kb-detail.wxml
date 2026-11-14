@@ -1,6 +1,5 @@
 <view class="page" wx:if="{{detail}}">
   <view class="head">
-    <view class="type">{{detail.faultType}}</view>
     <view class="title">{{detail.title}}</view>
     <view class="meta">{{detail.viewCount}} 次浏览 · 更新于 {{detail.updatedAt}}</view>
   </view>

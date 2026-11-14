@@ -1,10 +1,9 @@
 const { get } = require('../../utils/request')
 
 Page({
-  data: { skills: [], faultType: '', keyword: '', list: [], page: 1, total: 0, loading: false },
+  data: { keyword: '', list: [], page: 1, total: 0, loading: false },
 
   onLoad() {
-    this.loadSkills()
     this.load(true)
   },
 
@@ -17,20 +16,7 @@ Page({
     this.load(false)
   },
 
-  async loadSkills() {
-    try {
-      const skills = await get('/skills')
-      this.setData({ skills: skills || [] })
-    } catch (e) { /* 已提示 */ }
-  },
-
   onKeyword(e) { this.setData({ keyword: e.detail.value }) },
-
-  onType(e) {
-    const type = e.currentTarget.dataset.type
-    this.setData({ faultType: this.data.faultType === type ? '' : type })
-    this.load(true)
-  },
 
   onSearch() { this.load(true) },
 
@@ -40,7 +26,6 @@ Page({
     this.setData({ loading: true })
     try {
       const d = await get('/kb/articles?page=' + page + '&pageSize=10'
-        + (this.data.faultType ? '&faultType=' + encodeURIComponent(this.data.faultType) : '')
         + (this.data.keyword.trim() ? '&keyword=' + encodeURIComponent(this.data.keyword.trim()) : ''))
       this.setData({
         list: reset ? (d.list || []) : this.data.list.concat(d.list || []),

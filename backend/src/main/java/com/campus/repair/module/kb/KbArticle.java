@@ -8,8 +8,8 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 维修知识库文章（R2-F10-1/F10-2）：图文浏览与搜索；
- * 同时作为智能助手（RAG 雏形）的检索语料。
+ * 维修知识库文章：Markdown 正文，标题默认取上传文件名。
+ * 同时作为智能助手的检索语料（切片后写入 Chroma）。
  */
 @Data
 @TableName("kb_article")
@@ -19,8 +19,6 @@ public class KbArticle {
     private Long id;
 
     private String title;
-
-    private String faultType;
 
     private String content;
 

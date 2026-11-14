@@ -203,7 +203,6 @@ public class KbVectorIndexService {
         meta.put("doc_id", "kb:" + article.getId());
         meta.put("source", "kb_article");
         meta.put("title", article.getTitle() == null ? "" : article.getTitle());
-        meta.put("fault_type", article.getFaultType() == null ? "" : article.getFaultType());
         meta.put("section", chunk.section() == null ? "" : chunk.section());
         meta.put("chunk_index", chunk.index());
         meta.put("char_start", chunk.start());
