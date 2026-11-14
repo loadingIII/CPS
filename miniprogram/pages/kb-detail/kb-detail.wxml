@@ -6,7 +6,8 @@
   </view>
 
   <view class="card">
-    <text class="content">{{detail.content}}</text>
+    <rich-text wx:if="{{contentHtml}}" class="md" nodes="{{contentHtml}}"></rich-text>
+    <text wx:else class="content">{{detail.content}}</text>
   </view>
 
   <view class="tip">按步骤操作仍无法解决？返回首页提交报修，由师傅上门处理。</view>

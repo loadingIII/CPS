@@ -25,20 +25,23 @@
     <view wx:for="{{messages}}" wx:key="id" class="msg-row {{item.role}}">
       <view class="avatar" wx:if="{{item.role === 'agent'}}">AI</view>
       <view class="msg-main">
-        <view class="bubble" wx:if="{{!item.typing}}">{{item.text}}</view>
-        <view class="typing" wx:else>
+        <view class="typing" wx:if="{{item.streaming && !item.text}}">
           <text class="dot"></text><text class="dot"></text><text class="dot"></text>
           <text class="typing-text">正在查知识库</text>
         </view>
+        <view class="bubble {{item.streaming ? 'streaming' : ''}}" wx:else>{{item.text}}</view>
+
+        <view class="msg-error" wx:if="{{item.errorText}}">{{item.errorText}}</view>
+        <view class="retry-btn" wx:if="{{item.failed}}" data-idx="{{index}}" bindtap="retry">重新回答</view>
 
         <view class="article-list" wx:if="{{item.articles.length}}">
-          <view class="article" wx:for="{{item.articles}}" wx:for-item="a" wx:key="id"
+          <view class="article" wx:for="{{item.articles}}" wx:for-item="a" wx:key="title"
                 data-id="{{a.id}}" bindtap="openArticle">
             <view class="article-main">
               <view class="article-title">{{a.title}}</view>
-              <view class="article-meta">{{a.faultType}} · 查看教程</view>
+              <view class="article-meta">{{a.faultType}} · {{a.id ? '查看教程' : '知识库文档'}}</view>
             </view>
-            <view class="article-arrow">›</view>
+            <view class="article-arrow" wx:if="{{a.id}}">›</view>
           </view>
         </view>
 

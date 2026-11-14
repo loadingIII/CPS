@@ -1,4 +1,5 @@
 const { post } = require('../../utils/request')
+const { streamChat, streamSupported } = require('../../utils/sse')
 
 let seq = 0
 function nextId() {
@@ -28,6 +29,7 @@ Component({
   lifetimes: {
     attached() {
       this._alive = true
+      this._conversationId = 'c' + Date.now().toString(36)
       const info = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync()
       const windowHeight = info.windowHeight || 700
       const halfHeight = Math.round(windowHeight * 0.48)
@@ -53,6 +55,8 @@ Component({
     detached() {
       this._alive = false
       if (this._tabTimer) clearTimeout(this._tabTimer)
+      this._stopTypewriter()
+      if (this._task && this._task.abort) this._task.abort()
       if (this._kbHandler && wx.offKeyboardHeightChange) {
         wx.offKeyboardHeightChange(this._kbHandler)
       }
@@ -166,36 +170,151 @@ Component({
     async ask(raw) {
       const text = String(raw || '').trim()
       if (!text || this.data.sending) return
+      if (!this.data.full) this.setFull(true)
 
       const userMsg = { id: nextId(), role: 'user', text, articles: [] }
-      const typing = { id: nextId(), role: 'agent', typing: true, text: '', articles: [] }
-      const messages = this.data.messages.concat(userMsg, typing)
+      const reply = { id: nextId(), role: 'agent', text: '', articles: [], streaming: true }
+      const messages = this.data.messages.concat(userMsg, reply)
       this.setData({ messages, input: '', sending: true }, () => this.scrollBottom())
+      this.runStream(text, messages.length - 1)
+    },
 
-      try {
-        const d = await post('/agent/chat', { message: text })
-        this.replaceMessage(typing.id, {
-          id: typing.id,
-          role: 'agent',
-          text: d.answer || '我暂时没有找到答案，可以直接提交报修。',
-          articles: d.articles || [],
-          faultType: d.suggestedFaultType || '',
+    /** 失败重试：复用原气泡，不重复插入用户消息 */
+    retry(e) {
+      const index = Number(e.currentTarget.dataset.idx)
+      if (this.data.sending || Number.isNaN(index) || !this._lastQuestion) return
+      this.setData({
+        [`messages[${index}].text`]: '',
+        [`messages[${index}].failed`]: false,
+        [`messages[${index}].errorText`]: '',
+        [`messages[${index}].streaming`]: true,
+        sending: true,
+      })
+      this.runStream(this._lastQuestion, index)
+    },
+
+    runStream(question, index) {
+      this._lastQuestion = question
+      this._streamIndex = index
+      this._streamText = ''
+      this._queue = ''
+      this._finished = false
+      this._pendingFinish = false
+      this._refs = []
+      this._doneInfo = null
+      this._startTypewriter()
+
+      const onEvent = (event, data) => {
+        if (event === 'start') {
+          if (data && data.conversationId) this._conversationId = data.conversationId
+        } else if (event === 'refs') {
+          this._refs = Array.isArray(data) ? data : []
+        } else if (event === 'delta') {
+          this._queue += (data && data.t) || ''
+        } else if (event === 'done') {
+          this._doneInfo = data || {}
+          this.finishStream()
+        } else if (event === 'error') {
+          this.failStream(data)
+        }
+      }
+
+      if (streamSupported()) {
+        this._task = streamChat({
+          data: { message: question, conversationId: this._conversationId },
+          onEvent,
+          onError: err => this.failStream(err),
+          onComplete: () => this.finishStream(),
         })
-      } catch (e) {
-        this.replaceMessage(typing.id, {
-          id: typing.id,
-          role: 'agent',
-          text: '网络开小差了，请稍后再试，或直接提交报修。',
-          articles: [],
+        return
+      }
+
+      // 低版本基础库不支持分块接收：退回同步接口，前端仍逐字渲染
+      post('/agent/chat', { message: question, conversationId: this._conversationId })
+        .then(d => {
+          this._queue += d.answer || ''
+          this._refs = d.articles || []
+          this._doneInfo = { suggestedFaultType: d.suggestedFaultType }
+          this.finishStream()
         })
-      } finally {
-        if (this._alive) this.setData({ sending: false })
+        .catch(err => this.failStream({ message: err.message }))
+    },
+
+    /* ---------- 打字机：把增量文本匀速吐到气泡里 ---------- */
+    _startTypewriter() {
+      this._stopTypewriter()
+      this._typer = setInterval(() => {
+        if (this._queue) {
+          const len = this._queue.length
+          const take = len > 120 ? 10 : len > 60 ? 6 : len > 20 ? 3 : 1
+          this._streamText += this._queue.slice(0, take)
+          this._queue = this._queue.slice(take)
+          this.flushText()
+        }
+        // 流已结束但还有积压：等吐完再收尾，保证降级模式也是逐字出现
+        if (this._pendingFinish && !this._queue) {
+          this._pendingFinish = false
+          this.finishStream()
+        }
+      }, 32)
+    },
+
+    _stopTypewriter() {
+      if (this._typer) {
+        clearInterval(this._typer)
+        this._typer = null
       }
     },
 
-    replaceMessage(id, next) {
-      const messages = this.data.messages.map(m => (m.id === id ? next : m))
-      this.setData({ messages }, () => this.scrollBottom())
+    flushText() {
+      if (!this._alive || this._streamIndex == null) return
+      this.setData({ [`messages[${this._streamIndex}].text`]: this._streamText })
+      this._scrollTickCount = (this._scrollTickCount || 0) + 1
+      if (this._scrollTickCount % 6 === 0) this.scrollBottom()
+    },
+
+    finishStream() {
+      if (this._finished) return
+      // 还有没吐完的字：交给打字机收尾
+      if (this._queue) {
+        this._pendingFinish = true
+        return
+      }
+      this._finished = true
+      this._stopTypewriter()
+      const i = this._streamIndex
+      const text = this._streamText || '我暂时没有找到答案，可以直接提交报修。'
+      const done = this._doneInfo || {}
+      this.setData({
+        [`messages[${i}].text`]: text,
+        [`messages[${i}].streaming`]: false,
+        [`messages[${i}].failed`]: false,
+        [`messages[${i}].errorText`]: '',
+        [`messages[${i}].articles`]: this._refs || [],
+        [`messages[${i}].faultType`]: done.suggestedFaultType || '',
+        sending: false,
+      }, () => this.scrollBottom())
+      this._task = null
+    },
+
+    failStream(err) {
+      if (this._finished || this._pendingFinish) return
+      this._finished = true
+      this._stopTypewriter()
+      if (this._queue) {
+        this._streamText += this._queue
+        this._queue = ''
+      }
+      const i = this._streamIndex
+      const message = (err && err.message) || '智能助手开小差了，请重试或直接提交报修'
+      this.setData({
+        [`messages[${i}].text`]: this._streamText || message,
+        [`messages[${i}].streaming`]: false,
+        [`messages[${i}].failed`]: true,
+        [`messages[${i}].errorText`]: this._streamText ? '回答中断，可重试' : '',
+        sending: false,
+      }, () => this.scrollBottom())
+      this._task = null
     },
 
     scrollBottom() {
@@ -205,7 +324,9 @@ Component({
     },
 
     openArticle(e) {
-      wx.navigateTo({ url: '/pages/kb-detail/kb-detail?id=' + e.currentTarget.dataset.id })
+      const id = e.currentTarget.dataset.id
+      if (!id) return
+      wx.navigateTo({ url: '/pages/kb-detail/kb-detail?id=' + id })
     },
 
     goReport(e) {

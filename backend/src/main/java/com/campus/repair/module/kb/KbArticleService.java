@@ -5,22 +5,39 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.campus.repair.common.BusinessException;
 import com.campus.repair.common.PageVO;
+import com.campus.repair.module.agent.KeywordAgentFallback;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 
 /**
  * 知识库（R2-F10-1/F10-2）：分类浏览、关键词搜索、详情与浏览量。
- * 只做图文，不做向量检索与智能推荐（R3）。
+ * 文章增删改会同步到向量库（{@link KbVectorIndexService}），供智能助手检索。
  */
 @Service
 public class KbArticleService {
 
-    private final KbArticleMapper kbArticleMapper;
+    private static final Logger log = LoggerFactory.getLogger(KbArticleService.class);
 
-    public KbArticleService(KbArticleMapper kbArticleMapper) {
+    /** Markdown 上传上限，避免误传大文件 */
+    private static final long MAX_MD_SIZE = 1024 * 1024L;
+
+    private final KbArticleMapper kbArticleMapper;
+    private final KbVectorIndexService vectorIndex;
+    private final KeywordAgentFallback faultTypeGuesser;
+
+    public KbArticleService(KbArticleMapper kbArticleMapper,
+                            KbVectorIndexService vectorIndex,
+                            KeywordAgentFallback faultTypeGuesser) {
         this.kbArticleMapper = kbArticleMapper;
+        this.vectorIndex = vectorIndex;
+        this.faultTypeGuesser = faultTypeGuesser;
     }
 
     /** 小程序/登录用户：只返回启用文章；列表不带全文，避免列表页背大字段 */
@@ -71,6 +88,7 @@ public class KbArticleService {
         a.setCreatedAt(LocalDateTime.now());
         a.setUpdatedAt(LocalDateTime.now());
         kbArticleMapper.insert(a);
+        syncQuietly(a);
         return a.getId();
     }
 
@@ -84,6 +102,113 @@ public class KbArticleService {
         apply(a, req);
         a.setUpdatedAt(LocalDateTime.now());
         kbArticleMapper.updateById(a);
+        // 重新查一次，保证同步用的是完整字段
+        syncQuietly(kbArticleMapper.selectById(id));
+    }
+
+    /** 删除文章，同时清掉向量块 */
+    public void delete(Long id) {
+        KbArticle exists = kbArticleMapper.selectById(id);
+        if (exists == null) {
+            throw BusinessException.notFound("文章不存在");
+        }
+        kbArticleMapper.deleteById(id);
+        try {
+            vectorIndex.remove(id);
+        } catch (Exception e) {
+            log.warn("[KB] 删除文章 #{} 的向量块失败：{}", id, e.getMessage());
+        }
+    }
+
+    /**
+     * 上传 Markdown：解析 → 建文章 → 切片 → 向量化入库，一步完成。
+     * 向量库不可用时文章仍会保存，结果里给出 warning。
+     */
+    public KbImportResult importMarkdown(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw BusinessException.param("请选择 Markdown 文件");
+        }
+        String fileName = file.getOriginalFilename() == null ? "" : file.getOriginalFilename();
+        String lower = fileName.toLowerCase();
+        if (!lower.endsWith(".md") && !lower.endsWith(".markdown")) {
+            throw BusinessException.param("只支持 .md / .markdown 文件");
+        }
+        if (file.getSize() > MAX_MD_SIZE) {
+            throw BusinessException.param("文件不要超过 1MB");
+        }
+
+        String raw;
+        try {
+            raw = new String(file.getBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw BusinessException.param("读取文件失败：" + e.getMessage());
+        }
+
+        MarkdownDocParser.Parsed parsed = MarkdownDocParser.parse(raw, fileName);
+        if (!StringUtils.hasText(parsed.content())) {
+            throw BusinessException.param("文件内容为空");
+        }
+
+        String faultType = parsed.faultType();
+        if (!StringUtils.hasText(faultType)) {
+            // 没写 front-matter 时按标题 + 正文关键词猜一个，猜不到归「其他」
+            faultType = faultTypeGuesser.classify(parsed.title() + "\n" + parsed.content());
+        }
+        if (!StringUtils.hasText(faultType)) {
+            faultType = "其他";
+        }
+
+        KbArticle article = new KbArticle();
+        article.setTitle(parsed.title());
+        article.setFaultType(faultType);
+        article.setContent(parsed.content());
+        article.setStatus(Boolean.TRUE);
+        article.setViewCount(0);
+        article.setCreatedAt(LocalDateTime.now());
+        article.setUpdatedAt(LocalDateTime.now());
+        kbArticleMapper.insert(article);
+
+        int chunks = 0;
+        boolean indexed = false;
+        String warning = null;
+        if (!vectorIndex.available()) {
+            warning = "文章已保存，但向量检索未启用，未写入索引";
+        } else {
+            try {
+                chunks = vectorIndex.index(article);
+                indexed = true;
+            } catch (Exception e) {
+                warning = "文章已保存，但向量索引失败：" + e.getMessage();
+                log.warn("[KB] 导入文章 #{} 索引失败：{}", article.getId(), e.getMessage());
+            }
+        }
+        log.info("[KB] 导入《{}》#{}：{} 块，indexed={}", article.getTitle(), article.getId(), chunks, indexed);
+        return new KbImportResult(article.getId(), article.getTitle(), faultType, chunks, indexed, warning);
+    }
+
+    /** 全量重建向量索引（管理端「重建索引」按钮） */
+    public KbVectorIndexService.SyncReport reindex() {
+        if (!vectorIndex.available()) {
+            throw BusinessException.conflict("向量检索未启用，请先在 .env 配置 AI_EMBEDDING_* 并启动 Chroma");
+        }
+        try {
+            vectorIndex.checkConnection();
+        } catch (Exception e) {
+            throw BusinessException.conflict("连不上 Chroma 或集合创建失败：" + e.getMessage());
+        }
+        return vectorIndex.reindexAll();
+    }
+
+    /** 向量库不可用时不影响文章本身的增删改，只记日志 */
+    private void syncQuietly(KbArticle article) {
+        if (article == null) {
+            return;
+        }
+        try {
+            vectorIndex.index(article);
+        } catch (Exception e) {
+            log.warn("[KB] 文章 #{} 向量同步失败：{}", article.getId(), e.getMessage());
+        }
     }
 
     private void apply(KbArticle a, KbReq req) {

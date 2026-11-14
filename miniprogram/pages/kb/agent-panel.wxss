@@ -130,6 +130,32 @@
   color: #ffffff;
 }
 
+/* 流式输出中的光标 */
+.bubble.streaming::after {
+  content: '';
+  display: inline-block;
+  width: 4rpx; height: 26rpx;
+  margin-left: 4rpx;
+  vertical-align: -4rpx;
+  background: #0f7b7e;
+  animation: caret .8s steps(1) infinite;
+}
+@keyframes caret { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+
+.msg-error { margin-top: 8rpx; color: #a35a1c; font-size: 21rpx; }
+.retry-btn {
+  margin-top: 10rpx;
+  padding: 10rpx 24rpx;
+  align-self: flex-start;
+  border: 2rpx solid #0f7b7e;
+  border-radius: 999rpx;
+  background: #f4fbfb;
+  color: #0a5f62;
+  font-size: 22rpx;
+  font-weight: 600;
+}
+.retry-btn:active { background: #e6f4f4; }
+
 .typing {
   display: flex; align-items: center; gap: 8rpx;
   padding: 18rpx 22rpx;

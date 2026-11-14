@@ -11,7 +11,15 @@
                     @keyup.enter="reload" />
           <el-button type="primary" plain @click="reload">查询</el-button>
         </div>
-        <el-button type="success" @click="openCreate">新增文章</el-button>
+        <div class="actions">
+          <span class="inline-hint">上传 .md 后自动切分并写入向量库</span>
+          <el-button plain :loading="reindexing" @click="reindex">重建向量索引</el-button>
+          <el-upload class="inline-upload" :show-file-list="false" :disabled="importing"
+                     :http-request="importMd" :before-upload="beforeImport"
+                     accept=".md,.markdown">
+            <el-button type="success" :loading="importing">上传 Markdown</el-button>
+          </el-upload>
+        </div>
       </div>
     </template>
 
@@ -25,9 +33,10 @@
       </el-table-column>
       <el-table-column prop="viewCount" label="浏览量" width="90" />
       <el-table-column prop="updatedAt" label="更新时间" width="165" />
-      <el-table-column label="操作" width="90" fixed="right">
+      <el-table-column label="操作" width="130" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
+          <el-button link type="danger" @click="remove(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -35,7 +44,7 @@
     <el-pagination style="margin-top: 12px; justify-content: flex-end" layout="total, prev, pager, next"
                    :total="total" :page-size="pageSize" v-model:current-page="page" @current-change="load" />
 
-    <el-dialog v-model="dialog" :title="form.id ? '编辑文章' : '新增文章'" width="640px">
+    <el-dialog v-model="dialog" title="编辑文章" width="640px">
       <el-form label-width="80px">
         <el-form-item label="标题">
           <el-input v-model="form.title" maxlength="128" show-word-limit />
@@ -47,7 +56,8 @@
         </el-form-item>
         <el-form-item label="内容">
           <el-input v-model="form.content" type="textarea" :rows="10"
-                    placeholder="图文步骤说明（纯文本或带图片地址），面向师生自助排查" />
+                    placeholder="Markdown 正文，保存后按标题分节 + 滑动窗口切片" />
+          <div class="hint">保存后会自动切片写入向量库，智能助手即可检索到本文。</div>
         </el-form-item>
         <el-form-item label="启用">
           <el-switch v-model="form.status" />
@@ -63,7 +73,7 @@
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '../api'
 
 const skills = ref([])
@@ -75,6 +85,8 @@ const faultType = ref(null)
 const keyword = ref('')
 const dialog = ref(false)
 const form = reactive({ id: null, title: '', faultType: '', content: '', status: true })
+const reindexing = ref(false)
+const importing = ref(false)
 
 async function load() {
   const d = await api.get('/kb/articles/manage', {
@@ -93,19 +105,6 @@ function reload() {
   load()
 }
 
-function resetForm() {
-  form.id = null
-  form.title = ''
-  form.faultType = ''
-  form.content = ''
-  form.status = true
-}
-
-function openCreate() {
-  resetForm()
-  dialog.value = true
-}
-
 function openEdit(row) {
   form.id = row.id
   form.title = row.title
@@ -115,7 +114,41 @@ function openEdit(row) {
   dialog.value = true
 }
 
+function beforeImport(file) {
+  if (!/\.(md|markdown)$/i.test(file.name)) {
+    ElMessage.warning('只支持 .md / .markdown 文件')
+    return false
+  }
+  if (file.size > 1024 * 1024) {
+    ElMessage.warning('文件不要超过 1MB')
+    return false
+  }
+  return true
+}
+
+/** 上传即入库：后端解析 front-matter、切片、向量化 */
+async function importMd(options) {
+  const data = new FormData()
+  data.append('file', options.file)
+  importing.value = true
+  try {
+    const r = await api.post('/kb/articles/import', data)
+    if (r.warning) {
+      ElMessage.warning(r.warning)
+    } else {
+      ElMessage.success(`已导入《${r.title}》：${r.chunks} 个切片已写入向量库`)
+    }
+    await load()
+    options.onSuccess && options.onSuccess(r)
+  } catch (e) {
+    options.onError && options.onError(e)
+  } finally {
+    importing.value = false
+  }
+}
+
 async function submit() {
+  if (!form.id) return
   if (!form.title.trim() || !form.faultType || !form.content.trim()) {
     ElMessage.warning('标题、类型、内容都不能为空')
     return
@@ -126,15 +159,32 @@ async function submit() {
     content: form.content,
     status: form.status,
   }
-  if (form.id) {
-    await api.put(`/kb/articles/${form.id}`, body)
-    ElMessage.success('已保存')
-  } else {
-    await api.post('/kb/articles', body)
-    ElMessage.success('已新增')
-  }
+  await api.put(`/kb/articles/${form.id}`, body)
+  ElMessage.success('已保存，向量索引已更新')
   dialog.value = false
   await load()
+}
+
+async function remove(row) {
+  await ElMessageBox.confirm(
+    `确定删除《${row.title}》？向量库中对应的切片也会一并清理。`,
+    '删除文章',
+    { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
+  )
+  await api.delete(`/kb/articles/${row.id}`)
+  ElMessage.success('已删除')
+  await load()
+}
+
+async function reindex() {
+  reindexing.value = true
+  try {
+    const r = await api.post('/kb/articles/reindex')
+    const failed = r.failed ? `，失败 ${r.failed} 篇` : ''
+    ElMessage.success(`已重建：${r.indexed}/${r.articles} 篇，共 ${r.chunks} 个切片${failed}`)
+  } finally {
+    reindexing.value = false
+  }
 }
 
 onMounted(async () => {
@@ -146,4 +196,8 @@ onMounted(async () => {
 <style scoped>
 .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.inline-hint { color: #909399; font-size: 12px; }
+.inline-upload { display: inline-flex; }
+.hint { margin-top: 6px; color: #909399; font-size: 12px; line-height: 1.6; }
 </style>

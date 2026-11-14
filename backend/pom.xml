@@ -7,7 +7,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.2.5</version>
+    <version>3.4.5</version>
     <relativePath/>
   </parent>
 
@@ -19,10 +19,29 @@
 
   <properties>
     <java.version>17</java.version>
-    <mybatis-plus.version>3.5.7</mybatis-plus.version>
+    <mybatis-plus.version>3.5.12</mybatis-plus.version>
     <jjwt.version>0.12.5</jjwt.version>
     <knife4j.version>4.5.0</knife4j.version>
+    <spring-ai.version>1.1.8</spring-ai.version>
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.springframework.ai</groupId>
+        <artifactId>spring-ai-bom</artifactId>
+        <version>${spring-ai.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- 统一 springdoc 版本，避免被其它依赖拉回与 Spring 6.2 不兼容的旧版 -->
+      <dependency>
+        <groupId>org.springdoc</groupId>
+        <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        <version>2.8.17</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
     <dependency>
@@ -33,11 +52,22 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-validation</artifactId>
     </dependency>
+    <!-- Spring AI 的流式对话走 WebClient，需要 reactor-netty 作为连接器 -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webflux</artifactId>
+    </dependency>
 
     <!-- MyBatis-Plus（Spring Boot 3 专用 starter） -->
     <dependency>
       <groupId>com.baomidou</groupId>
       <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+      <version>${mybatis-plus.version}</version>
+    </dependency>
+    <!-- 3.5.9+ 分页插件拆分为独立模块，PaginationInnerInterceptor 在这里 -->
+    <dependency>
+      <groupId>com.baomidou</groupId>
+      <artifactId>mybatis-plus-jsqlparser</artifactId>
       <version>${mybatis-plus.version}</version>
     </dependency>
 
@@ -72,11 +102,30 @@
       <artifactId>spring-security-crypto</artifactId>
     </dependency>
 
-    <!-- 接口文档 Knife4j (OpenAPI3) -->
+    <!-- 接口文档：springdoc 2.8.x（Boot 3.4 兼容） -->
+    <dependency>
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+    </dependency>
+    <!-- Knife4j 仅保留静态 UI（doc.html），不再使用其 starter：4.5.0 与 Spring 6.2 资源映射不兼容 -->
     <dependency>
       <groupId>com.github.xiaoymin</groupId>
-      <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+      <artifactId>knife4j-openapi3-ui</artifactId>
       <version>${knife4j.version}</version>
+    </dependency>
+
+    <!-- ===== Spring AI（RAG 问答）：手工装配 Bean，不引 starter ===== -->
+    <dependency>
+      <groupId>org.springframework.ai</groupId>
+      <artifactId>spring-ai-openai</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.ai</groupId>
+      <artifactId>spring-ai-chroma-store</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.ai</groupId>
+      <artifactId>spring-ai-client-chat</artifactId>
     </dependency>
 
     <dependency>
@@ -107,5 +156,45 @@
         </configuration>
       </plugin>
     </plugins>
+    <pluginManagement>
+      <!-- 本机 Maven 3.6.1：Boot 3.4 默认插件版本要求 3.6.3+，此处回退到兼容版本 -->
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.11.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>3.2.5</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>3.3.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>3.3.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-clean-plugin</artifactId>
+          <version>3.3.2</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-install-plugin</artifactId>
+          <version>3.1.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-deploy-plugin</artifactId>
+          <version>3.1.1</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
   </build>
 </project>

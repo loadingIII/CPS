@@ -42,3 +42,10 @@ logs/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# ===== Chroma 本地数据（可选） =====
+chroma-data/
+
+# ===== 本地 Chroma 数据 =====
+chroma/data/*
+!chroma/data/.gitkeep

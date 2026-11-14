@@ -2,12 +2,15 @@ server:
   port: 8080
 
 spring:
+  # .env 与 .env.example 键名保持一致；缺失时按下方默认值启动
+  config:
+    import: optional:file:./.env[.properties]
   application:
     name: campus-repair
   datasource:
-    url: jdbc:mysql://localhost:3306/campus_repair?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-    username: root
-    password: 123321
+    url: ${DB_URL:jdbc:mysql://localhost:3306/campus_repair?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123321}
     driver-class-name: com.mysql.cj.jdbc.Driver
   servlet:
     multipart:
@@ -56,12 +59,46 @@ dispatch:
 
 jwt:
   # HS256 签名密钥（长度 ≥ 256bit）；课程设计演示用，生产环境应外部注入
-  secret: CampusRepairSystemJwtSigningSecretKey0123456789ABCDEF
-  expire-hours: 168
+  secret: ${JWT_SECRET:CampusRepairSystemJwtSigningSecretKey0123456789ABCDEF}
+  expire-hours: ${JWT_EXPIRE_HOURS:168}
 
-knife4j:
-  enable: true
+# 智能助手（Spring AI + Chroma 向量检索）
+# 未配置 AI_API_KEY 时自动降级为关键词问答，不影响启动
+agent:
+  enabled: ${AGENT_ENABLED:false}
+  base-url: ${AI_BASE_URL:}
+  api-key: ${AI_API_KEY:}
+  # 向量模型可单独一套端点/密钥，留空则沿用上面的对话配置
+  embedding-base-url: ${AI_EMBEDDING_BASE_URL:}
+  embedding-api-key: ${AI_EMBEDDING_API_KEY:}
+  chat-model: ${AI_CHAT_MODEL:}
+  embedding-model: ${AI_EMBEDDING_MODEL:}
+  embedding-dimensions: ${AI_EMBEDDING_DIMENSIONS:1024}
+  temperature: ${AI_TEMPERATURE:0.3}
+  timeout-seconds: ${AI_TIMEOUT_SECONDS:90}
+  rag:
+    top-k: ${RAG_TOP_K:4}
+    similarity-threshold: ${RAG_SIMILARITY_THRESHOLD:0.35}
+    max-context-chars: ${RAG_MAX_CONTEXT_CHARS:3000}
+    history-turns: ${RAG_HISTORY_TURNS:6}
+    chunk-size: ${RAG_CHUNK_SIZE:500}
+    chunk-overlap: ${RAG_CHUNK_OVERLAP:80}
+  chroma:
+    host: ${CHROMA_HOST:localhost}
+    port: ${CHROMA_PORT:8000}
+    collection: ${CHROMA_COLLECTION:campus_repair_kb}
+    tenant: ${CHROMA_TENANT:default_tenant}
+    database: ${CHROMA_DATABASE:default_database}
 
 logging:
   level:
     com.campus.repair: info
+
+springdoc:
+  api-docs:
+    enabled: true
+  # springdoc 2.8 的 swagger-ui 资源映射在 Spring 6.2 下会生成非法通配
+  # （/swagger-ui/**/*swagger-initializer.js），这里关闭自带 UI，
+  # 文档页由 Knife4j 静态资源 doc.html 提供，接口描述仍走 /v3/api-docs
+  swagger-ui:
+    enabled: false
