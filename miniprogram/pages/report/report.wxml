@@ -1,5 +1,5 @@
-<view class="page service-page">
-  <view class="service-head">
+<view class="page service-page {{serviceView === 'home' ? 'home-mode' : ''}}">
+  <view wx:if="{{serviceView === 'home'}}" class="service-head">
     <view class="service-kicker"><text>校园报修 · 师生服务</text></view>
     <view class="service-title">报修服务</view>
   </view>
@@ -15,7 +15,7 @@
         <view class="module-icon icon-repair"></view>
       </view>
       <view class="module-body">
-        <view class="module-title">我要报修</view>
+        <view class="module-title">报修申请</view>
         <view class="module-desc">提交故障与位置</view>
       </view>
       <view class="module-arrow">›</view>
@@ -31,7 +31,7 @@
         <view class="module-icon icon-orders"></view>
       </view>
       <view class="module-body">
-        <view class="module-title">我的报修<text class="module-count" wx:if="{{orderTotal > 0}}">{{orderTotal}}</text></view>
+        <view class="module-title">进度查询<text class="module-count" wx:if="{{orderTotal > 0}}">{{orderTotal}}</text></view>
         <view class="module-desc">查看进度与评价</view>
       </view>
       <view class="module-arrow">›</view>
@@ -40,12 +40,7 @@
 
   <view wx:elif="{{serviceView === 'form'}}" class="service-panel">
     <view class="panel-head">
-      <view class="panel-top">
-        <view class="panel-back" bindtap="goServiceHome">‹ 报修服务</view>
-        <view class="panel-switch" bindtap="enterOrders">我的报修 ›</view>
-      </view>
-      <view class="panel-title">我要报修</view>
-      <view class="panel-sub">填写位置与故障，提交后由后勤审核派单</view>
+      <view class="back-btn" bindtap="goServiceHome" hover-class="back-btn-hover">‹</view>
     </view>
 
     <view class="card">
@@ -133,12 +128,7 @@
 
   <view wx:else class="orders-panel">
     <view class="panel-head">
-      <view class="panel-top">
-        <view class="panel-back" bindtap="goServiceHome">‹ 报修服务</view>
-        <view class="panel-switch" bindtap="enterForm">去报修 ›</view>
-      </view>
-      <view class="panel-title">我的报修</view>
-      <view class="panel-sub">共 {{orderTotal}} 张工单 · 跟进处理进度</view>
+      <view class="back-btn" bindtap="goServiceHome" hover-class="back-btn-hover">‹</view>
     </view>
 
     <scroll-view class="order-tabs" scroll-x="true">

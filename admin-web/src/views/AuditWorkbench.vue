@@ -61,14 +61,33 @@
 
     <el-drawer v-model="drawer" title="工单详情" :size="drawerSize">
       <template v-if="detail">
-        <el-descriptions :column="1" border>
-          <el-descriptions-item label="工单号">{{ detail.orderNo }}</el-descriptions-item>
-          <el-descriptions-item label="位置">{{ detail.locationText }}</el-descriptions-item>
-          <el-descriptions-item label="类型/紧急度">
-            {{ detail.faultType }} / {{ detail.urgency === 'URGENT' ? '紧急' : '普通' }}
+        <el-descriptions :column="1" border size="small" title="基本信息">
+          <el-descriptions-item label="工单号">
+            <span :class="{ urgent: detail.urgency === 'URGENT' }">{{ detail.orderNo }}</span>
+            <el-tag v-if="detail.isOverdue" type="danger" size="small" effect="dark"
+                    style="margin-left: 6px">超时</el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="报修人">{{ detail.reporterName }} {{ detail.reporterPhone }}</el-descriptions-item>
-          <el-descriptions-item label="描述">{{ detail.description }}</el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag size="small" :type="STATUS_TAG[detail.status]">{{ STATUS_LABEL[detail.status] }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="校区">{{ detail.campusName || detail.campus || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="位置">{{ detail.locationText }}</el-descriptions-item>
+          <el-descriptions-item label="类型">{{ detail.faultType || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="紧急度">{{ detail.urgency === 'URGENT' ? '紧急' : '普通' }}</el-descriptions-item>
+          <el-descriptions-item label="提交时间">{{ detail.submittedAt || '-' }}</el-descriptions-item>
+        </el-descriptions>
+
+        <el-descriptions :column="1" border size="small" title="报修人" class="desc-gap">
+          <el-descriptions-item label="姓名">{{ detail.reporterName || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="学工号">{{ detail.reporterJobNo || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="手机号">
+            <span v-if="detail.reporterPhone">{{ detail.reporterPhone }}</span>
+            <span v-else class="muted">未填写</span>
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <el-descriptions :column="1" border size="small" title="报修内容" class="desc-gap">
+          <el-descriptions-item label="描述">{{ detail.description || '-' }}</el-descriptions-item>
           <el-descriptions-item label="报修图片">
             <el-image v-for="(img, i) in detail.reportImages" :key="i" :src="img"
                       :preview-src-list="detail.reportImages" fit="cover"
@@ -76,7 +95,14 @@
             <span v-if="!detail.reportImages?.length" class="muted">未上传</span>
           </el-descriptions-item>
         </el-descriptions>
-        <div v-if="detail.status === 'PENDING_AUDIT'" style="margin-top: 16px">
+
+        <el-descriptions v-if="detail.workerId" :column="1" border size="small" title="维修工" class="desc-gap">
+          <el-descriptions-item label="姓名">{{ detail.workerName || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="工号">{{ detail.workerJobNo || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="手机号">{{ detail.workerPhone || '-' }}</el-descriptions-item>
+        </el-descriptions>
+
+        <div v-if="detail.status === 'PENDING_AUDIT'" style="margin-top: 18px">
           <el-button type="success" @click="approve(detail)">审核通过</el-button>
           <el-button type="warning" @click="openReject(detail)">驳回</el-button>
         </div>
@@ -122,7 +148,7 @@ const total = ref(0)
 const page = ref(1)
 const pageSize = 10
 const drawer = ref(false)
-const drawerSize = ref(window.innerWidth < 768 ? '92%' : '420px')
+const drawerSize = ref(window.innerWidth < 768 ? '94%' : '560px')
 const detail = ref(null)
 const rejectDialog = ref(false)
 const rejectReason = ref('')
@@ -227,4 +253,5 @@ onMounted(load)
 .urgent { color: var(--el-color-danger); font-weight: 700; }
 :deep(.urgent-row) { background: var(--blush-soft); }
 .muted { color: var(--muted); font-size: 13px; }
+.desc-gap { margin-top: 14px; }
 </style>

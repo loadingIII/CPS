@@ -1122,6 +1122,7 @@ public class OrderService {
         if (reporter != null) {
             v.setReporterName(reporter.getName());
             if (!preview) {
+                v.setReporterJobNo(reporter.getJobNo());
                 v.setReporterPhone(reporter.getPhone());
             }
         }
@@ -1129,6 +1130,7 @@ public class OrderService {
             SysUser worker = users.get(o.getWorkerId());
             if (worker != null) {
                 v.setWorkerName(worker.getName());
+                v.setWorkerJobNo(worker.getJobNo());
                 v.setWorkerPhone(worker.getPhone());
             }
         }

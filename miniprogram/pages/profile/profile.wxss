@@ -1,4 +1,4 @@
-.page { padding-bottom: 60rpx; }
+.page { min-height: 100vh; padding-bottom: 60rpx; box-sizing: border-box; }
 
 /* 顶部色块与头像卡 */
 .head {
@@ -93,4 +93,4 @@
   border: 2rpx solid #edc0c8;
   border-radius: 999rpx; font-size: 30rpx;
 }
-.profile-bottom-space { height: 40rpx; }
+.profile-bottom-space { height: calc(200rpx + env(safe-area-inset-bottom)); }

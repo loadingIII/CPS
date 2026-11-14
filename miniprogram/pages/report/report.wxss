@@ -24,8 +24,18 @@
 
 .desc { width: 100%; box-sizing: border-box; background: #f7f8f8; border: 1rpx dashed #c6cad0; border-radius: 14rpx; padding: 22rpx; min-height: 210rpx; font-size: 28rpx; line-height: 1.65; }
 .ph { color: #86909c; }
-.loc-detail { margin-top: 16rpx; }
-.loc-input { width: 100%; box-sizing: border-box; background: #f7f8f8; border: 1rpx dashed #c6cad0; border-radius: 14rpx; padding: 20rpx 22rpx; height: 84rpx; font-size: 28rpx; }
+.loc-detail {
+  margin-top: 16rpx;
+  display: flex; align-items: center;
+  box-sizing: border-box; min-height: 88rpx; padding: 0 24rpx;
+  background: #f7f8f8; border: 1rpx dashed #c6cad0; border-radius: 14rpx;
+}
+.loc-input {
+  flex: 1; min-width: 0;
+  height: 88rpx; line-height: 88rpx;
+  padding: 0; border: none; background: transparent;
+  font-size: 28rpx; color: #2b3a3c;
+}
 .loc-tip { margin-top: 10rpx; font-size: 22rpx; color: #758286; line-height: 1.5; }
 .campus-address { margin-top: 8rpx; font-size: 22rpx; color: #0a5f62; line-height: 1.5; }
 .footer { padding: 10rpx 24rpx; }
@@ -68,6 +78,25 @@
 
 /* 报修服务入口：青春感动作按钮 */
 .service-home { padding: 8rpx 0 20rpx; }
+.service-page.home-mode {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding-bottom: calc(130rpx + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column;
+}
+.home-mode .service-home {
+  flex: 1;
+  display: flex; flex-direction: column;
+  gap: 22rpx;
+  padding: 6rpx 0 4rpx;
+}
+.home-mode .module-card {
+  flex: 1;
+  min-height: 200rpx;
+  margin: 0 24rpx;
+}
+.home-mode .module-mark { width: 112rpx; height: 112rpx; }
+.home-mode .bottom-space { display: none; }
 .module-card {
   position: relative; overflow: hidden;
   display: flex; align-items: center; gap: 24rpx;
@@ -152,9 +181,13 @@
 .module-orders .module-arrow { background: rgba(255, 255, 255, .75); color: #6f3444; }
 
 /* 子页面头部：返回 + 标题 + 快捷切换 */
-.panel-head { margin: 2rpx 30rpx 16rpx; }
-.panel-top { display: flex; align-items: center; justify-content: space-between; }
-.panel-back { color: #0a5f62; font-size: 24rpx; font-weight: 600; padding: 4rpx 0; }
-.panel-switch { color: #0f7b7e; font-size: 23rpx; font-weight: 600; padding: 4rpx 0; }
-.panel-title { margin-top: 12rpx; font-size: 34rpx; font-weight: 800; color: #2b3a3c; letter-spacing: 1rpx; }
-.panel-sub { margin-top: 6rpx; font-size: 22rpx; color: #758286; line-height: 1.55; }
+.panel-head { margin: 4rpx 30rpx 14rpx; }
+.back-btn {
+  width: 68rpx; height: 68rpx; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: #ffffff; border: 2rpx solid #dfe4e5;
+  color: #0a5f62; font-size: 40rpx; font-weight: 700; line-height: 1;
+  padding-bottom: 4rpx; box-sizing: border-box;
+  box-shadow: 0 4rpx 10rpx rgba(43, 58, 60, .06);
+}
+.back-btn-hover { background: #eef6f6; transform: scale(.96); }

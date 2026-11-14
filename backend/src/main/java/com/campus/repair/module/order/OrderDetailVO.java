@@ -31,8 +31,11 @@ public class OrderDetailVO {
     private Boolean isOverdue;
 
     private String reporterName;
+    /** 学工号：管理端详情展示，查重预览时为 null */
+    private String reporterJobNo;
     private String reporterPhone;
     private String workerName;
+    private String workerJobNo;
     private String workerPhone;
 
     private LocalDateTime submittedAt;

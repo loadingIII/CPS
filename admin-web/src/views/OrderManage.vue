@@ -62,24 +62,66 @@
 
     <el-drawer v-model="drawer" title="工单详情" :size="drawerSize">
       <template v-if="detail">
-        <el-descriptions :column="1" border>
-          <el-descriptions-item label="工单号">{{ detail.orderNo }}</el-descriptions-item>
+        <el-descriptions :column="1" border size="small" title="基本信息">
+          <el-descriptions-item label="工单号">
+            <span :class="{ urgent: detail.urgency === 'URGENT' }">{{ detail.orderNo }}</span>
+            <el-tag v-if="detail.isOverdue" type="danger" size="small" effect="dark"
+                    style="margin-left: 6px">超时</el-tag>
+          </el-descriptions-item>
           <el-descriptions-item label="状态">
             <el-tag size="small" :type="STATUS_TAG[detail.status]">{{ STATUS_LABEL[detail.status] }}</el-tag>
+            <span class="muted" style="margin-left: 8px">{{ DISPATCH_LABEL[detail.dispatchState] || '' }}</span>
           </el-descriptions-item>
+          <el-descriptions-item label="校区">{{ detail.campusName || detail.campus || '-' }}</el-descriptions-item>
           <el-descriptions-item label="位置">{{ detail.locationText }}</el-descriptions-item>
-          <el-descriptions-item label="类型/紧急度">
-            {{ detail.faultType }} / {{ detail.urgency === 'URGENT' ? '紧急' : '普通' }}
+          <el-descriptions-item label="类型 / 紧急度">
+            {{ detail.faultType || '-' }} / {{ detail.urgency === 'URGENT' ? '紧急' : '普通' }}
           </el-descriptions-item>
-          <el-descriptions-item label="报修人">{{ detail.reporterName || '-' }} {{ detail.reporterPhone || '' }}</el-descriptions-item>
-          <el-descriptions-item label="维修工">{{ detail.workerName || '未派单' }} {{ detail.workerPhone || '' }}</el-descriptions-item>
-          <el-descriptions-item label="描述">{{ detail.description }}</el-descriptions-item>
+          <el-descriptions-item label="提交时间">{{ detail.submittedAt || '-' }}</el-descriptions-item>
+        </el-descriptions>
+
+        <el-descriptions :column="1" border size="small" title="报修人" class="desc-gap">
+          <el-descriptions-item label="姓名">{{ detail.reporterName || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="学工号">{{ detail.reporterJobNo || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="手机号">
+            <span v-if="detail.reporterPhone">{{ detail.reporterPhone }}</span>
+            <span v-else class="muted">未填写</span>
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <el-descriptions :column="1" border size="small" title="维修工" class="desc-gap">
+          <el-descriptions-item label="姓名">{{ detail.workerName || '未派单' }}</el-descriptions-item>
+          <el-descriptions-item label="工号">{{ detail.workerJobNo || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="手机号">
+            <span v-if="detail.workerPhone">{{ detail.workerPhone }}</span>
+            <span v-else class="muted">-</span>
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <el-descriptions :column="1" border size="small" title="处理进度" class="desc-gap">
+          <el-descriptions-item label="审核时间">{{ detail.auditedAt || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="派单时间">{{ detail.assignedAt || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="接单时间">{{ detail.acceptedAt || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="处理截止">
+            <span :class="{ urgent: detail.isOverdue }">{{ detail.dueAt || '-' }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="完工时间">{{ detail.completedAt || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="评价时间">{{ detail.ratedAt || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="派单信息">
+            {{ detail.dispatchSource ? SOURCE_LABEL[detail.dispatchSource] : '-' }}
+            <span class="muted" style="margin-left: 8px">派单 {{ detail.dispatchCount || 0 }} 次 · 拒单 {{ detail.rejectCount || 0 }} 次</span>
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <el-descriptions :column="1" border size="small" title="报修内容" class="desc-gap">
+          <el-descriptions-item label="描述">{{ detail.description || '-' }}</el-descriptions-item>
           <el-descriptions-item label="报修图片">
             <el-image v-for="(img, i) in detail.reportImages" :key="'r' + i" :src="img"
                       :preview-src-list="detail.reportImages" fit="cover"
                       style="width: 84px; height: 84px; margin-right: 6px; border-radius: 4px" />
             <span v-if="!detail.reportImages?.length" class="muted">未上传</span>
           </el-descriptions-item>
+          <el-descriptions-item v-if="detail.finishSummary" label="完工说明">{{ detail.finishSummary }}</el-descriptions-item>
           <el-descriptions-item label="完工图片">
             <el-image v-for="(img, i) in detail.finishImages" :key="'f' + i" :src="img"
                       :preview-src-list="detail.finishImages" fit="cover"
@@ -91,8 +133,12 @@
               {{ p.partName }} × {{ p.quantity }}
             </span>
           </el-descriptions-item>
-          <el-descriptions-item v-if="detail.mainOrderId" label="合并">
-            已并入主单 #{{ detail.mainOrderId }}
+        </el-descriptions>
+
+        <el-descriptions v-if="detail.mainOrderNo || detail.evaluation"
+                         :column="1" border size="small" title="其他" class="desc-gap">
+          <el-descriptions-item v-if="detail.mainOrderNo" label="合并">
+            已并入主单 {{ detail.mainOrderNo }}
           </el-descriptions-item>
           <el-descriptions-item v-if="detail.evaluation" label="评价">
             {{ '★'.repeat(detail.evaluation.rating) }}{{ '☆'.repeat(5 - detail.evaluation.rating) }}
@@ -147,6 +193,17 @@ const STATUS_LABEL = {
   PENDING_AUDIT: '待审核', PENDING: '待处理', PROCESSING: '处理中', COMPLETED: '已完成',
   EVALUATED: '已评价', REJECTED: '已驳回', CANCELLED: '已取消',
 }
+const DISPATCH_LABEL = {
+  NONE: '',
+  POOL: '待派单',
+  OFFERED: '已派待接',
+  TAKEN: '已承接',
+}
+const SOURCE_LABEL = {
+  MANUAL: '人工派单',
+  GRAB: '抢单',
+  AUTO: '自动派单',
+}
 const STATUS_TAG = {
   PENDING_AUDIT: 'warning', PENDING: 'danger', PROCESSING: 'primary', COMPLETED: 'success',
   EVALUATED: 'info', REJECTED: 'warning', CANCELLED: 'info',
@@ -168,7 +225,7 @@ const total = ref(0)
 const status = ref('')
 const query = ref({ urgency: null, faultType: null, keyword: '', page: 1, pageSize: 10 })
 const drawer = ref(false)
-const drawerSize = ref(window.innerWidth < 768 ? '92%' : '460px')
+const drawerSize = ref(window.innerWidth < 768 ? '94%' : '560px')
 const detail = ref(null)
 const logs = ref([])
 
@@ -272,5 +329,6 @@ onMounted(async () => {
 .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .urgent { color: var(--el-color-danger); font-weight: 700; }
 .muted { color: var(--muted); font-size: 13px; }
+.desc-gap { margin-top: 14px; }
 .merge-search { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 </style>
