@@ -53,7 +53,16 @@
   padding: 34rpx 32rpx 38rpx;
   box-shadow: 0 10rpx 28rpx rgba(43, 58, 60, 0.08);
 }
-.welcome { font-size: 34rpx; font-weight: 800; color: #2b3a3c; margin-bottom: 24rpx; }
+.welcome { font-size: 34rpx; font-weight: 800; color: #2b3a3c; margin-bottom: 20rpx; }
+.role-tabs { display: flex; gap: 16rpx; margin-bottom: 14rpx; }
+.role-tab {
+  flex: 1; padding: 18rpx 16rpx; border-radius: 16rpx; text-align: center;
+  background: #f7f8f8; border: 2rpx solid transparent; transition: all .18s ease;
+}
+.role-tab.on { background: #d7ecec; border-color: #0f7b7e; }
+.role-name { font-size: 27rpx; font-weight: 700; color: #2b3a3c; }
+.role-tab.on .role-name { color: #0a5f62; }
+.role-desc { font-size: 21rpx; color: #758286; margin-top: 6rpx; }
 .field {
   display: flex; align-items: center;
   border-bottom: 2rpx dashed #c6cad0;
@@ -64,3 +73,9 @@
 .ph { color: #86909c; }
 .login-btn { margin-top: 42rpx; }
 .tip { text-align: center; color: #758286; font-size: 22rpx; margin-top: 24rpx; letter-spacing: 1rpx; }
+
+.register-link { text-align: center; color: #0f7b7e; font-size: 25rpx; margin-top: 24rpx; font-weight: 600; }
+.register-note {
+  background: #f7f8f8; border: 1rpx dashed #c6cad0; border-radius: 12rpx;
+  padding: 16rpx 20rpx; color: #5b6e70; font-size: 23rpx; line-height: 1.55; margin-bottom: 4rpx;
+}

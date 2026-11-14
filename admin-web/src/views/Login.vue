@@ -18,7 +18,7 @@
           登 录
         </el-button>
       </el-form>
-      <p class="tip">管理员账号由系统管理员分配（演示：admin1 / 123456）</p>
+      <p class="tip">管理员账号由系统管理员分配（演示：admin1 / 123456）<br />师生账号请在小程序端自助注册</p>
     </el-card>
   </div>
 </template>
@@ -42,6 +42,12 @@ async function onLogin() {
   loading.value = true
   try {
     const user = await auth.login(form.jobNo, form.password)
+    // 管理端只接受管理员账号，师生/维修工请走小程序
+    if (user.role !== 'ADMIN' && user.role !== 'SYS_ADMIN') {
+      auth.logout()
+      ElMessage.error('该账号不是管理端账号，师生与维修工请在小程序登录')
+      return
+    }
     ElMessage.success(`欢迎，${user.name}`)
     router.push('/dashboard')
   } catch (e) { /* 拦截器已提示 */ }

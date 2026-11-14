@@ -182,7 +182,15 @@ public class SeedRunner implements CommandLineRunner {
         SysUser s03 = insertUser("student03", "王磊", Role.REPORTER, "13900000203", null, "2号宿舍楼101", hash);
         SysUser s04 = insertUser("student04", "赵雪", Role.REPORTER, "13900000204", null, "1号宿舍楼301", hash);
         SysUser s05 = insertUser("student05", "钱芳", Role.REPORTER, "13900000205", null, "1号宿舍楼302", hash);
-        insertUser("teacher01", "孙老师", Role.REPORTER, "13900000206", "计算机学院", null, hash);
+        SysUser t01 = insertUser("teacher01", "孙老师", Role.REPORTER, "13900000206", "计算机学院", null, hash);
+
+        // 报修人所属校区（个人中心资料，报修时作为默认校区）
+        assignCampus(s01, Campus.UNIVERSITY_TOWN);
+        assignCampus(s02, Campus.UNIVERSITY_TOWN);
+        assignCampus(s03, Campus.LONGDONG);
+        assignCampus(s04, Campus.UNIVERSITY_TOWN);
+        assignCampus(s05, Campus.UNIVERSITY_TOWN);
+        assignCampus(t01, Campus.UNIVERSITY_TOWN);
 
         // ---------------- 演示工单（覆盖全部 7 种状态，log 与状态自洽） ----------------
         LocalDateTime now = LocalDateTime.now();
@@ -271,6 +279,12 @@ public class SeedRunner implements CommandLineRunner {
         u.setPasswordHash(hash);
         userMapper.insert(u);
         return u;
+    }
+
+    /** 报修人所属校区：只更新 sys_user.campus，维修工服务校区仍由 worker_scope 维护 */
+    private void assignCampus(SysUser u, Campus campus) {
+        u.setCampus(campus.name());
+        userMapper.updateById(u);
     }
 
     private void insertWorker(SysUser u, List<String> skillNames, List<Campus> campuses,

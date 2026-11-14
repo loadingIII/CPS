@@ -5,6 +5,7 @@ import com.campus.repair.common.Result;
 import com.campus.repair.module.auth.dto.ChangePasswordReq;
 import com.campus.repair.module.auth.dto.LoginReq;
 import com.campus.repair.module.auth.dto.LoginResp;
+import com.campus.repair.module.auth.dto.RegisterReq;
 import com.campus.repair.module.auth.dto.UpdateMeReq;
 import com.campus.repair.module.auth.dto.UserVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,6 +34,13 @@ public class AuthController {
     @PostMapping("/login")
     public Result<LoginResp> login(@Valid @RequestBody LoginReq req) {
         return Result.ok(authService.login(req));
+    }
+
+    @PublicApi
+    @Operation(summary = "师生自助注册（仅报修人角色）")
+    @PostMapping("/register")
+    public Result<LoginResp> register(@Valid @RequestBody RegisterReq req) {
+        return Result.ok(authService.register(req));
     }
 
     @Operation(summary = "当前用户信息")

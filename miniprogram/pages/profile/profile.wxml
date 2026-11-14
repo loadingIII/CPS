@@ -2,11 +2,15 @@
   <view class="head">
     <view class="head-ring"></view>
   </view>
+
   <view class="card user-card">
     <view class="avatar">{{avatarText}}</view>
     <view class="info">
-      <view class="name">{{user.name}}</view>
-      <view class="muted">{{user.jobNo}} · {{roleLabel}}</view>
+      <view class="name-row">
+        <text class="name">{{user.name}}</text>
+        <text class="role-badge">{{roleLabel}}</text>
+      </view>
+      <view class="muted">{{user.jobNo}}<text wx:if="{{user.campusName}}"> · {{user.campusName}}</text></view>
     </view>
   </view>
 
@@ -23,27 +27,62 @@
       <text class="menu-badge" wx:if="{{unread}}">{{unread}}</text>
       <text class="menu-arrow">›</text>
     </view>
-    <view class="menu-row" bindtap="goKb">
+    <view class="menu-row" wx:if="{{user.role === 'REPORTER'}}" bindtap="goKb">
       <text class="menu-name">维修知识库</text>
       <text class="menu-arrow">›</text>
     </view>
   </view>
 
-  <view class="card">
-    <view class="section-title">个人信息</view>
-    <view class="field">
-      <text class="k">电话</text>
-      <input value="{{phone}}" bindinput="onPhone" placeholder="请输入手机号" placeholder-class="ph" />
+  <view class="card info-card">
+    <view class="info-head">
+      <text class="info-title">个人信息</text>
+      <view class="edit-pill" bindtap="goEdit">编辑资料 ›</view>
     </view>
-    <view class="field" wx:if="{{user.role === 'REPORTER'}}">
-      <text class="k">住址</text>
-      <input value="{{address}}" bindinput="onAddress" placeholder="宿舍楼栋 · 房间" placeholder-class="ph" />
+
+    <view class="info-row">
+      <text class="k">学工号</text>
+      <text class="v">{{user.jobNo}}</text>
     </view>
-    <view class="field" wx:if="{{user.role !== 'REPORTER'}}">
+    <view class="info-row">
+      <text class="k">身份</text>
+      <text class="v">{{roleLabel}}</text>
+    </view>
+
+    <block wx:if="{{user.role === 'REPORTER'}}">
+      <view class="info-row">
+        <text class="k">所属校区</text>
+        <text class="v {{user.campusName ? '' : 'blank'}}">{{user.campusName || '未填写'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="k">学院 / 部门</text>
+        <text class="v {{user.department ? '' : 'blank'}}">{{user.department || '未填写'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="k">常用地址</text>
+        <text class="v {{user.address ? '' : 'blank'}}">{{user.address || '未填写'}}</text>
+      </view>
+    </block>
+
+    <block wx:if="{{user.role === 'REPAIRER'}}">
+      <view class="info-row">
+        <text class="k">服务校区</text>
+        <text class="v">{{workerCampuses || '由后勤分配'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="k">技能</text>
+        <text class="v">{{workerSkills || '未配置'}}</text>
+      </view>
+    </block>
+
+    <view class="info-row" wx:if="{{user.role !== 'REPORTER' && user.role !== 'REPAIRER'}}">
       <text class="k">部门</text>
-      <input value="{{department}}" bindinput="onDepartment" placeholder-class="ph" />
+      <text class="v {{user.department ? '' : 'blank'}}">{{user.department || '未填写'}}</text>
     </view>
-    <button class="btn-primary save" bindtap="saveProfile">保存资料</button>
+
+    <view class="info-row">
+      <text class="k">联系电话</text>
+      <text class="v {{user.phone ? '' : 'blank'}}">{{user.phone || '未填写'}}</text>
+    </view>
   </view>
 
   <button class="logout" bindtap="onLogout">退出登录</button>

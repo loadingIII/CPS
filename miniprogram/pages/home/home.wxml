@@ -6,17 +6,6 @@
   </view>
 
   <block wx:if="{{role === 'REPORTER'}}">
-    <view class="hero-panel reporter-hero">
-      <view class="hero-orbit orbit-one"></view>
-      <view class="hero-orbit orbit-two"></view>
-      <view class="hero-content">
-        <view class="hero-kicker">校园报修 · 师生服务</view>
-        <view class="hero-title">发现设施故障？</view>
-        <view class="hero-copy">填写位置与故障描述，师傅会跟进处理</view>
-        <button class="hero-button" bindtap="goReport">立即报修 <text class="hero-arrow">›</text></button>
-      </view>
-    </view>
-
     <view class="section-row">
       <view class="section-heading">工单概览</view>
       <view class="section-link" bindtap="goAll">全部工单 <text>›</text></view>
@@ -66,18 +55,6 @@
   </block>
 
   <block wx:elif="{{role === 'REPAIRER'}}">
-    <view class="hero-panel worker-hero" wx:if="{{worker}}">
-      <view class="hero-orbit orbit-one"></view>
-      <view class="worker-hero-content">
-        <view class="hero-kicker">维修工作台</view>
-        <view class="worker-name">{{worker.name}} <text>维修师傅</text></view>
-        <view class="worker-sub">综合评分 {{worker.score}} <text class="worker-divider">/</text> 技能 {{worker.skillText}}</view>
-        <view class="load-row"><text>当前负载</text><text>{{worker.currentLoad}} / {{worker.loadLimit}}</text></view>
-        <view class="load-track"><view class="load-value" style="width: {{worker.loadPercent}}%"></view></view>
-      </view>
-    </view>
-    <view class="worker-fallback" wx:elif="{{!loading}}">维修档案暂时无法加载</view>
-
     <view class="section-row">
       <view class="section-heading">工单概览</view>
       <view class="section-link" bindtap="goWorkerOrders">打开工单 <text>›</text></view>

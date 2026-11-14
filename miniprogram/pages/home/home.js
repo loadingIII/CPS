@@ -44,7 +44,6 @@ Page({
     skills: [],
     recent: [],
     skeletons: [1, 2, 3],
-    worker: null,
     summary: { total: 0, pending: 0, processing: 0, grab: 0 },
   },
 
@@ -118,8 +117,7 @@ Page({
 
   async loadRepairerHome() {
     try {
-      const [worker, pending, processing, grab] = await Promise.all([
-        get('/workers/me'),
+      const [pending, processing, grab] = await Promise.all([
         get('/orders/mine-assigned?status=PENDING&page=1&pageSize=3'),
         get('/orders/mine-assigned?status=PROCESSING&page=1&pageSize=3'),
         get('/orders/grab-pool?page=1&pageSize=1'),
@@ -128,17 +126,7 @@ Page({
         .sort((a, b) => String(b.submittedAt || '').localeCompare(String(a.submittedAt || '')))
         .slice(0, 3)
         .map(item => decorateOrder(item, true))
-      const limit = Number(worker.loadLimit) || 0
-      const currentLoad = Number(worker.currentLoad) || 0
       this.setData({
-        worker: {
-          name: worker.name || this.data.userName,
-          score: worker.score == null ? '—' : worker.score,
-          currentLoad,
-          loadLimit: limit,
-          loadPercent: limit > 0 ? Math.min(100, Math.round(currentLoad / limit * 100)) : 0,
-          skillText: (worker.skills || []).slice(0, 3).join(' / ') || '待配置',
-        },
         summary: {
           total: 0,
           pending: pending.total || 0,
@@ -149,7 +137,7 @@ Page({
         loading: false,
       })
     } catch (e) {
-      this.setData({ loading: false, loadError: true, worker: null })
+      this.setData({ loading: false, loadError: true })
     }
   },
 

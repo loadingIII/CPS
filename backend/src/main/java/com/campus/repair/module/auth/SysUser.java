@@ -31,6 +31,9 @@ public class SysUser {
 
     private String address;
 
+    /** 所属校区（Campus code，报修人资料；维修工服务校区由 worker_scope 维护） */
+    private String campus;
+
     /** 1启用 2停用 3注销 */
     private Integer status;
 

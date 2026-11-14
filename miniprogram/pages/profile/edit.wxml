@@ -1,0 +1,80 @@
+<view class="page">
+  <view class="state" wx:if="{{!loaded}}">
+    <view class="state-text">{{loadError ? '资料加载失败，请检查网络' : '正在加载资料…'}}</view>
+    <view class="state-btn" wx:if="{{loadError}}" bindtap="load">重新加载</view>
+  </view>
+
+  <block wx:else>
+  <view class="card">
+    <view class="section-title">账号信息</view>
+    <view class="row">
+      <text class="k">学工号</text>
+      <text class="v">{{user.jobNo}}</text>
+    </view>
+    <view class="row row-last">
+      <text class="k">身份</text>
+      <text class="v">{{roleLabel}}</text>
+    </view>
+    <view class="tip">学工号与身份由学校统一维护，不支持自行修改</view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">联系与位置</view>
+
+    <block wx:if="{{isReporter}}">
+      <view class="field">
+        <text class="k">所属校区</text>
+        <picker mode="selector" range="{{campusList}}" range-key="name" value="{{campusIndex}}"
+                bindchange="onCampusChange">
+          <view class="picker-value {{campusName ? '' : 'blank'}}">
+            <text>{{campusName || '请选择校区'}}</text>
+            <text class="chevron">›</text>
+          </view>
+        </picker>
+      </view>
+      <view class="campus-address" wx:if="{{campusAddress}}">{{campusAddress}}</view>
+
+      <view class="field">
+        <text class="k">学院 / 部门</text>
+        <input class="input" value="{{department}}" bindinput="onDepartment"
+               placeholder="如：计算机学院 / 后勤处" placeholder-class="ph" maxlength="64" />
+      </view>
+      <view class="field">
+        <text class="k">常用地址</text>
+        <input class="input" value="{{address}}" bindinput="onAddress"
+               placeholder="宿舍楼栋 · 房间，如 1号楼 302" placeholder-class="ph" maxlength="128" />
+      </view>
+    </block>
+
+    <block wx:if="{{isRepairer}}">
+      <view class="row">
+        <text class="k">服务校区</text>
+        <text class="v">{{workerCampuses || '由后勤分配'}}</text>
+      </view>
+      <view class="row row-last">
+        <text class="k">技能</text>
+        <text class="v">{{workerSkills || '未配置'}}</text>
+      </view>
+      <view class="tip">服务校区与技能由后勤统一维护，如需调整请联系管理员</view>
+    </block>
+
+    <block wx:if="{{!isReporter && !isRepairer}}">
+      <view class="field">
+        <text class="k">部门</text>
+        <input class="input" value="{{department}}" bindinput="onDepartment"
+               placeholder="如：后勤处" placeholder-class="ph" maxlength="64" />
+      </view>
+    </block>
+
+    <view class="field">
+      <text class="k">联系电话</text>
+      <input class="input" type="number" value="{{phone}}" bindinput="onPhone"
+             placeholder="用于师傅上门联系" placeholder-class="ph" maxlength="11" />
+    </view>
+  </view>
+
+  <view class="footer">
+    <button class="btn-primary submit" loading="{{saving}}" bindtap="onSave">保存资料</button>
+  </view>
+  </block>
+</view>

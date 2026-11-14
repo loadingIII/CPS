@@ -5,22 +5,69 @@
   <view class="brand">
     <view class="logo"><view class="logo-icon"></view></view>
     <view class="title">校园报修系统</view>
-    <view class="subtitle">报修工单全流程管理平台</view>
+    <view class="subtitle">{{mode === 'login' ? '报修工单全流程管理平台' : '师生账号自助注册'}}</view>
   </view>
 
   <view class="card form">
-    <view class="welcome">账号登录</view>
+    <view class="welcome">{{mode === 'login' ? '账号登录' : '创建账号'}}</view>
+
+    <block wx:if="{{mode === 'login'}}">
+      <view class="role-tabs">
+        <view class="role-tab {{role === 'REPORTER' ? 'on' : ''}}" data-role="REPORTER" bindtap="onRole">
+          <view class="role-name">我是报修人</view>
+          <view class="role-desc">师生 · 提交报修</view>
+        </view>
+        <view class="role-tab {{role === 'REPAIRER' ? 'on' : ''}}" data-role="REPAIRER" bindtap="onRole">
+          <view class="role-name">我是维修工</view>
+          <view class="role-desc">师傅 · 接单处理</view>
+        </view>
+      </view>
+    </block>
+    <view class="register-note" wx:else>注册后即为报修人账号；维修工、管理员由后勤统一开通</view>
+
     <view class="field">
       <text class="label">学工号</text>
-      <input class="input" placeholder="请输入学工号 / 工号" placeholder-class="ph"
-             value="{{jobNo}}" bindinput="onJobNo" />
+      <input class="input" placeholder="{{mode === 'login' ? '请输入学工号 / 工号' : '学号或工号，4-20 位'}}"
+             placeholder-class="ph" maxlength="20" value="{{jobNo}}" bindinput="onJobNo" />
     </view>
+
+    <block wx:if="{{mode === 'register'}}">
+      <view class="field">
+        <text class="label">姓名</text>
+        <input class="input" placeholder="请填写真实姓名" placeholder-class="ph"
+               maxlength="20" value="{{name}}" bindinput="onName" />
+      </view>
+      <view class="field">
+        <text class="label">手机号</text>
+        <input class="input" type="number" placeholder="用于师傅上门联系" placeholder-class="ph"
+               maxlength="11" value="{{phone}}" bindinput="onPhone" />
+      </view>
+    </block>
+
     <view class="field">
       <text class="label">密码</text>
-      <input class="input" password placeholder="请输入密码" placeholder-class="ph"
-             value="{{password}}" bindinput="onPassword" />
+      <input class="input" password placeholder="{{mode === 'login' ? '请输入密码' : '至少 6 位'}}"
+             placeholder-class="ph" maxlength="32" value="{{password}}" bindinput="onPassword" />
     </view>
-    <button class="btn-primary login-btn" loading="{{loading}}" bindtap="onLogin">登 录</button>
-    <view class="tip">演示账号 student01 / worker01，密码 123456</view>
+
+    <view class="field" wx:if="{{mode === 'register'}}">
+      <text class="label">确认密码</text>
+      <input class="input" password placeholder="再输入一次密码" placeholder-class="ph"
+             maxlength="32" value="{{confirm}}" bindinput="onConfirm" />
+    </view>
+
+    <button wx:if="{{mode === 'login'}}" class="btn-primary login-btn" loading="{{loading}}"
+            bindtap="onLogin">登 录</button>
+    <button wx:else class="btn-primary login-btn" loading="{{loading}}"
+            bindtap="onRegister">注册并登录</button>
+
+    <view class="register-link" wx:if="{{mode === 'login' && role === 'REPORTER'}}"
+          data-mode="register" bindtap="switchMode">还没有账号？师生立即注册 ›</view>
+    <view class="register-link" wx:if="{{mode === 'register'}}"
+          data-mode="login" bindtap="switchMode">已有账号？返回登录 ›</view>
+
+    <view class="tip" wx:if="{{mode === 'login'}}">
+      {{role === 'REPORTER' ? '演示账号 student01，密码 123456' : '维修工账号由后勤统一开通 · 演示账号 worker01 / 123456'}}
+    </view>
   </view>
 </view>

@@ -1,16 +1,6 @@
 .page { padding-bottom: 60rpx; }
-.menu-card { padding: 0 24rpx; }
-.menu-row {
-  display: flex; align-items: center; gap: 12rpx; padding: 28rpx 0;
-  border-bottom: 1rpx dashed #e3e7e8;
-}
-.menu-row:last-child { border-bottom: none; }
-.menu-name { font-size: 28rpx; color: #2b3a3c; flex: 1; }
-.menu-badge {
-  min-width: 36rpx; height: 36rpx; line-height: 36rpx; padding: 0 10rpx; border-radius: 999rpx;
-  background: #d96a3b; color: #fff; font-size: 22rpx; text-align: center;
-}
-.menu-arrow { color: #b9c2c0; font-size: 34rpx; }
+
+/* 顶部色块与头像卡 */
 .head {
   background-color: #d7ecec;
   background-image:
@@ -42,19 +32,60 @@
   box-shadow: 0 0 0 2rpx #0f7b7e, 4rpx 4rpx 0 #2b3a3c;
   color: #ffffff; font-size: 48rpx; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
 }
+.info { flex: 1; min-width: 0; }
+.name-row { display: flex; align-items: center; gap: 14rpx; flex-wrap: wrap; }
 .name { font-size: 36rpx; font-weight: 800; letter-spacing: 2rpx; color: #2b3a3c; }
+.role-badge {
+  padding: 4rpx 14rpx; border-radius: 999rpx;
+  background: #eef6f6; color: #0a5f62;
+  font-size: 21rpx; font-weight: 600;
+}
+.muted { color: #758286; font-size: 23rpx; margin-top: 8rpx; }
+
+/* 统计卡 */
 .stat-card { display: flex; margin-top: 18rpx; }
 .stat { flex: 1; text-align: center; }
 .stat + .stat { border-left: 1rpx dashed #c6cad0; }
 .stat-num { font-size: 40rpx; font-weight: 800; color: #0f7b7e; font-family: "STSong", "Songti SC", serif; }
 .stat-label { font-size: 22rpx; color: #758286; margin-top: 6rpx; }
-.field { display: flex; align-items: center; border-bottom: 2rpx dashed #e0e4e6; padding: 24rpx 0; }
-.field:last-of-type { border-bottom: 0; }
-.k { width: 120rpx; color: #758286; font-size: 27rpx; }
-.field input { flex: 1; font-size: 28rpx; color: #2b3a3c; }
-.ph { color: #86909c; }
-.save { margin-top: 30rpx; }
+
+/* 菜单卡 */
+.menu-card { padding: 0 24rpx; }
+.menu-row {
+  display: flex; align-items: center; gap: 12rpx; padding: 28rpx 0;
+  border-bottom: 1rpx dashed #e3e7e8;
+}
+.menu-row:last-child { border-bottom: none; }
+.menu-name { font-size: 28rpx; color: #2b3a3c; flex: 1; }
+.menu-badge {
+  min-width: 36rpx; height: 36rpx; line-height: 36rpx; padding: 0 10rpx; border-radius: 999rpx;
+  background: #d96a3b; color: #fff; font-size: 22rpx; text-align: center;
+}
+.menu-arrow { color: #b9c2c0; font-size: 34rpx; }
+
+/* 资料卡：只读展示 + 编辑入口 */
+.info-card { padding: 24rpx 26rpx 6rpx; }
+.info-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 16rpx; border-bottom: 2rpx dashed #e3e7e8;
+}
+.info-title { font-size: 29rpx; font-weight: 800; color: #2b3a3c; letter-spacing: 1rpx; }
+.edit-pill {
+  padding: 8rpx 20rpx; border-radius: 999rpx;
+  border: 1rpx solid #0f7b7e; color: #0f7b7e;
+  font-size: 22rpx; font-weight: 600;
+}
+.info-row {
+  display: flex; align-items: flex-start; gap: 20rpx;
+  padding: 22rpx 0; border-bottom: 1rpx dashed #edf0f1;
+}
+.info-row:last-child { border-bottom: none; }
+.k { width: 170rpx; flex-shrink: 0; color: #758286; font-size: 26rpx; }
+.v { flex: 1; text-align: right; color: #2b3a3c; font-size: 27rpx; line-height: 1.5; word-break: break-all; }
+.v.blank { color: #a8b1b3; }
+
 .logout {
   margin: 44rpx 24rpx 0;
   height: 92rpx; line-height: 92rpx;

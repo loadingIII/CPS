@@ -125,14 +125,17 @@ Page({
     wx.navigateTo({ url: '/pages/order-detail/order-detail?id=' + e.currentTarget.dataset.id })
   },
 
-  /** 校区为唯一受控选项（后端枚举），其余位置由报修人自由填写 */
+  /** 校区为唯一受控选项（后端枚举），其余位置由报修人自由填写；默认带出资料里的所属校区 */
   async loadBase() {
     if (this.data.campusList.length) return
     const [campuses, skills] = await Promise.all([get('/campuses'), get('/skills')])
-    const first = campuses[0] || null
+    const user = wx.getStorageSync('user') || {}
+    let idx = campuses.findIndex(c => c.code === user.campus)
+    if (idx < 0) idx = 0
+    const first = campuses[idx] || null
     this.setData({
       campusList: campuses,
-      campusIndex: 0,
+      campusIndex: idx,
       campusCode: first ? first.code : '',
       campusName: first ? first.name : '',
       campusAddress: first ? (first.address || '') : '',
