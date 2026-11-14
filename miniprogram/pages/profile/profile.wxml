@@ -17,6 +17,18 @@
     </view>
   </view>
 
+  <view class="card menu-card">
+    <view class="menu-row" bindtap="goMessages">
+      <text class="menu-name">消息中心</text>
+      <text class="menu-badge" wx:if="{{unread}}">{{unread}}</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-row" bindtap="goKb">
+      <text class="menu-name">维修知识库</text>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
+
   <view class="card">
     <view class="section-title">个人信息</view>
     <view class="field">

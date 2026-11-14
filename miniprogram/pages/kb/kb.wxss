@@ -1,0 +1,42 @@
+.page { padding: 24rpx; }
+.intro { margin-bottom: 22rpx; }
+.intro-title { font-size: 34rpx; font-weight: 800; color: #2b3a3c; font-family: "STSong", "Songti SC", serif; }
+.intro-copy { margin-top: 8rpx; font-size: 24rpx; color: #758286; line-height: 1.6; }
+
+.search { display: flex; align-items: center; gap: 12rpx; margin-bottom: 20rpx; }
+.search-input {
+  flex: 1; background: #fff; border: 1rpx solid #d8dee0; border-radius: 999rpx;
+  padding: 16rpx 26rpx; font-size: 26rpx;
+}
+.search-btn {
+  padding: 16rpx 30rpx; border-radius: 999rpx; background: #0f7b7e; color: #fff; font-size: 26rpx;
+}
+.ph { color: #86909c; }
+
+.chips { white-space: nowrap; margin-bottom: 20rpx; }
+.chip {
+  display: inline-block; padding: 10rpx 26rpx; margin-right: 14rpx; border-radius: 999rpx;
+  font-size: 24rpx; color: #5b6e70; background: #f5f6f7; border: 1rpx solid #d8dee0;
+}
+.chip.on { color: #fff; background: #0f7b7e; border-color: #0f7b7e; }
+
+.list { display: flex; flex-direction: column; gap: 18rpx; }
+.card {
+  position: relative; background: #fff; border-radius: 18rpx; padding: 24rpx 30rpx 24rpx 24rpx;
+  border: 1rpx solid #e3e7e8; box-shadow: 0 6rpx 18rpx rgba(43, 58, 60, .04);
+}
+.a-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10rpx; }
+.a-type { font-size: 23rpx; color: #0f7b7e; background: #eef6f6; padding: 4rpx 16rpx; border-radius: 999rpx; }
+.a-view { font-size: 22rpx; color: #86909c; }
+.a-title { font-size: 29rpx; color: #2b3a3c; font-weight: 600; line-height: 1.5; padding-right: 30rpx; }
+.a-arrow { position: absolute; right: 24rpx; bottom: 22rpx; color: #b9c2c0; font-size: 34rpx; }
+
+.empty { text-align: center; padding: 100rpx 40rpx; color: #86909c; }
+.empty-mark {
+  width: 96rpx; height: 96rpx; margin: 0 auto 20rpx; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: #f0f4f4; color: #0f7b7e; font-family: "STSong", serif; font-size: 36rpx;
+}
+.empty-title { font-size: 28rpx; color: #5b6e70; margin-bottom: 10rpx; }
+.empty-copy { font-size: 23rpx; line-height: 1.6; }
+.bottom-space { height: 40rpx; }

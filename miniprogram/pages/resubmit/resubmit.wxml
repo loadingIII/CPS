@@ -4,22 +4,71 @@
       <view class="reason-label">驳回理由</view>
       <view class="reason-text">{{rejectReason}}</view>
     </view>
-    <view class="field-label">补充后的故障描述 <text class="optional">5-1000 字</text></view>
-    <textarea class="desc" maxlength="1000" value="{{description}}" bindinput="onDesc"
-              placeholder-class="ph" placeholder="请补充更详细的故障说明" />
-    <view class="field-label" style="margin-top: 30rpx">重新上传图片 <text class="optional">1-3 张，必传</text></view>
-    <view class="imgs">
-      <view class="img-box" wx:for="{{images}}" wx:key="*this">
-        <image class="img" src="{{BASE}}{{item}}" mode="aspectFill" data-idx="{{index}}" bindtap="noop" />
-        <view class="del" data-idx="{{index}}" catchtap="deleteImage">×</view>
+
+    <view class="item">
+      <view class="field-label">报修位置<text class="req">*</text></view>
+      <picker mode="selector" range="{{campusList}}" range-key="name" value="{{campusIndex}}"
+              bindchange="onCampusChange">
+        <view class="picker-cell">
+          <text>{{ campusName || '请选择校区' }}</text>
+          <view class="chevron"></view>
+        </view>
+      </picker>
+      <view wx:if="{{campusAddress}}" class="campus-address">{{campusAddress}}</view>
+      <view class="loc-detail">
+        <input class="loc-input" placeholder="楼栋 / 房间 / 具体点位" placeholder-class="ph"
+               maxlength="200" value="{{locationDetail}}" bindinput="onLocationDetail" />
       </view>
-      <view class="img-add" wx:if="{{images.length < 3}}" bindtap="chooseImage">
-        <view class="icon-camera"></view>
-        <view class="add-text">拍照 / 相册</view>
+    </view>
+
+    <view class="item">
+      <view class="field-label">故障类型<text class="req">*</text></view>
+      <picker range="{{skillNames}}" bindchange="onFaultType">
+        <view class="picker-cell {{faultType ? '' : 'placeholder'}}">
+          <text>{{ faultType || '请选择故障类型' }}</text>
+          <view class="chevron"></view>
+        </view>
+      </picker>
+    </view>
+
+    <view class="item">
+      <view class="field-label">紧急程度</view>
+      <view class="urgency">
+        <view class="u-card {{urgency === 'NORMAL' ? 'u-on' : ''}}" data-v="NORMAL" bindtap="setUrgency">
+          <view class="u-dot u-dot-normal"></view>
+          <view class="u-name">普通</view>
+          <view class="u-desc">常规排队处理</view>
+        </view>
+        <view class="u-card {{urgency === 'URGENT' ? 'u-on-urgent' : ''}}" data-v="URGENT" bindtap="setUrgency">
+          <view class="u-dot u-dot-urgent"></view>
+          <view class="u-name u-name-urgent">紧急</view>
+          <view class="u-desc">漏水断电等，优先调度</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="item">
+      <view class="field-label">补充后的故障描述 <text class="optional">5-1000 字</text></view>
+      <textarea class="desc" maxlength="1000" value="{{description}}" bindinput="onDesc"
+                placeholder-class="ph" placeholder="请补充更详细的故障说明" />
+    </view>
+
+    <view class="item">
+      <view class="field-label">现场图片 <text class="optional">最多 3 张，原图已保留</text></view>
+      <view class="imgs">
+        <view class="img-box" wx:for="{{images}}" wx:key="*this">
+          <image class="img" src="{{BASE}}{{item}}" mode="aspectFill" data-idx="{{index}}" bindtap="previewImage" />
+          <view class="del" data-idx="{{index}}" catchtap="deleteImage">×</view>
+        </view>
+        <view class="img-add" wx:if="{{images.length < 3}}" bindtap="chooseImage">
+          <view class="icon-camera"></view>
+          <view class="add-text">拍照 / 相册</view>
+        </view>
       </view>
     </view>
   </view>
+
   <view class="footer">
-    <button class="btn-primary submit" bindtap="onSubmit">重新提交审核</button>
+    <button class="btn-primary submit" loading="{{submitting}}" bindtap="onSubmit">重新提交审核</button>
   </view>
 </view>

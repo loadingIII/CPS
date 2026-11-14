@@ -84,6 +84,11 @@ public class OrderStateMachine {
                     Set.of(Role.REPORTER), Identity.REPORTER, false,
                     o -> true, null,
                     (o, x) -> o.setStatus(OrderStatus.CANCELLED)),
+            // #7b 管理员作废（已驳回）：报修人长期不补充也不放弃时，由管理员收口
+            new Rule(OrderStatus.REJECTED, OrderAction.CANCEL,
+                    Set.of(Role.ADMIN, Role.SYS_ADMIN), Identity.NONE, false,
+                    o -> true, null,
+                    (o, x) -> o.setStatus(OrderStatus.CANCELLED)),
             // #8 派单：待处理 → 待处理（回填维修工；资格校验由服务层完成，支持改派覆盖）
             new Rule(OrderStatus.PENDING, OrderAction.ASSIGN,
                     Set.of(Role.ADMIN, Role.SYS_ADMIN), Identity.NONE, false,

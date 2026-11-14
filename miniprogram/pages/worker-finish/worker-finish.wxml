@@ -14,6 +14,18 @@
         <view class="add-text">拍照</view>
       </view>
     </view>
+
+    <view class="field-label" style="margin-top: 30rpx">
+      更换配件 <text class="optional">选填，如启动电容 × 1</text>
+    </view>
+    <view class="part-row" wx:for="{{parts}}" wx:key="index">
+      <input class="part-name" value="{{item.name}}" data-idx="{{index}}" bindinput="onPartName"
+             placeholder="配件名称" placeholder-class="ph" />
+      <input class="part-qty" type="number" value="{{item.qty}}" data-idx="{{index}}" bindinput="onPartQty"
+             placeholder="数量" placeholder-class="ph" />
+      <view class="part-del" data-idx="{{index}}" catchtap="removePart">×</view>
+    </view>
+    <view class="part-add" bindtap="addPart">+ 添加配件</view>
   </view>
   <view class="footer">
     <button class="btn-primary submit" bindtap="onSubmit">确认完工</button>

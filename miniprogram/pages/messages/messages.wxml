@@ -1,0 +1,26 @@
+<view class="page">
+  <view class="tabs">
+    <view class="tab {{!unreadOnly ? 'on' : ''}}" data-unread="0" bindtap="onTab">全部</view>
+    <view class="tab {{unreadOnly ? 'on' : ''}}" data-unread="1" bindtap="onTab">未读</view>
+    <view class="read-all" bindtap="readAll">全部已读</view>
+  </view>
+
+  <view class="list">
+    <view class="card notice {{item.isRead ? 'read' : ''}}" wx:for="{{list}}" wx:key="id"
+          data-idx="{{index}}" bindtap="onTap">
+      <view class="notice-head">
+        <text class="type">{{item.typeLabel}}</text>
+        <text class="time">{{item.createdAt}}</text>
+      </view>
+      <view class="content">{{item.content}}</view>
+      <view class="dot" wx:if="{{!item.isRead}}"></view>
+    </view>
+
+    <view class="empty" wx:if="{{!loading && !list.length}}">
+      <view class="empty-mark">信</view>
+      <view class="empty-title">{{unreadOnly ? '没有未读消息' : '暂无消息'}}</view>
+      <view class="empty-copy">工单审核、派单、完工与超时预警都会在这里提醒你</view>
+    </view>
+  </view>
+  <view class="bottom-space"></view>
+</view>

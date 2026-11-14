@@ -1,0 +1,36 @@
+<view class="page">
+  <view class="intro">
+    <view class="intro-title">先查一查，也许不用报修</view>
+    <view class="intro-copy">常见小故障的自助处理步骤，按故障类型或关键词查找</view>
+  </view>
+
+  <view class="search">
+    <input class="search-input" value="{{keyword}}" bindinput="onKeyword" bindconfirm="onSearch"
+           confirm-type="search" placeholder="搜索标题或内容，如：空调不制冷" placeholder-class="ph" />
+    <view class="search-btn" bindtap="onSearch">搜索</view>
+  </view>
+
+  <scroll-view class="chips" scroll-x enable-flex>
+    <view class="chip {{!faultType ? 'on' : ''}}" data-type="" bindtap="onType">全部</view>
+    <view class="chip {{faultType === item.name ? 'on' : ''}}" wx:for="{{skills}}" wx:key="id"
+          data-type="{{item.name}}" bindtap="onType">{{item.name}}</view>
+  </scroll-view>
+
+  <view class="list">
+    <view class="card article" wx:for="{{list}}" wx:key="id" data-id="{{item.id}}" bindtap="goDetail">
+      <view class="a-top">
+        <text class="a-type">{{item.faultType}}</text>
+        <text class="a-view">{{item.viewCount}} 次浏览</text>
+      </view>
+      <view class="a-title">{{item.title}}</view>
+      <view class="a-arrow">›</view>
+    </view>
+
+    <view class="empty" wx:if="{{!loading && !list.length}}">
+      <view class="empty-mark">知</view>
+      <view class="empty-title">还没有相关教程</view>
+      <view class="empty-copy">换个关键词试试，或直接提交报修由师傅上门处理</view>
+    </view>
+  </view>
+  <view class="bottom-space"></view>
+</view>

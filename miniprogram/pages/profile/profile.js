@@ -1,7 +1,7 @@
 const { get, put } = require('../../utils/request')
 
 Page({
-  data: { user: {}, roleLabel: '', phone: '', address: '', department: '', stats: [] },
+  data: { user: {}, roleLabel: '', phone: '', address: '', department: '', stats: [], unread: 0 },
 
   onShow() {
     const tb = this.getTabBar && this.getTabBar()
@@ -21,6 +21,25 @@ Page({
       department: me.department || '',
     })
     this.loadStats()
+    this.loadUnread()
+  },
+
+  /** 未读通知角标（失败静默，不打扰主流程） */
+  async loadUnread() {
+    try {
+      const n = await get('/notifications/unread-count')
+      this.setData({ unread: n || 0 })
+    } catch (e) {
+      this.setData({ unread: 0 })
+    }
+  },
+
+  goMessages() {
+    wx.navigateTo({ url: '/pages/messages/messages' })
+  },
+
+  goKb() {
+    wx.navigateTo({ url: '/pages/kb/kb' })
   },
 
   /** 数据卡：师生看报修统计，维修工看绩效（接口不可用时静默隐藏） */

@@ -8,13 +8,24 @@
           <el-radio-button value="REJECTED">已驳回</el-radio-button>
           <el-radio-button value="">全部</el-radio-button>
         </el-radio-group>
+        <div class="batch-actions">
+          <span class="muted">已选 {{ selectedRows.length }} 条</span>
+          <el-button size="small" type="success" plain :disabled="!selectedRows.length" @click="batchApprove">
+            批量通过
+          </el-button>
+          <el-button size="small" type="warning" plain :disabled="!selectedRows.length" @click="openBatchReject">
+            批量驳回
+          </el-button>
+        </div>
       </div>
     </template>
 
-    <el-table :data="list" border :row-class-name="rowClass">
-      <el-table-column label="工单号" width="160">
+    <el-table :data="list" border :row-class-name="rowClass" @selection-change="onSelect">
+      <el-table-column type="selection" width="42" :selectable="row => row.status === 'PENDING_AUDIT'" />
+      <el-table-column label="工单号" width="170">
         <template #default="{ row }">
           <span :class="{ urgent: row.urgency === 'URGENT' }">{{ row.orderNo }}</span>
+          <el-tag v-if="row.isOverdue" type="danger" size="small" effect="dark" style="margin-left: 4px">超时</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="紧急度" width="90">
@@ -79,6 +90,15 @@
         <el-button type="warning" @click="doReject">确认驳回</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="batchRejectDialog" title="批量驳回（必填理由）" width="440px">
+      <p class="muted" style="margin-bottom: 8px">将对已选 {{ selectedRows.length }} 条待审核工单执行驳回，逐条返回结果。</p>
+      <el-input v-model="batchReason" type="textarea" :rows="3" placeholder="统一驳回理由，如：报修信息不完整，请补充照片" />
+      <template #footer>
+        <el-button @click="batchRejectDialog = false">取消</el-button>
+        <el-button type="warning" @click="doBatchReject">确认批量驳回</el-button>
+      </template>
+    </el-dialog>
   </el-card>
 </template>
 
@@ -107,6 +127,46 @@ const detail = ref(null)
 const rejectDialog = ref(false)
 const rejectReason = ref('')
 let rejectTarget = null
+const selectedRows = ref([])
+const batchRejectDialog = ref(false)
+const batchReason = ref('')
+
+function onSelect(rows) {
+  selectedRows.value = rows
+}
+
+/** 批量审核：逐条返回结果，失败的单独提示，不影响已成功的工单 */
+async function submitBatch(pass, reason) {
+  const ids = selectedRows.value.map(r => r.id)
+  const results = await api.post('/orders/audit-batch', { ids, pass, reason })
+  const failed = results.filter(r => !r.success)
+  if (failed.length) {
+    ElMessage.warning(`${results.length - failed.length} 条成功，${failed.length} 条失败：${failed[0].message}`)
+  } else {
+    ElMessage.success(`${results.length} 条已${pass ? '通过' : '驳回'}`)
+  }
+  selectedRows.value = []
+  await load()
+}
+
+async function batchApprove() {
+  await ElMessageBox.confirm(`确认通过已选 ${selectedRows.value.length} 条工单？`, '批量通过', { type: 'success' })
+  await submitBatch(true, null)
+}
+
+function openBatchReject() {
+  batchReason.value = ''
+  batchRejectDialog.value = true
+}
+
+async function doBatchReject() {
+  if (!batchReason.value.trim()) {
+    ElMessage.warning('驳回理由不能为空')
+    return
+  }
+  batchRejectDialog.value = false
+  await submitBatch(false, batchReason.value.trim())
+}
 
 async function load() {
   const d = await api.get('/orders', {
@@ -163,6 +223,7 @@ onMounted(load)
 
 <style scoped>
 .toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+.batch-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .urgent { color: var(--el-color-danger); font-weight: 700; }
 :deep(.urgent-row) { background: var(--blush-soft); }
 .muted { color: var(--muted); font-size: 13px; }

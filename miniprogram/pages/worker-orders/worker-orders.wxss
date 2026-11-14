@@ -113,3 +113,4 @@
   color: #a35a1c;
   font-size: 22rpx;
 }
+.remain.overdue { color: #c0392b; font-weight: 700; }

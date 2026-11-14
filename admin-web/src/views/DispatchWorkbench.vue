@@ -25,6 +25,7 @@
                       <span :class="['order-no', { urgent: row.urgency === 'URGENT' }]">{{ row.orderNo }}</span>
                       <span class="order-loc" :title="row.locationText">{{ row.locationText }}</span>
                     </div>
+                    <el-tag v-if="row.isOverdue" type="danger" size="small" effect="dark" style="margin-top: 2px">超时</el-tag>
                   </template>
                 </el-table-column>
                 <el-table-column prop="faultType" label="类型" min-width="80" show-overflow-tooltip />
@@ -107,6 +108,7 @@
                          :class="['worker-card', { disabled: selected && !w.eligible }]">
                   <div class="head">
                     <b>{{ w.name }}</b>
+                    <el-tag v-if="selected && w.workerId === bestId" type="success" effect="dark" size="small">推荐</el-tag>
                     <el-tag v-if="selected" :type="w.eligible ? 'success' : 'info'" size="small">
                       {{ w.eligible ? '可派单' : '不可派' }}
                     </el-tag>
@@ -138,12 +140,13 @@
                   <div v-if="selected && !w.eligible" class="reasons">
                     <div v-for="r in w.failReasons" :key="r" class="reason">注意：{{ r }}</div>
                   </div>
-                  <el-button type="primary" style="width: 100%"
+                  <el-button :type="w.workerId === bestId ? 'success' : 'primary'" style="width: 100%"
                              :disabled="!selected || !w.eligible || selected.workerId === w.workerId"
                              @click="assign(w)">
                     {{ !selected ? '请先选择工单'
                       : (selected.workerId === w.workerId ? '已派给该师傅'
-                        : (selected.workerId ? '改派给 ' + w.name : '派单给 ' + w.name)) }}
+                        : (selected.workerId ? '改派给 ' + w.name
+                          : (w.workerId === bestId ? '一键采纳推荐 · 派给 ' + w.name : '派单给 ' + w.name))) }}
                   </el-button>
                 </el-card>
               </div>
@@ -176,6 +179,12 @@ let timer = null
 // 看板数据源：选工单看资格判定结果，未选工单看总体概况
 const board = computed(() => (selected.value ? workers.value : allWorkers.value))
 const onDutyCount = computed(() => allWorkers.value.filter(w => w.onDuty).length)
+/** 推荐首位：合格候选中匹配分最高者（后端已按分数排序，这里兜底重算） */
+const bestId = computed(() => {
+  const eligible = workers.value.filter(w => w.eligible)
+  if (!eligible.length) return null
+  return eligible.reduce((a, b) => ((b.matchScore ?? 0) > (a.matchScore ?? 0) ? b : a)).workerId
+})
 
 // 表格高度跟随容器，保证左右两栏等高、内部滚动
 const tableWrap = ref(null)

@@ -1,16 +1,21 @@
 package com.campus.repair.module.order;
 
+import com.campus.repair.common.BusinessException;
 import com.campus.repair.common.PageVO;
 import com.campus.repair.common.RequireRole;
 import com.campus.repair.common.Result;
 import com.campus.repair.common.Role;
 import com.campus.repair.module.order.dto.AuditReq;
 import com.campus.repair.module.order.dto.AssignReq;
+import com.campus.repair.module.order.dto.BatchAuditItem;
+import com.campus.repair.module.order.dto.BatchAuditReq;
 import com.campus.repair.module.order.dto.DispatchInfoVO;
 import com.campus.repair.module.order.dto.EvaluationReq;
 import com.campus.repair.module.order.dto.FinishReq;
 import com.campus.repair.module.order.dto.MapOrderVO;
+import com.campus.repair.module.order.dto.MergeReq;
 import com.campus.repair.module.order.dto.OrderCreatedVO;
+import com.campus.repair.module.order.dto.PartReq;
 import com.campus.repair.module.order.dto.ReasonReq;
 import com.campus.repair.module.order.dto.ResubmitReq;
 import com.campus.repair.module.order.dto.SubmitReq;
@@ -82,12 +87,30 @@ public class OrderController {
         return Result.ok();
     }
 
-    @Operation(summary = "提交评价（F7-1）")
+    @Operation(summary = "提交评价（F7-1，含标签；≤2 星自动生成回访任务）")
     @RequireRole(Role.REPORTER)
     @PostMapping("/{id}/evaluation")
     public Result<Void> evaluate(@PathVariable Long id, @Valid @RequestBody EvaluationReq req) {
         orderService.evaluate(id, req);
         return Result.ok();
+    }
+
+    @Operation(summary = "催单（R2-F6-4，2 小时内限 1 次）")
+    @RequireRole(Role.REPORTER)
+    @PostMapping("/{id}/urge")
+    public Result<Void> urge(@PathVariable Long id) {
+        orderService.urge(id);
+        return Result.ok();
+    }
+
+    @Operation(summary = "提交前重复报修提示（R2-F2-5，只返回最小字段）")
+    @RequireRole(Role.REPORTER)
+    @GetMapping("/duplicates")
+    public Result<List<com.campus.repair.module.order.dto.DuplicateOrderVO>> duplicates(
+            @RequestParam String campus,
+            @RequestParam String faultType,
+            @RequestParam(required = false) String locationDetail) {
+        return Result.ok(orderService.duplicates(campus, faultType, locationDetail));
     }
 
     // ---------------- 维修工 ----------------
@@ -156,6 +179,14 @@ public class OrderController {
         return Result.ok();
     }
 
+    @Operation(summary = "登记配件消耗（R2-F5-5）")
+    @RequireRole(Role.REPAIRER)
+    @PostMapping("/{id}/parts")
+    public Result<Void> addPart(@PathVariable Long id, @Valid @RequestBody PartReq req) {
+        orderService.addPart(id, req);
+        return Result.ok();
+    }
+
     // ---------------- 管理员 ----------------
 
     @Operation(summary = "管理工作台工单统计")
@@ -184,6 +215,34 @@ public class OrderController {
     @PostMapping("/{id}/audit")
     public Result<Void> audit(@PathVariable Long id, @Valid @RequestBody AuditReq req) {
         orderService.audit(id, req);
+        return Result.ok();
+    }
+
+    @Operation(summary = "批量审核（R2-F3-2，逐条返回结果，不整批回滚）")
+    @RequireRole({Role.ADMIN, Role.SYS_ADMIN})
+    @PostMapping("/audit-batch")
+    public Result<List<BatchAuditItem>> auditBatch(@Valid @RequestBody BatchAuditReq req) {
+        List<BatchAuditItem> results = new java.util.ArrayList<>(req.ids().size());
+        for (Long id : req.ids()) {
+            try {
+                orderService.audit(id, new AuditReq(req.pass(), req.reason()));
+                results.add(new BatchAuditItem(id, true, req.pass() ? "已通过" : "已驳回"));
+            } catch (BusinessException e) {
+                results.add(new BatchAuditItem(id, false, e.getMessage()));
+            } catch (Exception e) {
+                // 单条异常（数据库/并发等）不拖垮整批，逐条返回失败原因
+                results.add(new BatchAuditItem(id, false,
+                        e.getMessage() == null ? "处理失败，请稍后重试" : e.getMessage()));
+            }
+        }
+        return Result.ok(results);
+    }
+
+    @Operation(summary = "重复工单合并（R2-F3-3，副单作废并关联主单）")
+    @RequireRole({Role.ADMIN, Role.SYS_ADMIN})
+    @PostMapping("/{id}/merge")
+    public Result<Void> merge(@PathVariable Long id, @Valid @RequestBody MergeReq req) {
+        orderService.merge(id, req);
         return Result.ok();
     }
 
@@ -242,5 +301,11 @@ public class OrderController {
     @GetMapping("/{id}/evaluation")
     public Result<Evaluation> evaluation(@PathVariable Long id) {
         return Result.ok(orderService.getEvaluation(id));
+    }
+
+    @Operation(summary = "配件消耗列表（R2-F5-5）")
+    @GetMapping("/{id}/parts")
+    public Result<List<PartUsage>> parts(@PathVariable Long id) {
+        return Result.ok(orderService.parts(id));
     }
 }

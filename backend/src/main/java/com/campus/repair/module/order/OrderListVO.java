@@ -29,6 +29,10 @@ public class OrderListVO {
     private DispatchState dispatchState;
     private LocalDateTime grabOpenAt;
     private LocalDateTime assignExpiresAt;
+    /** 处理截止时间（维修工端处理倒计时用） */
+    private LocalDateTime dueAt;
+    /** 合并后的主单 id（重复报修） */
+    private Long mainOrderId;
     private Integer dispatchCount;
     private Integer rejectCount;
 

@@ -8,6 +8,8 @@ import com.campus.repair.module.auth.UserMapper;
 import com.campus.repair.module.dict.Campus;
 import com.campus.repair.module.dict.Skill;
 import com.campus.repair.module.dict.SkillMapper;
+import com.campus.repair.module.kb.KbArticle;
+import com.campus.repair.module.kb.KbArticleMapper;
 import com.campus.repair.module.order.Evaluation;
 import com.campus.repair.module.order.EvaluationMapper;
 import com.campus.repair.module.order.OrderLog;
@@ -58,13 +60,15 @@ public class SeedRunner implements CommandLineRunner {
     private final WorkerMapper workerMapper;
     private final AuthService authService;
     private final TransactionTemplate transactionTemplate;
+    private final KbArticleMapper kbArticleMapper;
 
     public SeedRunner(SkillMapper skillMapper, UserMapper userMapper,
                       WorkerProfileMapper profileMapper, WorkerSkillMapper skillRelMapper,
                       WorkerScopeMapper scopeMapper, RepairOrderMapper orderMapper,
                       OrderLogMapper logMapper, EvaluationMapper evaluationMapper,
                       WorkerMapper workerMapper, AuthService authService,
-                      TransactionTemplate transactionTemplate) {
+                      TransactionTemplate transactionTemplate,
+                      KbArticleMapper kbArticleMapper) {
         this.skillMapper = skillMapper;
         this.userMapper = userMapper;
         this.profileMapper = profileMapper;
@@ -76,10 +80,12 @@ public class SeedRunner implements CommandLineRunner {
         this.workerMapper = workerMapper;
         this.authService = authService;
         this.transactionTemplate = transactionTemplate;
+        this.kbArticleMapper = kbArticleMapper;
     }
 
     @Override
     public void run(String... args) {
+        seedKbIfEmpty();
         Long count = userMapper.selectCount(null);
         if (count != null && count > 0) {
             log.info("[Seed] 已存在用户数据，跳过种子初始化");
@@ -89,6 +95,50 @@ public class SeedRunner implements CommandLineRunner {
             seed();
             log.info("[Seed] 种子数据初始化完成：账号密码统一 123456");
         });
+    }
+
+    /** R2 知识库示例文章：独立幂等，已有数据的环境也能补上 */
+    private void seedKbIfEmpty() {
+        Long count = kbArticleMapper.selectCount(null);
+        if (count != null && count > 0) {
+            return;
+        }
+        String[][] articles = {
+                {"空调不制冷先查这三处", "空调家电",
+                        "1. 确认遥控器电池与模式设置：制冷模式、温度低于室温。\n"
+                        + "2. 检查室内机滤网是否积灰，拆下清洗晾干后装回。\n"
+                        + "3. 观察外机是否运转；若外机不启动或有异响，请勿自行拆机，提交报修。"},
+                {"宿舍跳闸的简单排查", "水电",
+                        "1. 先关闭该回路上的大功率电器（电吹风、电热水壶）。\n"
+                        + "2. 到配电箱查看是否漏电保护开关跳下，尝试复位一次。\n"
+                        + "3. 复位后立即再次跳闸，说明存在漏电或短路，请保持断电并提交报修。"},
+                {"多媒体讲台无法开机", "网络多媒体",
+                        "1. 确认讲台总电源与中控面板指示灯是否亮起。\n"
+                        + "2. 长按中控电源键 5 秒后重新上电，等待 30 秒再开机。\n"
+                        + "3. 投影无信号时检查 HDMI 线是否插紧、电脑是否切换了输出。\n"
+                        + "4. 以上无效请提交报修，注明教室号与设备编号。"},
+                {"门锁卡顿、钥匙转不动", "木工门窗",
+                        "1. 不要用力硬拧，避免钥匙断在锁芯内。\n"
+                        + "2. 可用铅笔芯粉末少量润滑锁芯后轻轻转动。\n"
+                        + "3. 锁舌错位或门体下沉需调整合页，请提交报修由木工处理。"},
+                {"电梯困人时的正确做法", "电梯",
+                        "1. 保持冷静，按下轿厢内警铃或对讲按钮，等待值班人员回应。\n"
+                        + "2. 不要强行扒门、不要攀爬轿顶，避免坠落风险。\n"
+                        + "3. 拨打校内应急电话或直接提交紧急报修，说明楼栋、单元与楼层。"},
+        };
+        LocalDateTime now = LocalDateTime.now();
+        for (String[] a : articles) {
+            KbArticle article = new KbArticle();
+            article.setTitle(a[0]);
+            article.setFaultType(a[1]);
+            article.setContent(a[2]);
+            article.setViewCount(0);
+            article.setStatus(true);
+            article.setCreatedAt(now);
+            article.setUpdatedAt(now);
+            kbArticleMapper.insert(article);
+        }
+        log.info("[Seed] 已初始化 {} 篇知识库示例文章", articles.length);
     }
 
     private void seed() {

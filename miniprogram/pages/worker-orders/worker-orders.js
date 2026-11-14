@@ -11,6 +11,18 @@ function remainText(iso) {
   return m >= 60 ? `${Math.floor(m / 60)} 小时` : `${m} 分钟`
 }
 
+/** 处理剩余时间（处理 SLA），超时返回「已超时」 */
+function dueText(iso) {
+  if (!iso) return ''
+  const normalized = String(iso).replace(/-/g, '/').replace('T', ' ')
+  const diff = new Date(normalized).getTime() - Date.now()
+  if (Number.isNaN(diff)) return ''
+  if (diff <= 0) return '已超时'
+  const h = Math.floor(diff / 3600000)
+  if (h >= 1) return `剩 ${h} 小时`
+  return `剩 ${Math.max(1, Math.floor(diff / 60000))} 分钟`
+}
+
 Page({
   data: { status: 'PENDING', list: [], header: null },
 
@@ -27,6 +39,37 @@ Page({
     this.loadHeader()
     if (currentStatus === 'GRAB') this.loadGrab()
     else this.load()
+    this.startCountdown()
+  },
+
+  onHide() {
+    this.stopCountdown()
+  },
+
+  onUnload() {
+    this.stopCountdown()
+  },
+
+  /** 页面停留时每分钟刷新一次剩余时间，避免倒计时冻结 */
+  startCountdown() {
+    this.stopCountdown()
+    this._timer = setInterval(() => this.refreshCountdown(), 60000)
+  },
+
+  stopCountdown() {
+    if (this._timer) {
+      clearInterval(this._timer)
+      this._timer = null
+    }
+  },
+
+  refreshCountdown() {
+    if (!this.data.list.length) return
+    const list = this.data.list.map(item => Object.assign({}, item, {
+      remainText: remainText(item.assignExpiresAt),
+      dueText: this.data.status === 'PROCESSING' ? dueText(item.dueAt) : '',
+    }))
+    this.setData({ list })
   },
 
   onPullDownRefresh() {
@@ -72,6 +115,7 @@ Page({
     const d = await get(`/orders/mine-assigned?status=${this.data.status}&page=1&pageSize=20`)
     const list = (d.list || []).map(item => Object.assign({}, item, {
       remainText: remainText(item.assignExpiresAt),
+      dueText: this.data.status === 'PROCESSING' ? dueText(item.dueAt) : '',
     }))
     this.setData({ list })
   },

@@ -31,4 +31,13 @@ public interface OrderLogMapper extends BaseMapper<OrderLog> {
             """)
     List<Long> selectRecentRejectors(@Param("orderId") Long orderId,
                                      @Param("since") LocalDateTime since);
+
+    /** 指定动作在时间窗内的次数（催单限频） */
+    @Select("""
+            SELECT COUNT(*) FROM order_log
+            WHERE order_id = #{orderId} AND action = #{action} AND created_at >= #{since}
+            """)
+    int countActionSince(@Param("orderId") Long orderId,
+                         @Param("action") String action,
+                         @Param("since") LocalDateTime since);
 }

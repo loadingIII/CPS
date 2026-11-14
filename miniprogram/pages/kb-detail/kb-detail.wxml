@@ -1,0 +1,14 @@
+<view class="page" wx:if="{{detail}}">
+  <view class="head">
+    <view class="type">{{detail.faultType}}</view>
+    <view class="title">{{detail.title}}</view>
+    <view class="meta">{{detail.viewCount}} 次浏览 · 更新于 {{detail.updatedAt}}</view>
+  </view>
+
+  <view class="card">
+    <text class="content">{{detail.content}}</text>
+  </view>
+
+  <view class="tip">按步骤操作仍无法解决？返回首页提交报修，由师傅上门处理。</view>
+  <view class="bottom-space"></view>
+</view>

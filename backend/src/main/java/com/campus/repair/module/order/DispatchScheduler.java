@@ -1,6 +1,7 @@
 package com.campus.repair.module.order;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.campus.repair.module.notice.NotificationService;
 import com.campus.repair.module.order.statemachine.OrderAction;
 import com.campus.repair.module.order.statemachine.OrderStatus;
 import com.campus.repair.module.worker.WorkerMapper;
@@ -36,15 +37,20 @@ public class DispatchScheduler {
     private final WorkerMapper workerMapper;
     private final OrderLogService logService;
     private final DispatchProperties props;
+    private final OverdueAlertMapper alertMapper;
+    private final NotificationService notificationService;
 
     public DispatchScheduler(RepairOrderMapper orderMapper, EvaluationMapper evaluationMapper,
                              WorkerMapper workerMapper, OrderLogService logService,
-                             DispatchProperties props) {
+                             DispatchProperties props, OverdueAlertMapper alertMapper,
+                             NotificationService notificationService) {
         this.orderMapper = orderMapper;
         this.evaluationMapper = evaluationMapper;
         this.workerMapper = workerMapper;
         this.logService = logService;
         this.props = props;
+        this.alertMapper = alertMapper;
+        this.notificationService = notificationService;
     }
 
     /** 接单超时自动回收 */
@@ -72,6 +78,7 @@ public class DispatchScheduler {
                 recycled++;
                 logService.log(o.getId(), OrderAction.RECYCLE, o.getWorkerId(), null,
                         "接单超时自动回收");
+                raiseAlert(o, "ACCEPT", "接单超时自动回收，工单 " + o.getOrderNo() + " 已回待派单池");
             }
             // rows == 0：师傅刚好接单/工单被改派，跳过即可
         }
@@ -96,6 +103,7 @@ public class DispatchScheduler {
             if (rows == 1) {
                 logService.log(o.getId(), OrderAction.OVERDUE, o.getWorkerId(), null,
                         "处理超时，已超过处理截止时间");
+                raiseAlert(o, "PROCESS", "工单 " + o.getOrderNo() + " 处理超时（" + o.getLocationText() + "）");
             }
         }
     }
@@ -137,5 +145,23 @@ public class DispatchScheduler {
 
     private int nvl(Integer v) {
         return v == null ? 0 : v;
+    }
+
+    /**
+     * 写超时预警事件并通知相关人：同一工单重复超时按已有预警数升级。
+     * 预警与工单标记位职责分离，便于统计"超时必预警"覆盖率。
+     */
+    private void raiseAlert(RepairOrder o, String stage, String content) {
+        OverdueAlert alert = new OverdueAlert();
+        alert.setOrderId(o.getId());
+        alert.setStage(stage);
+        alert.setLevel(Math.min(3, alertMapper.countByOrder(o.getId()) + 1));
+        alert.setHandled(false);
+        alert.setCreatedAt(LocalDateTime.now());
+        alertMapper.insert(alert);
+        notificationService.notifyAdmins(NotificationService.OVERDUE, content, o.getId());
+        if (o.getWorkerId() != null) {
+            notificationService.notifyUser(o.getWorkerId(), NotificationService.OVERDUE, content, o.getId());
+        }
     }
 }

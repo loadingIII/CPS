@@ -82,4 +82,25 @@ Page({
   goRate() {
     wx.navigateTo({ url: '/pages/rate/rate?id=' + this.orderId })
   },
+
+  /** 合并后的副单可直接跳到主单看进度 */
+  goMainOrder(e) {
+    const id = e.currentTarget.dataset.id
+    if (id) wx.navigateTo({ url: '/pages/order-detail/order-detail?id=' + id })
+  },
+
+  /** R2-F6-4：催单（后端 2 小时内限 1 次、每日 3 次） */
+  onUrge() {
+    wx.showModal({
+      title: '催一下',
+      content: '将提醒维修工和后勤管理员尽快处理，确认催单吗？',
+      success: async r => {
+        if (!r.confirm) return
+        try {
+          await post(`/orders/${this.orderId}/urge`)
+          wx.showToast({ title: '已提醒', icon: 'success' })
+        } catch (e) { /* 已提示 */ }
+      },
+    })
+  },
 })

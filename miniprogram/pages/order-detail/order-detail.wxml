@@ -3,6 +3,7 @@
     <view class="hero-top">
       <text class="hero-status">{{STATUS_LABEL[detail.status]}}</text>
       <text class="tag tag-danger" wx:if="{{detail.urgency === 'URGENT'}}">紧急单</text>
+      <text class="tag tag-danger" wx:if="{{detail.isOverdue}}">已超时</text>
     </view>
     <view class="hero-no">{{detail.orderNo}}</view>
   </view>
@@ -45,6 +46,20 @@
     </view>
   </view>
 
+  <view class="card" wx:if="{{detail.mainOrderId}}">
+    <view class="section-title">合并提示</view>
+    <view class="muted">该工单与另一张报修重复，已合并至主单
+      <text class="link" data-id="{{detail.mainOrderId}}" bindtap="goMainOrder">{{detail.mainOrderNo || ('#' + detail.mainOrderId)}}</text>
+      ，处理进度以主单为准。</view>
+  </view>
+
+  <view class="card" wx:if="{{detail.parts.length}}">
+    <view class="section-title">更换配件</view>
+    <view class="info" wx:for="{{detail.parts}}" wx:key="id">
+      <text class="k">{{item.partName}}</text><text class="v">× {{item.quantity}}</text>
+    </view>
+  </view>
+
   <view class="card" wx:if="{{detail.evaluation}}">
     <view class="section-title">我的评价</view>
     <view class="stars-static">{{detail.evaluation.starsText}}</view>
@@ -59,6 +74,9 @@
   <view class="actions">
     <block wx:if="{{detail.status === 'PENDING_AUDIT' || (detail.status === 'PENDING' && !detail.workerId)}}">
       <button class="btn-warn act" bindtap="onCancel">取消报修</button>
+    </block>
+    <block wx:if="{{detail.status === 'PENDING' || detail.status === 'PROCESSING'}}">
+      <button class="btn-plain act" bindtap="onUrge">催一下</button>
     </block>
     <block wx:if="{{detail.status === 'REJECTED'}}">
       <button class="btn-primary act" bindtap="goResubmit">补充重报</button>

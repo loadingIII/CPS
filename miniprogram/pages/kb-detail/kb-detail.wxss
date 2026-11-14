@@ -1,0 +1,18 @@
+.page { padding: 30rpx 24rpx; }
+.head { margin-bottom: 24rpx; }
+.type {
+  display: inline-block; font-size: 23rpx; color: #0f7b7e; background: #eef6f6;
+  padding: 6rpx 18rpx; border-radius: 999rpx; margin-bottom: 16rpx;
+}
+.title { font-size: 38rpx; font-weight: 800; color: #2b3a3c; line-height: 1.45; font-family: "STSong", "Songti SC", serif; }
+.meta { margin-top: 12rpx; font-size: 22rpx; color: #86909c; }
+.card {
+  background: #fff; border-radius: 18rpx; padding: 30rpx; border: 1rpx solid #e3e7e8;
+  box-shadow: 0 6rpx 18rpx rgba(43, 58, 60, .04);
+}
+.content { font-size: 28rpx; line-height: 1.85; color: #33464a; white-space: pre-wrap; }
+.tip {
+  margin-top: 24rpx; padding: 20rpx 24rpx; border-radius: 14rpx;
+  background: #fbf6e8; color: #7a6535; font-size: 24rpx; line-height: 1.6;
+}
+.bottom-space { height: 40rpx; }

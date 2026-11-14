@@ -11,7 +11,10 @@
     "pages/resubmit/resubmit",
     "pages/rate/rate",
     "pages/worker-detail/worker-detail",
-    "pages/worker-finish/worker-finish"
+    "pages/worker-finish/worker-finish",
+    "pages/messages/messages",
+    "pages/kb/kb",
+    "pages/kb-detail/kb-detail"
   ],
   "window": {
     "navigationBarBackgroundColor": "#f5f6f7",
@@ -38,7 +41,7 @@
       "desc": "用于报修时在地图上选点定位，以及工单地图展示你的当前位置"
     }
   },
-  "requiredPrivateInfos": ["chooseLocation"],
+  "requiredPrivateInfos": ["chooseLocation", "getLocation"],
   "style": "v2",
   "sitemapLocation": "sitemap.json"
 }

@@ -20,7 +20,9 @@ public enum OrderAction {
     RECYCLE("超时回收"),
     BROADCAST("开放抢单"),
     DEFAULT_RATE("默认好评"),
-    OVERDUE("超时预警");
+    OVERDUE("超时预警"),
+    URGE("催单"),
+    MERGE("合并");
 
     private final String label;
 

@@ -1,4 +1,16 @@
 .page { padding-bottom: 60rpx; }
+.menu-card { padding: 0 24rpx; }
+.menu-row {
+  display: flex; align-items: center; gap: 12rpx; padding: 28rpx 0;
+  border-bottom: 1rpx dashed #e3e7e8;
+}
+.menu-row:last-child { border-bottom: none; }
+.menu-name { font-size: 28rpx; color: #2b3a3c; flex: 1; }
+.menu-badge {
+  min-width: 36rpx; height: 36rpx; line-height: 36rpx; padding: 0 10rpx; border-radius: 999rpx;
+  background: #d96a3b; color: #fff; font-size: 22rpx; text-align: center;
+}
+.menu-arrow { color: #b9c2c0; font-size: 34rpx; }
 .head {
   background-color: #d7ecec;
   background-image:

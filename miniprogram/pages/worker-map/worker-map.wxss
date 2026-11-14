@@ -1,5 +1,20 @@
 .page { height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; }
-.map { width: 100%; height: 46vh; }
+/* 原生 map 用 px 固定高度（由 JS 计算），避免 vh 在 flex 容器中算出 0 高度 */
+.map-wrap { position: relative; width: 100%; flex-shrink: 0; background: #eef2f2; }
+.map { width: 100%; height: 100%; }
+.map-fallback {
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14rpx; padding: 40rpx;
+  background: #f0f4f4; text-align: center;
+}
+.fb-title { font-size: 30rpx; font-weight: 700; color: #2b3a3c; }
+.fb-copy { font-size: 24rpx; color: #758286; line-height: 1.6; }
+.fb-btn {
+  margin-top: 8rpx; padding: 14rpx 36rpx; border-radius: 999rpx;
+  background: #0f7b7e; color: #fff; font-size: 25rpx;
+}
+.nav-link { margin-left: auto; color: #0f7b7e; font-size: 24rpx; padding: 4rpx 10rpx; }
 .legend { display: flex; align-items: center; gap: 30rpx; margin: 16rpx 24rpx 0; padding: 16rpx 24rpx; background: rgba(255,255,255,.92); border: 1rpx dashed #c6cad0; border-radius: 12rpx; }
 .legend-item { display: flex; align-items: center; gap: 10rpx; font-size: 24rpx; color: #5b6e70; }
 .dot { width: 20rpx; height: 20rpx; border-radius: 50%; }

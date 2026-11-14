@@ -46,6 +46,9 @@
           <text class="time">{{item.submittedAt}}</text>
           <text class="match" wx:if="{{status === 'GRAB' && item.matchText !== ''}}">匹配 {{item.matchText}}</text>
           <text class="remain" wx:if="{{status === 'PENDING' && item.remainText}}">接单剩余 {{item.remainText}}</text>
+          <text class="remain {{item.dueText === '已超时' ? 'overdue' : ''}}"
+                wx:if="{{status === 'PROCESSING' && item.dueText}}">处理 {{item.dueText}}</text>
+          <text class="remain overdue" wx:if="{{item.isOverdue}}">已超时</text>
         </view>
         <view class="desc">{{item.description}}</view>
         <view class="grab-btn" wx:if="{{status === 'GRAB'}}" data-id="{{item.id}}" catchtap="onGrab">

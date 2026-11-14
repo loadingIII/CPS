@@ -226,6 +226,32 @@ Page({
     if (!faultType) { wx.showToast({ title: '请选择故障类型', icon: 'none' }); return }
     if (desc.trim().length < 5) { wx.showToast({ title: '故障描述至少 5 个字', icon: 'none' }); return }
 
+    // R2-F2-5：提交前查重，命中只提示不拦截
+    try {
+      const dups = await get('/orders/duplicates?campus=' + encodeURIComponent(campusCode)
+        + '&faultType=' + encodeURIComponent(faultType)
+        + '&locationDetail=' + encodeURIComponent(locationDetail.trim()))
+      if (dups && dups.length) {
+        const first = dups[0]
+        const goOn = await new Promise(resolve => {
+          wx.showModal({
+            title: '发现相似报修',
+            content: `48 小时内已有 ${dups.length} 张同位置、同类型的工单（${first.orderNo} · ${first.statusLabel || first.status}）。可能已在处理中，是否仍要提交？`,
+            confirmText: '仍要提交',
+            cancelText: first.mine ? '查看我的单' : '取消提交',
+            success: r => resolve(r.confirm),
+          })
+        })
+        if (!goOn) {
+          // 只有自己的单才允许跳详情；他人的单不暴露入口，避免 404 与隐私问题
+          if (first.mine) {
+            wx.navigateTo({ url: '/pages/order-detail/order-detail?id=' + first.id })
+          }
+          return
+        }
+      }
+    } catch (e) { /* 查重失败不阻断提交 */ }
+
     this.setData({ submitting: true })
     try {
       const data = await post('/orders', {

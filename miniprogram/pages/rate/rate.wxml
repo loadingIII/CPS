@@ -6,6 +6,11 @@
             data-n="{{item}}" bindtap="setRating">★</text>
     </view>
     <view class="hint">{{hints[rating - 1] || '点击星星评分'}}</view>
+    <view class="tag-title">哪些地方做得好？（可多选）</view>
+    <view class="tag-row">
+      <text wx:for="{{tags}}" wx:key="*this" data-tag="{{item}}" bindtap="toggleTag"
+            class="tag {{picked.indexOf(item) >= 0 ? 'tag-on' : ''}}">{{item}}</text>
+    </view>
     <textarea class="desc" maxlength="500" value="{{content}}" bindinput="onContent"
               placeholder-class="ph" placeholder="说点什么吧（选填），例如：师傅很快修好了" />
   </view>

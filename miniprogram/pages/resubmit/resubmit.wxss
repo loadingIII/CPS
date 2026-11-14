@@ -3,7 +3,36 @@
 .reason-label { font-size: 22rpx; color: #795915; font-weight: 700; letter-spacing: 1rpx; }
 .reason-text { font-size: 26rpx; color: #5a430c; margin-top: 8rpx; line-height: 1.6; }
 .field-label { font-size: 27rpx; font-weight: 700; margin-bottom: 16rpx; display: flex; align-items: center; color: #2b3a3c; }
+.req { color: #c66575; margin-left: 6rpx; }
 .optional { font-weight: 400; color: #758286; font-size: 22rpx; margin-left: 12rpx; }
+.item { margin-bottom: 34rpx; }
+.item:last-child { margin-bottom: 8rpx; }
+.picker-cell {
+  display: flex; align-items: center; justify-content: space-between;
+  background: #f7f8f8; border: 1rpx dashed #c6cad0; border-radius: 14rpx;
+  padding: 20rpx 22rpx; min-height: 84rpx; box-sizing: border-box; font-size: 28rpx; color: #2b3a3c;
+}
+.picker-cell.placeholder { color: #86909c; }
+.chevron {
+  width: 16rpx; height: 16rpx; border-right: 3rpx solid #a8b1b3; border-bottom: 3rpx solid #a8b1b3;
+  transform: rotate(45deg); margin-right: 4rpx;
+}
+.campus-address { margin-top: 8rpx; font-size: 22rpx; color: #0a5f62; line-height: 1.5; }
+.loc-detail { margin-top: 16rpx; }
+.loc-input {
+  width: 100%; box-sizing: border-box; background: #f7f8f8; border: 1rpx dashed #c6cad0;
+  border-radius: 14rpx; padding: 20rpx 22rpx; height: 84rpx; font-size: 28rpx;
+}
+.urgency { display: flex; gap: 16rpx; }
+.u-card { flex: 1; background: #f7f8f8; border: 2rpx solid transparent; border-radius: 16rpx; padding: 22rpx 24rpx; transition: all 0.2s ease; }
+.u-card.u-on { background: #d7ecec; border-color: #0f7b7e; }
+.u-card.u-on-urgent { background: #fae9ec; border-color: #d98a98; }
+.u-dot { width: 14rpx; height: 14rpx; border-radius: 50%; margin-bottom: 14rpx; }
+.u-dot-normal { background: #0f7b7e; }
+.u-dot-urgent { background: #c66575; }
+.u-name { font-size: 28rpx; font-weight: 700; color: #2b3a3c; }
+.u-name-urgent { color: #8a3b4a; }
+.u-desc { font-size: 21rpx; color: #758286; margin-top: 6rpx; }
 .desc { width: 100%; box-sizing: border-box; background: #f7f8f8; border: 1rpx dashed #c6cad0; border-radius: 14rpx; padding: 22rpx; min-height: 220rpx; font-size: 28rpx; line-height: 1.65; }
 .ph { color: #86909c; }
 .footer { padding: 10rpx 24rpx; }

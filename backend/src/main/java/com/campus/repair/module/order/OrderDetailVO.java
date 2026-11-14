@@ -56,6 +56,12 @@ public class OrderDetailVO {
 
     private List<String> reportImages;
     private List<String> finishImages;
+    /** 配件消耗（R2-F5-5） */
+    private List<PartUsage> parts;
+    /** 合并后的主单 id（R2-F3-3） */
+    private Long mainOrderId;
+    /** 主单工单号，前端直接展示，避免让用户看数字 id */
+    private String mainOrderNo;
 
     private Evaluation evaluation;
 }

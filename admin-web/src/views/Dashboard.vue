@@ -38,8 +38,8 @@
         </button>
         <button class="metric-card metric-assign" type="button" @click="go('/dispatch')">
           <span class="metric-top"><span>待派单</span><span class="metric-mark">需分配</span></span>
-          <strong>{{ countOf('PENDING') }}</strong>
-          <span class="metric-foot">匹配维修工技能与服务校区</span>
+          <strong>{{ statistics.pendingPool ?? countOf('PENDING') }}</strong>
+          <span class="metric-foot">仅统计未指派的待处理工单</span>
         </button>
         <button class="metric-card metric-working" type="button" @click="go('/orders')">
           <span class="metric-top"><span>维修处理中</span><span class="metric-mark">进行中</span></span>
@@ -167,6 +167,58 @@
         </el-card>
       </section>
 
+      <section class="charts-grid" aria-label="效率与绩效">
+        <el-card class="chart-card trend-card" shadow="never">
+          <template #header>
+            <div class="panel-heading">
+              <div><h2>按时完成率</h2><p>近 14 日完工单，按处理截止时间判定</p></div>
+              <span class="chart-total">分母 = 当日完工量</span>
+            </div>
+          </template>
+          <div v-if="!ontime.length" class="chart-empty">暂无完工数据</div>
+          <div v-else class="ontime-list">
+            <div v-for="p in ontime" :key="p.day" class="ontime-row">
+              <span class="ontime-day">{{ p.day.slice(5) }}</span>
+              <div class="ontime-track">
+                <span class="ontime-fill" :style="{ width: pct(p) }"></span>
+              </div>
+              <b class="ontime-rate">{{ p.onTimeRate == null ? '—' : (p.onTimeRate * 100).toFixed(0) + '%' }}</b>
+              <small class="ontime-num">{{ p.onTime }}/{{ p.completed }}</small>
+            </div>
+          </div>
+          <div class="chart-foot"><span>按时 / 完工</span><span>数据来源：完工时间与处理截止时间</span></div>
+        </el-card>
+
+        <el-card class="chart-card recent-card" shadow="never">
+          <template #header>
+            <div class="panel-heading">
+              <div><h2>维修工绩效</h2><p>近 30 日完成量、按时率与满意度</p></div>
+              <span class="chart-total">完工少于 5 单标注样本不足</span>
+            </div>
+          </template>
+          <el-table v-if="workerPerf.length" :data="workerPerf" size="small" max-height="260">
+            <el-table-column prop="name" label="维修工" width="92" />
+            <el-table-column prop="done" label="完成" width="66" />
+            <el-table-column label="按时率" width="86">
+              <template #default="{ row }">
+                {{ row.onTimeRate == null ? '—' : (row.onTimeRate * 100).toFixed(0) + '%' }}
+              </template>
+            </el-table-column>
+            <el-table-column label="满意度" width="86">
+              <template #default="{ row }">{{ row.avgRating ?? '—' }}</template>
+            </el-table-column>
+            <el-table-column label="样本" min-width="80">
+              <template #default="{ row }">
+                <el-tag v-if="!row.sampleEnough" type="info" size="small">不足</el-tag>
+                <span v-else class="muted">充足</span>
+              </template>
+            </el-table-column>
+          </el-table>
+          <div v-else class="chart-empty">近 30 日暂无完工记录</div>
+          <div class="chart-foot"><span>绩效排行</span><span>按完成量排序；满意度含系统默认好评，完工 &lt;5 单不参与正式排名</span></div>
+        </el-card>
+      </section>
+
       <footer class="dashboard-footer">
         <span>统计口径：状态分布为全部工单，趋势按提交时间，类型排行统计近 30 日。</span>
         <div class="quick-links">
@@ -191,6 +243,8 @@ const loading = ref(false)
 const ordersLoading = ref(false)
 const statistics = ref(null)
 const recent = ref([])
+const ontime = ref([])
+const workerPerf = ref([])
 const statisticsError = ref('')
 const ordersError = ref('')
 
@@ -289,14 +343,21 @@ const categoryRows = computed(() => {
 })
 const categoryTotal = computed(() => (statistics.value?.faultTypes || []).reduce((sum, item) => sum + item.count, 0))
 
+/** 按时率条形宽度：无样本时显示 0，避免误读为 100% */
+function pct(p) {
+  return p.onTimeRate == null ? '0%' : `${Math.round(p.onTimeRate * 100)}%`
+}
+
 async function load() {
   loading.value = true
   ordersLoading.value = true
   statisticsError.value = ''
   ordersError.value = ''
-  const [statisticsResult, recentResult] = await Promise.allSettled([
+  const [statisticsResult, recentResult, ontimeResult, perfResult] = await Promise.allSettled([
     api.get('/orders/statistics'),
     api.get('/orders', { params: { page: 1, pageSize: 8 } }),
+    api.get('/stats/ontime', { params: { days: 14 } }),
+    api.get('/stats/workers', { params: { days: 30 } }),
   ])
   if (statisticsResult.status === 'fulfilled') {
     statistics.value = statisticsResult.value
@@ -309,6 +370,8 @@ async function load() {
     recent.value = []
     ordersError.value = '最新工单加载失败'
   }
+  ontime.value = ontimeResult.status === 'fulfilled' ? (ontimeResult.value || []) : []
+  workerPerf.value = perfResult.status === 'fulfilled' ? (perfResult.value || []) : []
   loading.value = false
   ordersLoading.value = false
 }
@@ -337,6 +400,15 @@ onMounted(load)
 .metric-mark { padding: 3px 7px; border-radius: 999px; background: var(--paper); color: var(--metric-accent); font-size: 9px; white-space: nowrap; }
 .metric-card strong { color: var(--metric-accent); font-family: "Noto Serif CJK SC", "Songti SC", SimSun, serif; font-size: 29px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
 .metric-foot { overflow: hidden; max-width: 100%; color: var(--muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 按时完成率 */
+.ontime-list { display: flex; flex-direction: column; gap: 5px; }
+.ontime-row { display: grid; grid-template-columns: 42px 1fr 46px 46px; align-items: center; gap: 8px; font-size: 11.5px; }
+.ontime-day { color: var(--muted); font-variant-numeric: tabular-nums; }
+.ontime-track { height: 8px; border-radius: 999px; background: var(--paper-deep); overflow: hidden; }
+.ontime-fill { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--teal), #5aa9b0); }
+.ontime-rate { color: var(--teal-deep); font-variant-numeric: tabular-nums; }
+.ontime-num { color: var(--muted); font-size: 10.5px; text-align: right; font-variant-numeric: tabular-nums; }
 .charts-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .9fr); gap: 13px; align-items: stretch; }
 .chart-card { min-width: 0; border-radius: 12px !important; }
 .chart-card :deep(.el-card__header) { min-height: 59px; padding: 12px 16px; }

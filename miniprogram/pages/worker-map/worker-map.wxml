@@ -1,9 +1,20 @@
 <view class="page">
-  <map id="orderMap" class="map"
-       latitude="{{center.lat}}" longitude="{{center.lng}}" scale="15"
-       markers="{{markers}}" show-location
-       bindmarkertap="onMarkerTap" bindregionchange="onRegionChange">
-  </map>
+  <view class="map-wrap" style="height: {{mapHeight}}px">
+    <map wx:if="{{mapVisible}}" id="orderMap" class="map"
+         style="height: {{mapHeight}}px"
+         latitude="{{center.lat}}" longitude="{{center.lng}}" scale="15"
+         markers="{{markers}}" show-location="{{true}}"
+         enable-zoom="{{true}}" enable-scroll="{{true}}"
+         binderror="onMapError"
+         bindmarkertap="onMarkerTap" bindregionchange="onRegionChange">
+    </map>
+
+    <view class="map-fallback" wx:if="{{mapError}}">
+      <view class="fb-title">地图底图加载失败</view>
+      <view class="fb-copy">请检查网络后重试；也可直接点下方工单的「导航」用系统地图打开。</view>
+      <view class="fb-btn" bindtap="retryMap">重新加载地图</view>
+    </view>
+  </view>
 
   <view class="legend">
     <view class="legend-item"><view class="dot dot-mine"></view>已接的单</view>
@@ -26,6 +37,9 @@
           <text class="tag {{item.kind === 'GRAB' ? 'tag-warning' : 'tag-primary'}}">
             {{item.kind === 'GRAB' ? '可抢单' : '我的工单'}}
           </text>
+          <view class="nav-link" catchtap="navigate"
+                data-lat="{{item.lat}}" data-lng="{{item.lng}}"
+                data-name="{{item.mapName || item.locationText}}">导航 ›</view>
         </view>
       </view>
     </view>
