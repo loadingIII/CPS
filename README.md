@@ -17,7 +17,7 @@ CPS/
 ## 启动步骤
 
 ### 0. 数据库
-MySQL 8 本机 root/123321；建库脚本 `design/schema.sql`（v2.1，含派单调度字段），
+MySQL 8 本机 root/123321；建库脚本 `design/schema.sql`（v2.6，含派单调度字段、已移除抢单），
 后端首次启动会自动检测空库并写入种子数据（7 类技能、15 个账号、12 张演示工单）。
 
 已有旧库升级：执行 `design/migration_v2.1_dispatch.sql`（新增 `dispatch_source / grab_open_at /
@@ -28,6 +28,9 @@ R2 升级：再执行 `design/migration_v2.3_r2.sql`（`notification.biz_id`、`
 `idx_worker_completed` 索引）。知识库不再内置示例文章，改为管理端上传 Markdown 导入。
 
 个人资料升级：执行 `design/migration_v2.4_profile.sql`（`sys_user.campus`，报修人所属校区）。
+
+抢单移除（v2.6）：执行 `design/migration_v2.6_remove_grab.sql`（删除 `grab_open_at` 与旧 `idx_pool`，
+重建 `idx_pool(status, worker_id)`）。**执行前先停后端**，否则旧进程写 `grab_open_at` 会报 Unknown column。
 
 ### 1. 后端（端口 8080）
 ```bash
@@ -62,8 +65,7 @@ npm run dev     # 开发模式，已代理 /api 与 /uploads 到 8080
 cd CPS/scripts
 node smoke.mjs                # 32 项接口冒烟（全流程闭环）
 node concurrent-accept.mjs    # 并发接单幂等（5 并发 → 1 成功 4 冲突）
-node grab-flow.mjs            # 抢单：资格过滤 / 开放时间 / 抢到即接单（16 项）
-node dispatch-flow.mjs        # 派单：队列拆分 / 负载上限 / 派单与抢单竞争（13 项）
+node dispatch-flow.mjs        # 派单：队列拆分 / 负载上限 / 未派单不可见（9 项）
 node recycle-flow.mjs         # 接单超时自动回收（5 项，需等待定时任务一个周期）
 node r2-flow.mjs              # R2 增量：知识库 / 按时率 / 通知 / 催单限频 / 配件权限 / 批量审核 / 重报改字段 / 完工带配件 / 差评回访（32 项）
 ```
@@ -246,15 +248,17 @@ Chroma 不可用时文章本身的增删改不受影响，只记一条 WARN 日�
 - 维修工：服务校区与技能由后勤统一维护、只读展示；仅联系电话可改；不展示维修知识库入口。
 - 首页已去掉装饰性头图，维修工进入后直接看「待接单 / 在办 / 已完成」。
 
-## 派单与抢单规则（v2.1）
+## 派单规则（v2.6：仅管理端派单）
+
+> v2.6 起移除抢单大厅、`/grab-pool`、`/claim`、`/broadcast` 与抢单开放时间，维修工只能接收管理员派单。
 
 | 场景 | 规则 |
 |------|------|
 | 待处理阶段 | 派单子状态派生：`POOL`（待派单，`worker_id` 为空）/ `OFFERED`（已派待接）/ `TAKEN`（已承接） |
 | 定向派单 | 管理员按推荐分（0.40 技能 + 0.25 负载 + 0.20 按时率 + 0.15 评分）派单；改派必须填理由 |
-| 抢单开放 | 紧急单审核即开放；普通单 20 分钟后开放；拒单/转单回流立即开放；管理员可手动开放 |
-| 抢单 | 先到先得，**抢到即接单**，直接进入处理中 |
-| 容量 | 派单/抢单先锁 `worker_profile` 容量行再统计在办数，负载上限不可突破 |
+| 派单后 | 工单进入 `OFFERED`，维修工在「待接单」确认接单，超时未接自动回收 |
+| 容量 | 派单先锁 `worker_profile` 容量行再统计在办数，负载上限不可突破 |
+| 拒绝/转单 | 维修工拒单或转单后清空承接信息，回到待派单池，由管理员重新派单 |
 | 超时 | 接单超时自动回收（紧急 30 分 / 普通 120 分）；处理超时打 `is_overdue` 标记 |
 | 完工 | 维修说明落库 `finish_summary`；完工 7 天未评价自动默认好评 |
 | 冷却 | 拒单/被超时回收后，同一师傅 24 小时内不再被推荐该单 |
@@ -263,7 +267,8 @@ Chroma 不可用时文章本身的增删改不受影响，只记一条 WARN 日�
 
 ## 演示
 见 [docs/R1演示脚本.md](docs/R1演示脚本.md)（「一个工单的一生」）；测试记录见 [docs/R1测试记录.md](docs/R1测试记录.md)。
-调度重构的完整设计见 [docs/派单与抢单调度设计方案.md](docs/派单与抢单调度设计方案.md)。
+派单模型与评分设计见 [docs/派单与抢单调度设计方案.md](docs/派单与抢单调度设计方案.md)
+（其中抢单部分为 v2.1 的历史设计记录，v2.6 已移除）。
 
 ## 已知偏差
 - 本机无 Redis：工单号采用数据库 max+1 + 唯一键重试，clientToken 幂等用进程内缓存（计划书 §2.3 降级策略，单实例等价）。

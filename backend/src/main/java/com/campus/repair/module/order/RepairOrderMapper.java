@@ -45,7 +45,7 @@ public interface RepairOrderMapper extends BaseMapper<RepairOrder> {
                                                 @Param("to") LocalDateTime to);
 
     // ------------------------------------------------------------------
-    // 派单调度（§5 容量令牌 / §6 抢单池 / 超时扫描）
+    // 派单调度（§5 容量令牌 / 超时扫描）
     // ------------------------------------------------------------------
 
     /** 在办负载：PENDING（已派待接）+ PROCESSING，可排除指定工单（改派场景） */
@@ -58,50 +58,6 @@ public interface RepairOrderMapper extends BaseMapper<RepairOrder> {
             """)
     long countActiveByWorker(@Param("workerId") Long workerId,
                              @Param("excludeOrderId") Long excludeOrderId);
-
-    /** 抢单池：资格（技能/校区/开放时间）+ 排除拒单冷却期，分页与总数同条件 */
-    @Select("""
-            SELECT o.* FROM repair_order o
-            WHERE o.status = 'PENDING' AND o.worker_id IS NULL
-              AND o.grab_open_at IS NOT NULL AND o.grab_open_at <= #{now}
-              AND (o.fault_type = '其他' OR EXISTS (
-                    SELECT 1 FROM worker_skill ws
-                    JOIN skill s ON s.id = ws.skill_id
-                    WHERE ws.user_id = #{workerId} AND s.name = o.fault_type AND s.enabled = 1))
-              AND EXISTS (
-                    SELECT 1 FROM worker_scope sc
-                    WHERE sc.user_id = #{workerId} AND sc.campus = o.campus)
-              AND NOT EXISTS (
-                    SELECT 1 FROM order_log l
-                    WHERE l.order_id = o.id AND l.operator_id = #{workerId}
-                      AND l.action IN ('拒单', '超时回收') AND l.created_at >= #{coolingSince})
-            ORDER BY o.urgency DESC, o.submitted_at ASC
-            LIMIT #{offset}, #{limit}
-            """)
-    List<RepairOrder> selectGrabPool(@Param("workerId") Long workerId,
-                                     @Param("now") LocalDateTime now,
-                                     @Param("coolingSince") LocalDateTime coolingSince,
-                                     @Param("offset") long offset,
-                                     @Param("limit") long limit);
-
-    @Select("""
-            SELECT COUNT(*) FROM repair_order o
-            WHERE o.status = 'PENDING' AND o.worker_id IS NULL
-              AND o.grab_open_at IS NOT NULL AND o.grab_open_at <= #{now}
-              AND (o.fault_type = '其他' OR EXISTS (
-                    SELECT 1 FROM worker_skill ws
-                    JOIN skill s ON s.id = ws.skill_id
-                    WHERE ws.user_id = #{workerId} AND s.name = o.fault_type AND s.enabled = 1))
-              AND EXISTS (
-                    SELECT 1 FROM worker_scope sc
-                    WHERE sc.user_id = #{workerId} AND sc.campus = o.campus)
-              AND NOT EXISTS (
-                    SELECT 1 FROM order_log l
-                    WHERE l.order_id = o.id AND l.operator_id = #{workerId}
-                      AND l.action IN ('拒单', '超时回收') AND l.created_at >= #{coolingSince})
-            """)
-    long countGrabPool(@Param("workerId") Long workerId, @Param("now") LocalDateTime now,
-                       @Param("coolingSince") LocalDateTime coolingSince);
 
     /** 接单超时：已派待接且超过 assign_expires_at */
     @Select("""

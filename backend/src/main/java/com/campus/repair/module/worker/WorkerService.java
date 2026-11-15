@@ -3,7 +3,6 @@ package com.campus.repair.module.worker;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.campus.repair.common.AuthContext;
 import com.campus.repair.common.BusinessException;
 import com.campus.repair.common.PageVO;
 import com.campus.repair.common.Role;
@@ -13,7 +12,6 @@ import com.campus.repair.module.auth.UserMapper;
 import com.campus.repair.module.dict.Campus;
 import com.campus.repair.module.dict.Skill;
 import com.campus.repair.module.dict.SkillMapper;
-import com.campus.repair.module.order.OrderListVO;
 import com.campus.repair.module.order.RepairOrder;
 import com.campus.repair.module.worker.dto.EligibleWorkerVO;
 import com.campus.repair.module.worker.dto.WorkerCreateReq;
@@ -298,43 +296,11 @@ public class WorkerService {
         return failReasons(workerId, order, true).isEmpty();
     }
 
-    public boolean canPreview(Long workerId, RepairOrder order) {
-        return failReasons(workerId, order, false).isEmpty();
-    }
-
-    /** 当前登录维修工对某工单的自助承接资格 */
-    public List<String> selfFailReasons(RepairOrder order) {
-        return failReasons(AuthContext.userId(), order, true);
-    }
-
     /** 派单硬校验：不合格抛 40001（附原因） */
     public void assertEligible(Long workerId, RepairOrder order) {
         List<String> reasons = failReasons(workerId, order, true);
         if (!reasons.isEmpty()) {
             throw BusinessException.param("该维修工不可派单: " + String.join("；", reasons));
-        }
-    }
-
-    /** 抢单大厅：给列表补匹配分与推荐理由（当前登录维修工视角） */
-    public void fillGrabMatch(List<OrderListVO> vos, List<RepairOrder> orders) {
-        if (vos.isEmpty() || orders.isEmpty()) {
-            return;
-        }
-        SysUser u = userMapper.selectById(AuthContext.userId());
-        if (u == null) {
-            return;
-        }
-        DispatchPolicy.Context c = dispatchPolicy.loadContext(u);
-        Map<Long, RepairOrder> byId = orders.stream()
-                .collect(Collectors.toMap(RepairOrder::getId, Function.identity(), (a, b) -> a));
-        for (OrderListVO v : vos) {
-            RepairOrder o = byId.get(v.getId());
-            if (o == null) {
-                continue;
-            }
-            DispatchPolicy.Score s = dispatchPolicy.score(c, o);
-            v.setMatchScore(s.total());
-            v.setMatchReasons(s.reasons());
         }
     }
 }

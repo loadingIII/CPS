@@ -30,7 +30,7 @@ mybatis-plus:
 app:
   upload-dir: ./uploads
 
-# 派单调度参数（§7 派单与抢单调度设计）
+# 派单调度参数（§7 派单调度设计）
 dispatch:
   # 推荐评分权重（技能 / 负载余量 / 按时率 / 评分），和应为 1
   weights:
@@ -46,10 +46,6 @@ dispatch:
   sla-hours:
     URGENT: 4
     NORMAL: 24
-  # 普通单审核通过后延迟多久开放抢单（分钟）；紧急单为 0
-  grab-open-delay-minutes:
-    URGENT: 0
-    NORMAL: 20
   # 拒单/超时回收后，同一师傅对该单的冷却时长（小时）
   reject-cooldown-hours: 24
   # 累计派单次数达到该值标记为难派单

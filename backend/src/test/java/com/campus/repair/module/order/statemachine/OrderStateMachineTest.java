@@ -144,33 +144,6 @@ class OrderStateMachineTest {
         assertThat(o.getStatus()).isEqualTo(OrderStatus.PENDING);
     }
 
-    // ---------- #8b 抢单 ----------
-
-    @Test
-    @DisplayName("#8b 抢单：未派单可抢，抢到即接单（直接进入处理中）；已被派单 40901；管理员无权抢单")
-    void claim() {
-        RepairOrder o = order(OrderStatus.PENDING);
-        o.setAssignExpiresAt(java.time.LocalDateTime.now());
-        fire(o, OrderAction.CLAIM, Role.REPAIRER, WORKER_ID, null, WORKER_ID);
-        assertThat(o.getWorkerId()).isEqualTo(WORKER_ID);
-        assertThat(o.getAssignedAt()).isNotNull();
-        assertThat(o.getAcceptedAt()).isNotNull();
-        assertThat(o.getAssignExpiresAt()).isNull();
-        assertThat(o.getStatus()).isEqualTo(OrderStatus.PROCESSING);
-
-        RepairOrder assigned = order(OrderStatus.PENDING);
-        assigned.setWorkerId(OTHER_ID);
-        assertThatThrownBy(() -> fire(assigned, OrderAction.CLAIM, Role.REPAIRER, WORKER_ID, null, WORKER_ID))
-                .isInstanceOf(BusinessException.class)
-                .extracting(e -> ((BusinessException) e).getCode())
-                .isEqualTo(40901);
-
-        assertThatThrownBy(() -> fire(order(OrderStatus.PENDING), OrderAction.CLAIM, Role.ADMIN, OTHER_ID, null, OTHER_ID))
-                .isInstanceOf(BusinessException.class)
-                .extracting(e -> ((BusinessException) e).getCode())
-                .isEqualTo(40301);
-    }
-
     // ---------- #9/#10 接单与拒单 ----------
 
     @Test

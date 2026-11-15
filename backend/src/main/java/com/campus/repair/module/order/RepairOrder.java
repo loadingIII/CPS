@@ -52,19 +52,16 @@ public class RepairOrder {
     /** 完工维修说明（故障原因/处理方式） */
     private String finishSummary;
 
-    /** 最近一次派单来源：MANUAL 人工 / GRAB 抢单 / AUTO 自动 */
+    /** 最近一次派单来源：MANUAL 人工 / AUTO 自动（GRAB 仅历史数据） */
     private DispatchSource dispatchSource;
-
-    /** 抢单池开放时间（紧急单=审核时，普通单=延迟开放） */
-    private LocalDateTime grabOpenAt;
 
     /** 本次派单的接单截止时间（超时自动回收） */
     private LocalDateTime assignExpiresAt;
 
-    /** 处理截止时间（接单/抢单时按 SLA 写入） */
+    /** 处理截止时间（接单时按 SLA 写入） */
     private LocalDateTime dueAt;
 
-    /** 累计派单/抢单次数（识别难派单） */
+    /** 累计派单次数（识别难派单） */
     private Integer dispatchCount;
 
     /** 累计被拒/超时回收次数 */

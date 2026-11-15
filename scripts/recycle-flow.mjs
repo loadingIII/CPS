@@ -53,7 +53,7 @@ const check = (name, cond, detail) => {
 check('超时后自动回到待派单池', after?.dispatchState === 'POOL', after)
 check('回收后清空承接人', after?.workerId == null, after)
 check('回收计数 +1', (after?.rejectCount || 0) >= 1, after)
-check('回收后重新开放抢单', !!after?.grabOpenAt, after)
+check('回收后等待管理员重新派单', after?.dispatchState === 'POOL' && after?.workerId == null, after)
 const logs = (await req('GET', '/orders/' + order.orderId + '/logs', null, admin)).json.data
 check('时间线含「超时回收」', (logs || []).some(l => l.action === '超时回收'), logs)
 

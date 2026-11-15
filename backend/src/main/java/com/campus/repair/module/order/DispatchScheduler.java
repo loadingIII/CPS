@@ -19,7 +19,7 @@ import java.util.List;
  * 派单与工单的定时兜底任务（无 Redis / MQ 依赖，单实例即可）。
  *
  * <ul>
- *   <li>接单超时回收：已派待接超过 assign_expires_at → 回池、拒绝计数 +1、立即开放抢单</li>
+ *   <li>接单超时回收：已派待接超过 assign_expires_at → 回待派单池、拒绝计数 +1，等待管理员重新派单</li>
  *   <li>处理超时标记：处理中超过 due_at → is_overdue=1 + 预警日志</li>
  *   <li>默认好评：完工超过 N 天未评价 → 自动 5 星关闭</li>
  * </ul>
@@ -71,7 +71,6 @@ public class DispatchScheduler {
                     .set(RepairOrder::getAcceptedAt, null)
                     .set(RepairOrder::getAssignExpiresAt, null)
                     .set(RepairOrder::getDueAt, null)
-                    .set(RepairOrder::getGrabOpenAt, now.truncatedTo(java.time.temporal.ChronoUnit.SECONDS))
                     .set(RepairOrder::getRejectCount, nvl(o.getRejectCount()) + 1)
                     .set(RepairOrder::getVersion, o.getVersion() + 1));
             if (rows == 1) {

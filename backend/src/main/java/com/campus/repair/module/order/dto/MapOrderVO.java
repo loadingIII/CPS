@@ -23,6 +23,6 @@ public class MapOrderVO {
     private String mapName;
     private Double lng;
     private Double lat;
-    /** MINE = 已接的单；GRAB = 可接的单 */
+    /** MINE = 已接的单（v2.6 起不再返回可抢单的点） */
     private String kind;
 }

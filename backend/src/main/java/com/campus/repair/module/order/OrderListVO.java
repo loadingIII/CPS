@@ -27,7 +27,6 @@ public class OrderListVO {
 
     /** 派单子状态：POOL 待派单 / OFFERED 已派待接 / TAKEN 已承接 / NONE */
     private DispatchState dispatchState;
-    private LocalDateTime grabOpenAt;
     private LocalDateTime assignExpiresAt;
     /** 处理截止时间（维修工端处理倒计时用） */
     private LocalDateTime dueAt;
@@ -35,8 +34,4 @@ public class OrderListVO {
     private Long mainOrderId;
     private Integer dispatchCount;
     private Integer rejectCount;
-
-    /** 抢单大厅专用：匹配分与推荐理由 */
-    private Double matchScore;
-    private List<String> matchReasons;
 }

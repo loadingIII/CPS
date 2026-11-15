@@ -31,7 +31,7 @@
     <view class="stats-grid worker-stats" wx:if="{{!loading}}">
       <view class="stat-card tone-butter" data-status="PENDING" bindtap="goWorkerOrders"><view class="stat-value">{{summary.pending}}</view><view class="stat-label">待接单</view><view class="stat-rule"></view></view>
       <view class="stat-card tone-teal" data-status="PROCESSING" bindtap="goWorkerOrders"><view class="stat-value">{{summary.processing}}</view><view class="stat-label">维修中</view><view class="stat-rule"></view></view>
-      <view class="stat-card tone-blush" data-status="GRAB" bindtap="goWorkerOrders"><view class="stat-value">{{summary.grab}}</view><view class="stat-label">可抢工单</view><view class="stat-rule"></view></view>
+      <view class="stat-card tone-sky" data-status="COMPLETED" bindtap="goWorkerOrders"><view class="stat-value">{{summary.completed}}</view><view class="stat-label">已完成</view><view class="stat-rule"></view></view>
     </view>
     <view class="stats-grid" wx:else>
       <view class="stat-loading" wx:for="{{skeletons}}" wx:key="*this"></view>
@@ -53,7 +53,7 @@
     <view class="empty-card" wx:elif="{{!loading && !loadError}}">
       <view class="empty-mark">修</view>
       <view class="empty-title">当前没有待处理工单</view>
-      <view class="empty-copy">可以去抢单大厅查看符合技能与服务范围的工单</view>
+      <view class="empty-copy">管理员派单后会出现在这里，下拉可刷新</view>
       <view class="empty-action" bindtap="goWorkerOrders">查看维修工单 <text>›</text></view>
     </view>
 

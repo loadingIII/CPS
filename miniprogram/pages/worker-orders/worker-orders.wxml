@@ -25,11 +25,6 @@
     <view class="seg {{status === 'PENDING' ? 'on' : ''}}" data-v="PENDING" bindtap="onTab">待接单</view>
     <view class="seg {{status === 'PROCESSING' ? 'on' : ''}}" data-v="PROCESSING" bindtap="onTab">在办</view>
     <view class="seg {{status === 'COMPLETED' ? 'on' : ''}}" data-v="COMPLETED" bindtap="onTab">已完成</view>
-    <view class="seg {{status === 'GRAB' ? 'on' : ''}}" data-v="GRAB" bindtap="onTab">抢单大厅</view>
-  </view>
-
-  <view class="grab-tip" wx:if="{{status === 'GRAB'}}">
-    以下为已开放抢单、且与你的技能和服务范围匹配的工单，先到先得，抢到即接单
   </view>
 
   <view class="list">
@@ -44,22 +39,18 @@
         <view class="row2">
           <text class="chip">{{item.faultType}}</text>
           <text class="time">{{item.submittedAt}}</text>
-          <text class="match" wx:if="{{status === 'GRAB' && item.matchText !== ''}}">匹配 {{item.matchText}}</text>
           <text class="remain" wx:if="{{status === 'PENDING' && item.remainText}}">接单剩余 {{item.remainText}}</text>
           <text class="remain {{item.dueText === '已超时' ? 'overdue' : ''}}"
                 wx:if="{{status === 'PROCESSING' && item.dueText}}">处理 {{item.dueText}}</text>
           <text class="remain overdue" wx:if="{{item.isOverdue}}">已超时</text>
         </view>
         <view class="desc">{{item.description}}</view>
-        <view class="grab-btn" wx:if="{{status === 'GRAB'}}" data-id="{{item.id}}" catchtap="onGrab">
-          立即抢单
-        </view>
       </view>
     </view>
 
     <view class="empty" wx:if="{{!list.length}}">
       <view class="empty-icon"></view>
-      <view>{{status === 'GRAB' ? '暂无可抢的工单，稍后再来看看' : (status === 'PENDING' ? '暂无待接工单，下拉刷新试试' : '暂无工单')}}</view>
+      <view>{{status === 'PENDING' ? '暂无待接工单，等待管理员派单' : (status === 'PROCESSING' ? '暂无在办工单' : '暂无已完成工单')}}</view>
     </view>
   </view>
   <view class="bottom-space"></view>

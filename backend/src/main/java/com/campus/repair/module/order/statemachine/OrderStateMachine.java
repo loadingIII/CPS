@@ -94,18 +94,6 @@ public class OrderStateMachine {
                     Set.of(Role.ADMIN, Role.SYS_ADMIN), Identity.NONE, false,
                     o -> true, null,
                     (o, x) -> { o.setWorkerId(x); o.setAssignedAt(now()); }),
-            // #8b 抢单：维修工自助承接（仅未派单工单；资格与容量由服务层校验，先到先得）
-            // 抢到即接单：直接进入处理中，不再要求二次确认
-            new Rule(OrderStatus.PENDING, OrderAction.CLAIM,
-                    Set.of(Role.REPAIRER), Identity.NONE, false,
-                    o -> o.getWorkerId() == null, "手慢了，该工单已被其他师傅抢走",
-                    (o, x) -> {
-                        o.setWorkerId(x);
-                        o.setAssignedAt(now());
-                        o.setAcceptedAt(now());
-                        o.setAssignExpiresAt(null);
-                        o.setStatus(OrderStatus.PROCESSING);
-                    }),
             // #9 接单：待处理 → 处理中（仅被派人；并发由乐观锁保证，§2.4）
             new Rule(OrderStatus.PENDING, OrderAction.ACCEPT,
                     Set.of(Role.REPAIRER), Identity.WORKER, false,

@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  * @param acceptRemainingSeconds  剩余接单时间（秒），无派单截止时间时为 0
  */
 public record DispatchInfoVO(Long orderId, DispatchState dispatchState, DispatchSource dispatchSource,
-                             LocalDateTime grabOpenAt, LocalDateTime assignExpiresAt, LocalDateTime dueAt,
+                             LocalDateTime assignExpiresAt, LocalDateTime dueAt,
                              Integer dispatchCount, Integer rejectCount,
                              boolean hardOrder, long acceptRemainingSeconds) {
 }

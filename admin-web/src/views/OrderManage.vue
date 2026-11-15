@@ -201,7 +201,7 @@ const DISPATCH_LABEL = {
 }
 const SOURCE_LABEL = {
   MANUAL: '人工派单',
-  GRAB: '抢单',
+  GRAB: '抢单（历史）',
   AUTO: '自动派单',
 }
 const STATUS_TAG = {

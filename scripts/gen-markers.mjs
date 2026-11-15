@@ -1,7 +1,6 @@
 /**
  * 生成工单地图标记图标（纯 Node 内置库手写 PNG 编码，无需图片素材）：
- *   marker-mine.png 青色实心圆（已接的单）
- *   marker-grab.png 琥珀实心圆（可接的单）
+ *   marker-mine.png 青色实心圆（我的工单）
  * 运行：node scripts/gen-markers.mjs <CPS目录>（默认当前工作目录）
  */
 import zlib from 'node:zlib'
@@ -71,4 +70,3 @@ function makeMarker(rgb, file) {
 
 const root = path.resolve(process.argv[2] || '.', 'miniprogram/assets')
 makeMarker([14, 74, 84], path.join(root, 'marker-mine.png'))   // 砚青
-makeMarker([217, 106, 59], path.join(root, 'marker-grab.png')) // 琥珀

@@ -42,7 +42,6 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -322,7 +321,7 @@ public class OrderService {
         return new PageVO<>(toListVOs(p.getRecords()), p.getTotal());
     }
 
-    /** 工单详情（本人相关单/管理员/抢单预览） */
+    /** 工单详情（本人相关单/管理员） */
     public OrderDetailVO detail(Long orderId) {
         RepairOrder o = load(orderId);
         checkReadPermission(o);
@@ -344,16 +343,6 @@ public class OrderService {
     public void audit(Long orderId, AuditReq req) {
         RepairOrder o = load(orderId);
         boolean pass = Boolean.TRUE.equals(req.pass());
-        if (pass) {
-            // 审核通过即确定抢单开放时间：紧急单立即，普通单留给管理员一个定向派单窗口。
-            // 立即开放必须截断到秒：DATETIME(0) 会把毫秒四舍五入，可能把「现在」推到未来。
-            int delay = props.grabOpenDelayMinutes(o.getUrgency());
-            LocalDateTime openAt = LocalDateTime.now().plusMinutes(delay);
-            if (delay <= 0) {
-                openAt = openAt.truncatedTo(ChronoUnit.SECONDS);
-            }
-            o.setGrabOpenAt(openAt);
-        }
         transition(o, pass ? OrderAction.AUDIT_PASS : OrderAction.AUDIT_REJECT,
                 pass ? null : req.reason(), null);
         if (pass) {
@@ -460,41 +449,17 @@ public class OrderService {
                 o.getId());
     }
 
-    /**
-     * 抢单大厅：资格（技能/校区/开放时间）在 SQL 层过滤，分页与总数同条件。
-     * 只返回当前维修工真正能抢的工单，避免「整页空白」与 total 错乱。
-     */
-    public PageVO<OrderListVO> grabPool(long page, long pageSize) {
-        Long uid = AuthContext.userId();
-        long size = Math.max(1, Math.min(pageSize, 50));
-        long offset = (Math.max(page, 1) - 1) * size;
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime coolingSince = now.minusHours(props.getRejectCooldownHours());
-
-        List<RepairOrder> orders = orderMapper.selectGrabPool(uid, now, coolingSince, offset, size);
-        long total = orderMapper.countGrabPool(uid, now, coolingSince);
-        List<OrderListVO> vos = toListVOs(orders);
-        workerService.fillGrabMatch(vos, orders);
-        return new PageVO<>(vos, total);
-    }
-
-    /** 维修工工单地图：已接单（待接/在办）+ 可抢单的坐标点 */
+    /** 维修工工单地图：仅本人已承接（待接/在办）的坐标点 */
     public List<MapOrderVO> workerMap() {
         Long uid = AuthContext.userId();
         List<RepairOrder> mine = orderMapper.selectList(new LambdaQueryWrapper<RepairOrder>()
                 .eq(RepairOrder::getWorkerId, uid)
                 .in(RepairOrder::getStatus, OrderStatus.PENDING, OrderStatus.PROCESSING)
                 .orderByDesc(RepairOrder::getUrgency));
-        LocalDateTime now = LocalDateTime.now();
-        List<RepairOrder> pool = orderMapper.selectGrabPool(uid, now,
-                now.minusHours(props.getRejectCooldownHours()), 0, 200);
 
         List<MapOrderVO> result = new ArrayList<>();
         for (RepairOrder o : mine) {
             addMapPoint(result, o, "MINE");
-        }
-        for (RepairOrder o : pool) {
-            addMapPoint(result, o, "GRAB");
         }
         return result;
     }
@@ -516,58 +481,10 @@ public class OrderService {
                 o.getMapName(), lng, lat, kind));
     }
 
-    /**
-     * 抢单：抢到即接单（PENDING → PROCESSING）。
-     * 容量行加锁 + 工单条件更新（version + worker_id IS NULL），先到先得。
-     */
-    @Transactional
-    public void claim(Long orderId) {
-        Long uid = AuthContext.userId();
-        WorkerProfile profile = profileMapper.selectForUpdate(uid);
-        if (profile == null) {
-            throw BusinessException.param("缺少维修工档案");
-        }
-        if (!Boolean.TRUE.equals(profile.getOnDuty())) {
-            throw BusinessException.param("当前不在岗，无法抢单");
-        }
-
-        RepairOrder o = load(orderId);
-        if (o.getStatus() != OrderStatus.PENDING) {
-            throw BusinessException.conflict("工单当前状态[" + o.getStatus().label() + "]不允许抢单");
-        }
-        if (o.getWorkerId() != null) {
-            throw BusinessException.conflict("手慢了，该工单已被其他师傅承接");
-        }
-        if (o.getGrabOpenAt() == null || o.getGrabOpenAt().isAfter(LocalDateTime.now())) {
-            throw BusinessException.conflict("该工单尚未开放抢单");
-        }
-
-        List<String> reasons = workerService.failReasons(uid, o, false);
-        if (!reasons.isEmpty()) {
-            throw BusinessException.param("暂不满足承接条件：" + String.join("；", reasons));
-        }
-        long load = orderMapper.countActiveByWorker(uid, null);
-        if (load >= profile.getLoadLimit()) {
-            throw BusinessException.conflict("负载已满（" + load + "/" + profile.getLoadLimit() + "）");
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        o.setAcceptedAt(now);
-        o.setDueAt(now.plusHours(props.slaHours(o.getUrgency())));
-        o.setDispatchSource(DispatchSource.GRAB);
-        o.setDispatchCount(nvl(o.getDispatchCount()) + 1);
-        o.setAssignExpiresAt(null);
-        transition(o, OrderAction.CLAIM, "维修工抢单自助承接", uid);
-        notificationService.notifyUser(o.getReporterId(), NotificationService.ACCEPT,
-                "维修工 " + workerName(uid) + " 已抢单承接，工单 " + o.getOrderNo() + " 处理中", o.getId());
-    }
-
     @Transactional
     public void rejectAssign(Long orderId, ReasonReq req) {
         RepairOrder o = load(orderId);
         o.setRejectCount(nvl(o.getRejectCount()) + 1);
-        // 回流后立即开放抢单，不再让难单在池子里干等
-        o.setGrabOpenAt(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
         transition(o, OrderAction.REJECT_ASSIGN, req.reason(), null);
         notificationService.notifyAdmins(NotificationService.REJECT,
                 "工单 " + o.getOrderNo() + " 被拒单：" + req.reason() + "，已回待派单池", o.getId());
@@ -614,7 +531,6 @@ public class OrderService {
     @Transactional
     public void transfer(Long orderId, ReasonReq req) {
         RepairOrder o = load(orderId);
-        o.setGrabOpenAt(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
         transition(o, OrderAction.TRANSFER, req.reason(), null);
         notificationService.notifyAdmins(NotificationService.REJECT,
                 "工单 " + o.getOrderNo() + " 被转单：" + req.reason() + "，已回待派单池", o.getId());
@@ -678,34 +594,12 @@ public class OrderService {
                 o.getId(),
                 DispatchState.of(o),
                 o.getDispatchSource(),
-                o.getGrabOpenAt(),
                 o.getAssignExpiresAt(),
                 o.getDueAt(),
                 nvl(o.getDispatchCount()),
                 nvl(o.getRejectCount()),
                 nvl(o.getDispatchCount()) >= props.getHardOrderThreshold(),
                 remain);
-    }
-
-    /** 管理员手动开放抢单（应对难派单） */
-    @Transactional
-    public void broadcast(Long orderId) {
-        RepairOrder o = load(orderId);
-        if (o.getStatus() != OrderStatus.PENDING || o.getWorkerId() != null) {
-            throw BusinessException.conflict("只有待派单工单可以开放抢单");
-        }
-        int rows = orderMapper.update(null, new LambdaUpdateWrapper<RepairOrder>()
-                .eq(RepairOrder::getId, orderId)
-                .eq(RepairOrder::getVersion, o.getVersion())
-                .eq(RepairOrder::getStatus, OrderStatus.PENDING)
-                .isNull(RepairOrder::getWorkerId)
-                .set(RepairOrder::getGrabOpenAt, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS))
-                .set(RepairOrder::getVersion, o.getVersion() + 1));
-        if (rows != 1) {
-            throw BusinessException.conflict("工单状态已变化，请刷新后重试");
-        }
-        logService.log(orderId, OrderAction.BROADCAST, AuthContext.userId(), AuthContext.role(),
-                "管理员开放抢单");
     }
 
     // ==================================================================
@@ -903,7 +797,7 @@ public class OrderService {
      * 校验 + 条件更新（版本号乐观锁）+ 同事务写 order_log；失败抛 40901。
      *
      * <p>所有可变字段都从内存实体整体写回（含 null），解决「回池时清不掉时间戳」的问题；
-     * 并发安全由 version + 状态条件保证，CLAIM/ACCEPT 再叠加业务条件。
+     * 并发安全由 version + 状态条件保证，ACCEPT 再叠加「仍派给本人」的业务条件。
      */
     private RepairOrder transition(RepairOrder o, OrderAction action, String remark, Long extraWorkerId) {
         LoginUser op = AuthContext.get();
@@ -937,18 +831,14 @@ public class OrderService {
                 .set(RepairOrder::getRatedAt, o.getRatedAt())
                 .set(RepairOrder::getFinishSummary, o.getFinishSummary())
                 .set(RepairOrder::getDispatchSource, o.getDispatchSource())
-                .set(RepairOrder::getGrabOpenAt, o.getGrabOpenAt())
                 .set(RepairOrder::getAssignExpiresAt, o.getAssignExpiresAt())
                 .set(RepairOrder::getDueAt, o.getDueAt())
                 .set(RepairOrder::getDispatchCount, o.getDispatchCount())
                 .set(RepairOrder::getRejectCount, o.getRejectCount())
                 .set(RepairOrder::getMainOrderId, o.getMainOrderId());
-        switch (action) {
-            // 抢单并发：必须仍为未派单（先到先得）
-            case CLAIM -> w.isNull(RepairOrder::getWorkerId);
-            // 并发接单幂等：必须仍是被派给本人
-            case ACCEPT -> w.eq(RepairOrder::getWorkerId, op.userId());
-            default -> { }
+        // 并发接单幂等：必须仍是被派给本人
+        if (action == OrderAction.ACCEPT) {
+            w.eq(RepairOrder::getWorkerId, op.userId());
         }
         int rows = orderMapper.update(null, w);
         if (rows != 1) {
@@ -966,10 +856,7 @@ public class OrderService {
         return o;
     }
 
-    /**
-     * 详情/时间线读权限：报修人本人、被派维修工、管理员；
-     * 维修工额外可预览「已开放抢单且自己有资格」的待派单工单（电话脱敏）。
-     */
+    /** 详情/时间线读权限：报修人本人、被派维修工、管理员 */
     private void checkReadPermission(RepairOrder o) {
         LoginUser u = AuthContext.get();
         switch (u.role()) {
@@ -981,13 +868,6 @@ public class OrderService {
             }
             case REPAIRER -> {
                 if (u.userId().equals(o.getWorkerId())) {
-                    return;
-                }
-                boolean grabPreview = o.getStatus() == OrderStatus.PENDING
-                        && o.getWorkerId() == null
-                        && o.getGrabOpenAt() != null
-                        && !o.getGrabOpenAt().isAfter(LocalDateTime.now());
-                if (grabPreview && workerService.canPreview(u.userId(), o)) {
                     return;
                 }
                 throw BusinessException.notFound("工单不存在");
@@ -1034,7 +914,6 @@ public class OrderService {
         v.setSubmittedAt(o.getSubmittedAt());
         v.setWorkerId(o.getWorkerId());
         v.setDispatchState(DispatchState.of(o));
-        v.setGrabOpenAt(o.getGrabOpenAt());
         v.setAssignExpiresAt(o.getAssignExpiresAt());
         v.setDueAt(o.getDueAt());
         v.setMainOrderId(o.getMainOrderId());
@@ -1066,10 +945,6 @@ public class OrderService {
     }
 
     private OrderDetailVO buildDetail(RepairOrder o) {
-        LoginUser u = AuthContext.get();
-        // 抢单预览（未承接）时不暴露报修人电话
-        boolean preview = u.role() == Role.REPAIRER && o.getWorkerId() == null;
-
         OrderDetailVO v = new OrderDetailVO();
         v.setId(o.getId());
         v.setOrderNo(o.getOrderNo());
@@ -1105,7 +980,6 @@ public class OrderService {
         v.setFinishSummary(o.getFinishSummary());
         v.setDispatchState(DispatchState.of(o));
         v.setDispatchSource(o.getDispatchSource());
-        v.setGrabOpenAt(o.getGrabOpenAt());
         v.setAssignExpiresAt(o.getAssignExpiresAt());
         v.setDueAt(o.getDueAt());
         v.setDispatchCount(o.getDispatchCount());
@@ -1121,10 +995,8 @@ public class OrderService {
         SysUser reporter = users.get(o.getReporterId());
         if (reporter != null) {
             v.setReporterName(reporter.getName());
-            if (!preview) {
-                v.setReporterJobNo(reporter.getJobNo());
-                v.setReporterPhone(reporter.getPhone());
-            }
+            v.setReporterJobNo(reporter.getJobNo());
+            v.setReporterPhone(reporter.getPhone());
         }
         if (o.getWorkerId() != null) {
             SysUser worker = users.get(o.getWorkerId());

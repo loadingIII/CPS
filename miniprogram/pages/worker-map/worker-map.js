@@ -49,7 +49,7 @@ Page({
     this.load().finally(() => wx.stopPullDownRefresh())
   },
 
-  /** 拉取已接单 + 可抢单的坐标点并渲染到地图 */
+  /** 拉取本人已承接工单的坐标点并渲染到地图 */
   async load() {
     try {
       const list = await get('/orders/worker-map')
@@ -73,7 +73,7 @@ Page({
       width: size,
       height: size,
       anchor: { x: 0.5, y: 0.5 },
-      iconPath: o.kind === 'MINE' ? '/assets/marker-mine.png' : '/assets/marker-grab.png',
+      iconPath: '/assets/marker-mine.png',
       callout: {
         content: `${o.orderNo}\n${o.status} · ${o.faultType}`,
         display: 'BYCLICK',

@@ -51,7 +51,6 @@ public class OrderDetailVO {
     /** 派单调度信息 */
     private DispatchState dispatchState;
     private DispatchSource dispatchSource;
-    private LocalDateTime grabOpenAt;
     private LocalDateTime assignExpiresAt;
     private LocalDateTime dueAt;
     private Integer dispatchCount;

@@ -298,7 +298,6 @@ public class SeedRunner implements CommandLineRunner {
     private void audit(RepairOrder o, SysUser admin, LocalDateTime t) {
         o.setStatus(OrderStatus.PENDING);
         o.setAuditedAt(t);
-        o.setGrabOpenAt(t.plusMinutes(o.getUrgency() == Urgency.URGENT ? 0 : 20));
         orderMapper.updateById(o);
         addLog(o.getId(), OrderAction.AUDIT_PASS, admin.getId(), admin.getRole(), null, t);
     }

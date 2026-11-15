@@ -79,7 +79,6 @@
                 <el-tag v-if="selected.dispatchCount >= 3" size="small" type="danger" effect="plain">
                   难派单 · 已派 {{ selected.dispatchCount }} 次
                 </el-tag>
-                <el-button v-if="queue === 'POOL'" size="small" plain @click="broadcast">开放抢单</el-button>
               </div>
               <div v-if="selectedDetail" class="ctx-desc">
                 {{ selectedDetail.description }}
@@ -301,23 +300,6 @@ async function assign(w) {
   await api.post(`/orders/${target.id}/assign`, { workerId: w.workerId, reason })
   ElMessage.success(target.workerId ? `已改派给 ${w.name}` : `已派单给 ${w.name}，等待师傅接单`)
   await reloadSelection(target.id)
-}
-
-async function broadcast() {
-  const target = selected.value
-  if (!target) return
-  try {
-    await ElMessageBox.confirm(
-      `将工单 ${target.orderNo} 立即开放到抢单大厅？符合条件的师傅可先到先得。`,
-      '开放抢单',
-      { type: 'warning' },
-    )
-  } catch (e) {
-    return
-  }
-  await api.post(`/orders/${target.id}/broadcast`)
-  ElMessage.success('已开放抢单')
-  await load()
 }
 
 onMounted(async () => {

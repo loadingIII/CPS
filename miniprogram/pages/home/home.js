@@ -44,7 +44,7 @@ Page({
     skills: [],
     recent: [],
     skeletons: [1, 2, 3],
-    summary: { total: 0, pending: 0, processing: 0, grab: 0 },
+    summary: { total: 0, pending: 0, processing: 0, completed: 0 },
   },
 
   onShow() {
@@ -96,10 +96,10 @@ Page({
 
   async loadRepairerHome() {
     try {
-      const [pending, processing, grab] = await Promise.all([
+      const [pending, processing, completed] = await Promise.all([
         get('/orders/mine-assigned?status=PENDING&page=1&pageSize=3'),
         get('/orders/mine-assigned?status=PROCESSING&page=1&pageSize=3'),
-        get('/orders/grab-pool?page=1&pageSize=1'),
+        get('/orders/mine-assigned?status=COMPLETED&page=1&pageSize=1'),
       ])
       const recent = (pending.list || []).concat(processing.list || [])
         .sort((a, b) => String(b.submittedAt || '').localeCompare(String(a.submittedAt || '')))
@@ -110,7 +110,7 @@ Page({
           total: 0,
           pending: pending.total || 0,
           processing: processing.total || 0,
-          grab: grab.total || 0,
+          completed: completed.total || 0,
         },
         recent,
         loading: false,

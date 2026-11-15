@@ -26,9 +26,6 @@ public class DispatchProperties {
     /** 处理 SLA（小时），key = NORMAL/URGENT */
     private Map<String, Integer> slaHours = new HashMap<>();
 
-    /** 审核通过后延迟多久开放抢单（分钟），key = NORMAL/URGENT */
-    private Map<String, Integer> grabOpenDelayMinutes = new HashMap<>();
-
     /** 拒单/超时回收后的冷却时长（小时） */
     private int rejectCooldownHours = 24;
 
@@ -52,10 +49,6 @@ public class DispatchProperties {
 
     public int slaHours(Urgency urgency) {
         return slaHours.getOrDefault(key(urgency), 24);
-    }
-
-    public int grabOpenDelayMinutes(Urgency urgency) {
-        return grabOpenDelayMinutes.getOrDefault(key(urgency), 20);
     }
 
     private String key(Urgency urgency) {

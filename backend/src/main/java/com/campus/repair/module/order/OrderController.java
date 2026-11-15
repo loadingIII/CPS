@@ -132,23 +132,7 @@ public class OrderController {
         return Result.ok();
     }
 
-    @Operation(summary = "抢单大厅：我可承接的待派单工单（F4-4 自助抢单，抢到即接单）")
-    @RequireRole(Role.REPAIRER)
-    @GetMapping("/grab-pool")
-    public Result<PageVO<OrderListVO>> grabPool(@RequestParam(defaultValue = "1") long page,
-                                                @RequestParam(defaultValue = "20") long pageSize) {
-        return Result.ok(orderService.grabPool(page, pageSize));
-    }
-
-    @Operation(summary = "抢单（先到先得，抢到即接单）")
-    @RequireRole(Role.REPAIRER)
-    @PostMapping("/{id}/claim")
-    public Result<Void> claim(@PathVariable Long id) {
-        orderService.claim(id);
-        return Result.ok();
-    }
-
-    @Operation(summary = "维修工工单地图：已接单 + 可抢单的坐标点")
+    @Operation(summary = "维修工工单地图：本人已承接的坐标点")
     @RequireRole(Role.REPAIRER)
     @GetMapping("/worker-map")
     public Result<List<MapOrderVO>> workerMap() {
@@ -273,14 +257,6 @@ public class OrderController {
     @GetMapping("/{id}/dispatch-info")
     public Result<DispatchInfoVO> dispatchInfo(@PathVariable Long id) {
         return Result.ok(orderService.dispatchInfo(id));
-    }
-
-    @Operation(summary = "管理员开放抢单（应对难派单）")
-    @RequireRole({Role.ADMIN, Role.SYS_ADMIN})
-    @PostMapping("/{id}/broadcast")
-    public Result<Void> broadcast(@PathVariable Long id) {
-        orderService.broadcast(id);
-        return Result.ok();
     }
 
     // ---------------- 通用（登录即可，服务内做数据权限） ----------------

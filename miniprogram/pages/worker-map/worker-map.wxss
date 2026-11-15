@@ -19,13 +19,11 @@
 .legend-item { display: flex; align-items: center; gap: 10rpx; font-size: 24rpx; color: #5b6e70; }
 .dot { width: 20rpx; height: 20rpx; border-radius: 50%; }
 .dot-mine { background: #0f7b7e; }
-.dot-grab { background: #d96a3b; }
 .legend-count { margin-left: auto; color: #758286; font-size: 22rpx; }
 .olist { flex: 1; overflow: hidden; }
 .order { display: flex; padding: 0; overflow: hidden; }
 .spine { width: 8rpx; flex-shrink: 0; }
 .spine-mine { background: #0f7b7e; }
-.spine-grab { background: #d9a53f; }
 .body { flex: 1; padding: 24rpx 26rpx; }
 .row1 { display: flex; justify-content: space-between; align-items: center; }
 .orderNo { font-size: 25rpx; font-weight: 700; color: #5b6e70; letter-spacing: 1rpx; }
