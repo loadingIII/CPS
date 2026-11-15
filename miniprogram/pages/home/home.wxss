@@ -1,40 +1,13 @@
 .home-page { padding: 10rpx 0 48rpx; }
-.welcome-wrap { padding: 20rpx 32rpx 22rpx; }
-.eyebrow { display: flex; align-items: center; gap: 10rpx; color: #0a5f62; font-size: 21rpx; font-weight: 700; letter-spacing: 2rpx; }
-.eyebrow::before { content: ""; width: 20rpx; height: 8rpx; border-radius: 999rpx; background: #0f7b7e; }
-.greeting { margin-top: 18rpx; color: #2b3a3c; font-size: 40rpx; font-weight: 800; letter-spacing: 1rpx; font-family: "STSong", "Songti SC", serif; }
-.welcome-sub { margin-top: 8rpx; color: #758286; font-size: 23rpx; }
 
-.hero-panel { position: relative; overflow: hidden; margin: 0 24rpx 26rpx; border-radius: 24rpx; background: #0a5f62; color: #ffffff; box-shadow: 0 10rpx 26rpx rgba(10, 95, 98, .22); }
-.reporter-hero { min-height: 270rpx; padding: 30rpx 30rpx 26rpx; box-sizing: border-box; background: linear-gradient(125deg, #0a5f62, #0f7b7e); }
-.hero-content { position: relative; z-index: 2; }
-.hero-kicker { display: inline-block; padding: 6rpx 14rpx; border: 1rpx solid rgba(255,255,255,.38); border-radius: 999rpx; color: #e1f1ef; font-size: 20rpx; letter-spacing: 2rpx; }
-.hero-title { margin-top: 18rpx; color: #ffffff; font-size: 38rpx; font-weight: 800; letter-spacing: 2rpx; font-family: "STSong", "Songti SC", serif; }
-.hero-copy { margin-top: 8rpx; color: rgba(255,255,255,.82); font-size: 22rpx; }
-.hero-button { width: 226rpx; height: 66rpx; margin: 20rpx 0 0; padding: 0 22rpx; display: flex; align-items: center; justify-content: space-between; color: #2b3a3c; background: #f4d58d; border: 2rpx solid #2b3a3c; border-radius: 999rpx; font-size: 24rpx; font-weight: 700; box-shadow: 4rpx 4rpx 0 rgba(43,58,60,.6); }
-.hero-arrow { font-size: 34rpx; line-height: 1; }
-.hero-orbit { position: absolute; z-index: 1; border: 2rpx dashed rgba(255,255,255,.2); border-radius: 50%; pointer-events: none; }
-.orbit-one { width: 260rpx; height: 260rpx; top: -92rpx; right: -70rpx; }
-.orbit-two { width: 180rpx; height: 180rpx; top: -50rpx; right: -30rpx; border-color: rgba(244,213,141,.45); }
-
+/* ===== 通用分区标题 ===== */
 .section-row { display: flex; align-items: baseline; gap: 12rpx; margin: 26rpx 30rpx 14rpx; }
 .section-heading { color: #2b3a3c; font-size: 30rpx; font-weight: 800; letter-spacing: 1rpx; font-family: "STSong", "Songti SC", serif; }
 .section-link { margin-left: auto; color: #0f7b7e; font-size: 22rpx; font-weight: 600; }
 .section-link text { font-size: 30rpx; vertical-align: -2rpx; }
 .section-note { color: #86909c; font-size: 20rpx; }
-.stats-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12rpx; margin: 0 24rpx; }
-.stat-card { position: relative; overflow: hidden; min-height: 130rpx; padding: 20rpx 16rpx; box-sizing: border-box; background: #ffffff; border: 2rpx solid #e0e4e6; border-radius: 18rpx; box-shadow: 0 5rpx 18rpx rgba(43,58,60,.05); }
-.stat-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 7rpx; background: #0f7b7e; }
-.stat-card.tone-butter::before { background: #d9a53f; }
-.stat-card.tone-sky::before { background: #5aa9b0; }
-.stat-card.tone-blush::before { background: #d98a98; }
-.stat-value { margin-top: 4rpx; color: #0f7b7e; font-size: 38rpx; font-weight: 800; font-family: "STSong", "Songti SC", serif; font-variant-numeric: tabular-nums; }
-.tone-butter .stat-value { color: #a9761b; }
-.tone-sky .stat-value { color: #367b82; }
-.tone-blush .stat-value { color: #a55061; }
-.stat-label { margin-top: 4rpx; color: #758286; font-size: 21rpx; }
-.stat-loading { height: 130rpx; border: 2rpx solid #e0e4e6; border-radius: 18rpx; background: #ffffff; }
 
+/* ===== 报修人：快捷报修 ===== */
 .category-head { margin-top: 30rpx; }
 .category-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12rpx; margin: 0 24rpx; }
 .category-tile { min-height: 148rpx; position: relative; display: flex; flex-direction: column; justify-content: center; gap: 12rpx; padding: 18rpx; box-sizing: border-box; background: #ffffff; border: 2rpx solid #e0e4e6; border-radius: 18rpx; box-shadow: 0 5rpx 18rpx rgba(43,58,60,.05); }
@@ -56,35 +29,99 @@
 .icon-repair { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230a5f62' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.7-3.7a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9l-3.7 3.7Z'/%3E%3C/svg%3E"); }
 .category-empty { margin: 0 24rpx; padding: 30rpx; border: 2rpx dashed #c6cad0; border-radius: 18rpx; color: #758286; background: rgba(255,255,255,.7); font-size: 22rpx; text-align: center; }
 
-.recent-head { margin-top: 32rpx; }
-.ticket-list { display: flex; flex-direction: column; gap: 12rpx; margin: 0 24rpx; }
-.ticket-card { display: flex; overflow: hidden; background: #ffffff; border: 2rpx solid #e0e4e6; border-radius: 16rpx; box-shadow: 0 5rpx 18rpx rgba(43,58,60,.05); }
-.ticket-side { width: 8rpx; flex: 0 0 8rpx; background: #d9a53f; }
-.ticket-side.side-urgent { background: #d98a98; }
-.ticket-main { flex: 1; min-width: 0; padding: 18rpx 20rpx; }
+/* ===== 维修工：身份与负载 ===== */
+.worker-hero {
+  position: relative; overflow: hidden;
+  margin: 6rpx 24rpx 0; padding: 30rpx 30rpx 26rpx;
+  border-radius: 26rpx;
+  background: linear-gradient(132deg, #0a5f62 0%, #0f7b7e 58%, #16898b 100%);
+  box-shadow: 0 16rpx 32rpx rgba(10, 95, 98, .22);
+}
+.hero-orbit { position: absolute; top: -150rpx; right: -120rpx; width: 320rpx; height: 320rpx; border: 2rpx dashed rgba(255,255,255,.16); border-radius: 50%; }
+.hero-top { position: relative; display: flex; align-items: center; gap: 20rpx; }
+.hero-avatar {
+  width: 88rpx; height: 88rpx; flex: 0 0 88rpx;
+  display: flex; align-items: center; justify-content: center;
+  border: 2rpx solid rgba(255,255,255,.34); border-radius: 26rpx;
+  background: rgba(255,255,255,.14); color: #fdf3dc;
+  font-family: "STKaiti", "KaiTi", serif; font-size: 40rpx; font-weight: 700;
+}
+.hero-id { flex: 1; min-width: 0; }
+.hero-name { display: flex; align-items: center; gap: 12rpx; color: #ffffff; font-family: "STSong", "Songti SC", serif; font-size: 35rpx; font-weight: 800; letter-spacing: 1rpx; }
+.hero-name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.duty-badge { flex: 0 0 auto; padding: 4rpx 14rpx; border: 1rpx solid rgba(255,255,255,.3); border-radius: 999rpx; color: rgba(255,255,255,.78); background: rgba(255,255,255,.14); font-size: 18rpx; font-weight: 600; letter-spacing: 1rpx; }
+.duty-badge.on { color: #0a5f62; background: #f4d58d; border-color: #f4d58d; }
+.hero-sub { margin-top: 10rpx; color: rgba(255,255,255,.72); font-size: 21rpx; }
+.hero-skills { position: relative; display: flex; flex-wrap: wrap; gap: 10rpx; margin-top: 20rpx; }
+.hero-chip { padding: 5rpx 16rpx; border: 1rpx solid rgba(255,255,255,.24); border-radius: 999rpx; color: #eaf7f5; background: rgba(255,255,255,.12); font-size: 19rpx; }
+.hero-chip.ghost { color: rgba(255,255,255,.66); }
+.hero-load { position: relative; margin-top: 22rpx; padding-top: 18rpx; border-top: 1rpx dashed rgba(255,255,255,.22); }
+.load-head { display: flex; align-items: baseline; justify-content: space-between; color: rgba(255,255,255,.82); font-size: 21rpx; }
+.load-num { color: #f4d58d; font-weight: 700; font-variant-numeric: tabular-nums; }
+.load-track { height: 12rpx; margin-top: 10rpx; overflow: hidden; border-radius: 999rpx; background: rgba(255,255,255,.2); }
+.load-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #f4d58d, #e8b96a); transition: width .3s ease; }
+.load-fill.full { background: linear-gradient(90deg, #f3bcc6, #dd8398); }
+.load-tip { margin-top: 10rpx; color: rgba(255,255,255,.6); font-size: 19rpx; }
+
+/* ===== 维修工：工单概览 ===== */
+.overview-card { margin: 18rpx 24rpx 0; padding: 22rpx 10rpx 14rpx; background: #ffffff; border: 2rpx solid #e0e4e6; border-radius: 22rpx; box-shadow: 0 6rpx 22rpx rgba(43,58,60,.05); }
+.ov-head { display: flex; align-items: baseline; justify-content: space-between; padding: 0 16rpx 16rpx; border-bottom: 1rpx dashed #e2e6e8; }
+.ov-title { color: #2b3a3c; font-family: "STSong", "Songti SC", serif; font-size: 27rpx; font-weight: 800; }
+.ov-link { color: #0f7b7e; font-size: 21rpx; font-weight: 600; }
+.ov-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ov-item { position: relative; display: flex; flex-direction: column; align-items: center; padding: 18rpx 4rpx 8rpx; border-radius: 14rpx; }
+.ov-item + .ov-item::before { content: ""; position: absolute; top: 24rpx; bottom: 16rpx; left: 0; border-left: 1rpx dashed #e2e6e8; }
+.ov-hover { background: #f7f9f9; }
+.ov-num { font-family: "STSong", "Songti SC", serif; font-size: 46rpx; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.ov-num.tone-butter { color: #a9761b; }
+.ov-num.tone-teal { color: #0a5f62; }
+.ov-num.tone-sky { color: #367b82; }
+.ov-label { margin-top: 8rpx; color: #2b3a3c; font-size: 22rpx; font-weight: 600; }
+.ov-hint { margin-top: 4rpx; color: #9aa5a7; font-size: 18rpx; }
+.ov-skeleton { width: 56rpx; height: 46rpx; margin: 0 auto; border-radius: 12rpx; background: linear-gradient(90deg, #edf0f1 25%, #f7f8f8 50%, #edf0f1 75%); background-size: 200% 100%; animation: home-skeleton 1.35s ease-in-out infinite; }
+@keyframes home-skeleton { to { background-position-x: -200%; } }
+
+/* ===== 维修工：待处理工单 ===== */
+.recent-head { margin-top: 30rpx; }
+.ticket-list { display: flex; flex-direction: column; gap: 14rpx; margin: 0 24rpx; }
+.ticket-card { position: relative; display: flex; overflow: hidden; background: #ffffff; border: 2rpx solid #e0e4e6; border-radius: 20rpx; box-shadow: 0 6rpx 18rpx rgba(43,58,60,.05); }
+.ticket-hover { background: #fbfcfc; }
+.ticket-rail { position: absolute; top: 0; bottom: 0; left: 0; width: 8rpx; background: #0f7b7e; }
+.ticket-card.is-urgent { border-color: #f0d6db; background: linear-gradient(180deg, #fffafa, #ffffff 60%); }
+.ticket-card.is-urgent .ticket-rail { background: #d98a98; }
+.ticket-body { flex: 1; min-width: 0; padding: 18rpx 4rpx 16rpx 24rpx; }
 .ticket-top { display: flex; align-items: center; gap: 12rpx; }
-.ticket-title { flex: 1; min-width: 0; overflow: hidden; color: #2b3a3c; font-size: 25rpx; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-.status-pill { flex-shrink: 0; padding: 5rpx 12rpx; border-radius: 999rpx; font-size: 19rpx; font-weight: 600; }
-.ticket-meta { display: flex; align-items: center; gap: 12rpx; margin-top: 10rpx; }
-.ticket-type { padding: 4rpx 12rpx; border-radius: 999rpx; color: #5b7074; background: #edf1f2; font-size: 19rpx; }
-.ticket-time { margin-left: auto; overflow: hidden; color: #86909c; font-size: 19rpx; text-overflow: ellipsis; white-space: nowrap; }
+.ticket-loc { flex: 1; min-width: 0; overflow: hidden; color: #2b3a3c; font-size: 27rpx; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.ticket-state { flex: 0 0 auto; padding: 5rpx 14rpx; border-radius: 999rpx; font-size: 19rpx; font-weight: 600; white-space: nowrap; }
+.ticket-tags { display: flex; align-items: center; gap: 10rpx; margin-top: 10rpx; }
+.ticket-type { padding: 4rpx 14rpx; border-radius: 999rpx; color: #5b7074; background: #edf1f2; font-size: 19rpx; }
+.ticket-urgent { padding: 4rpx 14rpx; border-radius: 999rpx; color: #8a3b4a; background: #fae9ec; font-size: 19rpx; font-weight: 600; }
+.ticket-overdue { padding: 4rpx 14rpx; border-radius: 999rpx; color: #a4541f; background: #fdf1e4; font-size: 19rpx; font-weight: 600; }
+.ticket-foot { display: flex; align-items: center; gap: 12rpx; margin-top: 12rpx; padding-top: 10rpx; border-top: 1rpx dashed #eceff0; }
+.ticket-time { color: #9aa5a7; font-size: 19rpx; }
+.ticket-due { margin-left: auto; color: #0f7b7e; font-size: 19rpx; font-weight: 600; }
+.ticket-due.warn { color: #b4622f; }
+.ticket-chevron { display: flex; align-items: center; padding: 0 16rpx 0 2rpx; color: #b9c3c5; font-size: 34rpx; }
+
+/* 空态 */
 .empty-card { display: flex; flex-direction: column; align-items: center; margin: 0 24rpx; padding: 34rpx 28rpx; background: #ffffff; border: 2rpx dashed #c6cad0; border-radius: 20rpx; text-align: center; }
 .empty-mark { width: 62rpx; height: 62rpx; display: flex; align-items: center; justify-content: center; color: #0f7b7e; background: #d7ecec; border-radius: 50%; font-family: "STKaiti", "KaiTi", serif; font-size: 29rpx; }
 .empty-title { margin-top: 14rpx; color: #2b3a3c; font-size: 25rpx; font-weight: 700; }
 .empty-copy { margin-top: 8rpx; color: #758286; font-size: 21rpx; line-height: 1.5; }
 .empty-action { margin-top: 18rpx; padding: 8rpx 18rpx; color: #0a5f62; background: #d7ecec; border-radius: 999rpx; font-size: 21rpx; font-weight: 700; }
 
-.worker-hero { padding: 30rpx; background: linear-gradient(125deg, #0a5f62, #0f7b7e); }
-.worker-hero-content { position: relative; z-index: 2; }
-.worker-name { margin-top: 18rpx; color: #ffffff; font-size: 35rpx; font-weight: 800; }
-.worker-name text { margin-left: 8rpx; color: #f4d58d; font-size: 21rpx; font-weight: 600; }
-.worker-sub { margin-top: 8rpx; color: rgba(255,255,255,.85); font-size: 21rpx; }
-.worker-divider { margin: 0 8rpx; color: rgba(255,255,255,.45); }
-.load-row { display: flex; justify-content: space-between; margin-top: 20rpx; color: rgba(255,255,255,.85); font-size: 20rpx; }
-.load-track { height: 10rpx; margin-top: 8rpx; overflow: hidden; border-radius: 999rpx; background: rgba(255,255,255,.22); }
-.load-value { height: 100%; border-radius: inherit; background: #f4d58d; }
-.worker-fallback { margin: 0 24rpx; padding: 20rpx; color: #758286; background: #ffffff; border: 1rpx dashed #c6cad0; border-radius: 16rpx; font-size: 22rpx; }
-.worker-stats { margin-top: 0; }
+/* ===== 维修工：快捷入口 ===== */
+.quick-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14rpx; margin: 26rpx 24rpx 0; }
+.quick-item { display: flex; align-items: center; gap: 20rpx; padding: 18rpx 16rpx; background: #ffffff; border: 2rpx solid #e0e4e6; border-radius: 20rpx; box-shadow: 0 5rpx 16rpx rgba(43,58,60,.045); }
+.quick-hover { background: #f7f9f9; }
+.quick-icon { position: relative; width: 56rpx; height: 56rpx; flex: 0 0 56rpx; border-radius: 16rpx; background-color: #d7ecec; background-repeat: no-repeat; background-position: center; background-size: 32rpx 32rpx; }
+.quick-badge { position: absolute; top: -9rpx; right: -9rpx; min-width: 30rpx; height: 30rpx; padding: 0 7rpx; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2rpx solid #ffffff; border-radius: 999rpx; background: #d98a98; color: #ffffff; font-size: 16rpx; font-weight: 700; line-height: 1; }
+.icon-map { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230a5f62' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21s6.5-5.7 6.5-11a6.5 6.5 0 0 0-13 0C5.5 15.3 12 21 12 21Z'/%3E%3Ccircle cx='12' cy='10' r='2.6'/%3E%3C/svg%3E"); }
+.icon-bell { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230a5f62' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 14.2V9.8a6 6 0 1 0-12 0v4.4L4.6 16.5h14.8L18 14.2Z'/%3E%3Cpath d='M9.8 19.2a2.4 2.4 0 0 0 4.4 0'/%3E%3C/svg%3E"); }
+.quick-text { min-width: 0; }
+.quick-name { display: block; color: #2b3a3c; font-size: 23rpx; font-weight: 700; }
+.quick-sub { display: block; margin-top: 4rpx; color: #9aa5a7; font-size: 18rpx; }
+
 .load-error { display: flex; align-items: center; justify-content: space-between; margin: 22rpx 24rpx; padding: 16rpx 20rpx; color: #8a3b4a; background: #fae9ec; border: 1rpx dashed #edc0c8; border-radius: 12rpx; font-size: 21rpx; }
 .load-error view { padding: 8rpx 14rpx; color: #8a3b4a; background: #ffffff; border-radius: 999rpx; font-weight: 700; }
 

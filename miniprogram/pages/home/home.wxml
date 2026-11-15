@@ -1,10 +1,4 @@
 <view class="home-page">
-  <view class="welcome-wrap" wx:if="{{role === 'REPAIRER'}}">
-    <view class="eyebrow"><text>校园修缮服务站</text></view>
-    <view class="greeting">{{greeting}}，{{userName}}</view>
-    <view class="welcome-sub">以下是当前任务与处理进度</view>
-  </view>
-
   <block wx:if="{{role === 'REPORTER'}}">
     <view class="section-row category-head">
       <view class="section-heading">快捷报修</view>
@@ -24,30 +18,87 @@
   </block>
 
   <block wx:elif="{{role === 'REPAIRER'}}">
-    <view class="section-row">
-      <view class="section-heading">工单概览</view>
-      <view class="section-link" bindtap="goWorkerOrders">打开工单 <text>›</text></view>
-    </view>
-    <view class="stats-grid worker-stats" wx:if="{{!loading}}">
-      <view class="stat-card tone-butter" data-status="PENDING" bindtap="goWorkerOrders"><view class="stat-value">{{summary.pending}}</view><view class="stat-label">待接单</view><view class="stat-rule"></view></view>
-      <view class="stat-card tone-teal" data-status="PROCESSING" bindtap="goWorkerOrders"><view class="stat-value">{{summary.processing}}</view><view class="stat-label">维修中</view><view class="stat-rule"></view></view>
-      <view class="stat-card tone-sky" data-status="COMPLETED" bindtap="goWorkerOrders"><view class="stat-value">{{summary.completed}}</view><view class="stat-label">已完成</view><view class="stat-rule"></view></view>
-    </view>
-    <view class="stats-grid" wx:else>
-      <view class="stat-loading" wx:for="{{skeletons}}" wx:key="*this"></view>
+    <!-- 身份与负载 -->
+    <view class="worker-hero">
+      <view class="hero-orbit"></view>
+      <view class="hero-top">
+        <view class="hero-avatar">{{avatarChar}}</view>
+        <view class="hero-id">
+          <view class="hero-name">
+            <text class="hero-name-text">{{greeting}}，{{userName}}</text>
+            <text class="duty-badge {{profile && profile.onDuty ? 'on' : ''}}">{{profile ? (profile.onDuty ? '在岗' : '休息中') : '同步中'}}</text>
+          </view>
+          <view class="hero-sub" wx:if="{{profile}}">工号 {{profile.jobNo}} · 综合评分 {{profile.score}}</view>
+          <view class="hero-sub" wx:else>正在读取维修工档案…</view>
+        </view>
+      </view>
+
+      <view class="hero-skills" wx:if="{{profile && profile.skills.length}}">
+        <text class="hero-chip" wx:for="{{profile.skills}}" wx:key="*this">{{item}}</text>
+        <text class="hero-chip ghost" wx:if="{{profile.moreSkills > 0}}">+{{profile.moreSkills}}</text>
+      </view>
+
+      <view class="hero-load" wx:if="{{profile}}">
+        <view class="load-head"><text>当前在办负载</text><text class="load-num">{{profile.load}} / {{profile.limit}}</text></view>
+        <view class="load-track"><view class="load-fill {{profile.loadFull ? 'full' : ''}}" style="width: {{profile.loadPercent}}%"></view></view>
+        <view class="load-tip">{{profile.loadFull ? '已满负荷，先完成手头工单再接单' : '还有余量，可继续接单'}}</view>
+      </view>
     </view>
 
+    <!-- 工单概览 -->
+    <view class="overview-card">
+      <view class="ov-head">
+        <text class="ov-title">工单概览</text>
+        <text class="ov-link" bindtap="goWorkerOrders">全部工单 ›</text>
+      </view>
+      <view class="ov-grid" wx:if="{{!loading}}">
+        <view class="ov-item" data-status="PENDING" bindtap="goWorkerOrders" hover-class="ov-hover">
+          <text class="ov-num tone-butter">{{summary.pending}}</text>
+          <text class="ov-label">待接单</text>
+          <text class="ov-hint">超时自动回收</text>
+        </view>
+        <view class="ov-item" data-status="PROCESSING" bindtap="goWorkerOrders" hover-class="ov-hover">
+          <text class="ov-num tone-teal">{{summary.processing}}</text>
+          <text class="ov-label">维修中</text>
+          <text class="ov-hint">按截止时间跟进</text>
+        </view>
+        <view class="ov-item" data-status="COMPLETED" bindtap="goWorkerOrders" hover-class="ov-hover">
+          <text class="ov-num tone-sky">{{summary.completed}}</text>
+          <text class="ov-label">已完成</text>
+          <text class="ov-hint">累计完工</text>
+        </view>
+      </view>
+      <view class="ov-grid" wx:else>
+        <view class="ov-item" wx:for="{{skeletons}}" wx:key="*this"><view class="ov-skeleton"></view></view>
+      </view>
+    </view>
+
+    <!-- 待处理工单 -->
     <view class="section-row recent-head">
       <view class="section-heading">待处理工单</view>
-      <view class="section-note">优先跟进已派给你的任务</view>
+      <view class="section-link" bindtap="goWorkerOrders">全部 ›</view>
     </view>
+
     <view class="ticket-list" wx:if="{{recent.length}}">
-      <view class="ticket-card" wx:for="{{recent}}" wx:key="id" data-id="{{item.id}}" bindtap="goTicket">
-        <view class="ticket-side {{item.urgency === 'URGENT' ? 'side-urgent' : ''}}"></view>
-        <view class="ticket-main">
-          <view class="ticket-top"><text class="ticket-title">{{item.locationText}}</text><text class="status-pill {{item.statusClass}}">{{item.statusLabel}}</text></view>
-          <view class="ticket-meta"><text class="ticket-type">{{item.faultType}}</text><text class="ticket-time">{{item.submittedAt}}</text></view>
+      <view class="ticket-card {{item.urgent ? 'is-urgent' : ''}}" wx:for="{{recent}}" wx:key="id"
+            data-id="{{item.id}}" bindtap="goTicket" hover-class="ticket-hover">
+        <view class="ticket-rail"></view>
+        <view class="ticket-body">
+          <view class="ticket-top">
+            <text class="ticket-loc">{{item.locationText}}</text>
+            <text class="ticket-state {{item.statusClass}}">{{item.statusLabel}}</text>
+          </view>
+          <view class="ticket-tags">
+            <text class="ticket-type">{{item.faultType}}</text>
+            <text class="ticket-urgent" wx:if="{{item.urgent}}">加急</text>
+            <text class="ticket-overdue" wx:elif="{{item.overdue}}">已超时</text>
+          </view>
+          <view class="ticket-foot">
+            <text class="ticket-time">{{item.timeText}} 提交</text>
+            <text class="ticket-due {{item.dueWarn ? 'warn' : ''}}" wx:if="{{item.dueText}}">{{item.dueText}}</text>
+          </view>
         </view>
+        <view class="ticket-chevron">›</view>
       </view>
     </view>
     <view class="empty-card" wx:elif="{{!loading && !loadError}}">
@@ -57,6 +108,25 @@
       <view class="empty-action" bindtap="goWorkerOrders">查看维修工单 <text>›</text></view>
     </view>
 
+    <!-- 快捷入口 -->
+    <view class="quick-row">
+      <view class="quick-item" bindtap="goMap" hover-class="quick-hover">
+        <view class="quick-icon icon-map"></view>
+        <view class="quick-text">
+          <text class="quick-name">工单地图</text>
+          <text class="quick-sub">查看我的工单位置</text>
+        </view>
+      </view>
+      <view class="quick-item" bindtap="goMessages" hover-class="quick-hover">
+        <view class="quick-icon icon-bell">
+          <text class="quick-badge" wx:if="{{unread > 0}}">{{unread > 99 ? '99+' : unread}}</text>
+        </view>
+        <view class="quick-text">
+          <text class="quick-name">消息通知</text>
+          <text class="quick-sub">派单与超时提醒</text>
+        </view>
+      </view>
+    </view>
   </block>
 
   <view class="load-error" wx:if="{{loadError}}">

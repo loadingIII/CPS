@@ -48,7 +48,7 @@
         </button>
       </section>
 
-      <section class="charts-grid" aria-label="工单数据图表">
+      <section class="charts-grid" aria-label="工单与效率图表">
         <el-card class="chart-card trend-card" shadow="never">
           <template #header>
             <div class="panel-heading">
@@ -81,7 +81,6 @@
           </svg>
           <div class="chart-foot"><span>工单数</span><span>数据来源：真实报修提交记录</span></div>
         </el-card>
-
         <el-card class="chart-card status-card" shadow="never">
           <template #header>
             <div class="panel-heading">
@@ -122,7 +121,6 @@
             </div>
           </div>
         </el-card>
-
         <el-card class="chart-card category-card" shadow="never">
           <template #header>
             <div class="panel-heading">
@@ -142,7 +140,26 @@
           <div v-else class="chart-empty">近 30 日暂无报修记录</div>
           <div class="chart-foot"><span>故障类型</span><span>只统计近 30 日有提交记录的类型</span></div>
         </el-card>
-
+        <el-card class="chart-card ontime-card" shadow="never">
+          <template #header>
+            <div class="panel-heading">
+              <div><h2>按时完成率</h2><p>近 14 日完工单，按处理截止时间判定</p></div>
+              <span class="chart-total">分母 = 当日完工量</span>
+            </div>
+          </template>
+          <div v-if="!ontime.length" class="chart-empty">暂无完工数据</div>
+          <div v-else class="ontime-list">
+            <div v-for="p in ontime" :key="p.day" class="ontime-row">
+              <span class="ontime-day">{{ p.day.slice(5) }}</span>
+              <div class="ontime-track">
+                <span class="ontime-fill" :style="{ width: pct(p) }"></span>
+              </div>
+              <b class="ontime-rate">{{ p.onTimeRate == null ? '—' : (p.onTimeRate * 100).toFixed(0) + '%' }}</b>
+              <small class="ontime-num">{{ p.onTime }}/{{ p.completed }}</small>
+            </div>
+          </div>
+          <div class="chart-foot"><span>按时 / 完工</span><span>数据来源：完工时间与处理截止时间</span></div>
+        </el-card>
         <el-card class="chart-card recent-card" shadow="never">
           <template #header>
             <div class="panel-heading">
@@ -165,30 +182,6 @@
           <el-empty v-else-if="!ordersLoading" :description="ordersError || '暂无工单记录'" :image-size="64" />
           <div v-else class="table-skeleton" aria-label="工单列表加载中"><i v-for="item in 4" :key="item"></i></div>
         </el-card>
-      </section>
-
-      <section class="charts-grid" aria-label="效率与绩效">
-        <el-card class="chart-card trend-card" shadow="never">
-          <template #header>
-            <div class="panel-heading">
-              <div><h2>按时完成率</h2><p>近 14 日完工单，按处理截止时间判定</p></div>
-              <span class="chart-total">分母 = 当日完工量</span>
-            </div>
-          </template>
-          <div v-if="!ontime.length" class="chart-empty">暂无完工数据</div>
-          <div v-else class="ontime-list">
-            <div v-for="p in ontime" :key="p.day" class="ontime-row">
-              <span class="ontime-day">{{ p.day.slice(5) }}</span>
-              <div class="ontime-track">
-                <span class="ontime-fill" :style="{ width: pct(p) }"></span>
-              </div>
-              <b class="ontime-rate">{{ p.onTimeRate == null ? '—' : (p.onTimeRate * 100).toFixed(0) + '%' }}</b>
-              <small class="ontime-num">{{ p.onTime }}/{{ p.completed }}</small>
-            </div>
-          </div>
-          <div class="chart-foot"><span>按时 / 完工</span><span>数据来源：完工时间与处理截止时间</span></div>
-        </el-card>
-
         <el-card class="chart-card recent-card" shadow="never">
           <template #header>
             <div class="panel-heading">
@@ -409,7 +402,7 @@ onMounted(load)
 .ontime-fill { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--teal), #5aa9b0); }
 .ontime-rate { color: var(--teal-deep); font-variant-numeric: tabular-nums; }
 .ontime-num { color: var(--muted); font-size: 10.5px; text-align: right; font-variant-numeric: tabular-nums; }
-.charts-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .9fr); gap: 13px; align-items: stretch; }
+.charts-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 13px; align-items: stretch; }
 .chart-card { min-width: 0; border-radius: 12px !important; }
 .chart-card :deep(.el-card__header) { min-height: 59px; padding: 12px 16px; }
 .chart-card :deep(.el-card__body) { padding: 12px 16px 13px; }
@@ -443,8 +436,9 @@ onMounted(load)
 .legend-item b { color: var(--ink); font-size: 10px; font-variant-numeric: tabular-nums; text-align: right; }
 .legend-item small { color: var(--muted); font-size: 9px; text-align: right; }
 .status-empty { min-height: 190px; }
-.category-list { display: grid; gap: 13px; min-height: 180px; align-content: center; padding: 12px 4px; }
-.category-row { display: grid; grid-template-columns: minmax(72px, 1fr) minmax(70px, 1.8fr) 28px; align-items: center; gap: 10px; }
+.category-card :deep(.el-card__body) { display: flex; flex-direction: column; }
+.category-list { display: grid; flex: 1; gap: 0; min-height: 180px; align-content: space-between; padding: 6px 4px; }
+.category-row { display: grid; grid-template-columns: minmax(64px, 1fr) minmax(70px, 1.8fr) 28px; align-items: center; gap: 10px; min-height: 32px; }
 .category-label { overflow: hidden; color: #536568; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .category-track { height: 9px; overflow: hidden; border-radius: 999px; background: var(--paper-deep); }
 .category-fill { display: block; height: 100%; min-width: 3px; border-radius: inherit; background: var(--teal); transition: width .35s ease; }
@@ -472,7 +466,7 @@ onMounted(load)
 .quick-links :deep(.el-button) { min-height: 29px; margin: 0; font-size: 10px; }
 
 @media (max-width: 1080px) {
-  .charts-grid { grid-template-columns: minmax(0, 1fr) minmax(265px, .9fr); }
+  .charts-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .status-layout { grid-template-columns: 1fr; gap: 1px; }
   .status-donut { width: 135px; }
   .status-legend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
