@@ -17,6 +17,7 @@ public enum OrderAction {
     TRANSFER("转单"),
     RATE("评价"),
     RECYCLE("超时回收"),
+    RECYCLE_OVERDUE("处理超时回收"),
     DEFAULT_RATE("默认好评"),
     OVERDUE("超时预警"),
     URGE("催单"),

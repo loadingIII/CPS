@@ -7,7 +7,7 @@
           <el-radio-button :value="false">未处理</el-radio-button>
           <el-radio-button :value="true">已处理</el-radio-button>
         </el-radio-group>
-        <span class="muted">超时是工单标记位，预警事件独立落库，可逐单核对覆盖率</span>
+        <span class="muted">处理超时的工单会自动回到待派单池，可点「去派单」重新指派</span>
       </div>
     </template>
 
@@ -35,9 +35,10 @@
         </template>
       </el-table-column>
       <el-table-column prop="createdAt" label="预警时间" width="165" />
-      <el-table-column label="操作" width="170" fixed="right">
+      <el-table-column label="操作" width="230" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="goOrder(row)">详情</el-button>
+          <el-button v-if="!row.handled" link type="warning" @click="goDispatch(row)">去派单</el-button>
           <el-button v-if="!row.handled" link type="primary" @click="markHandled(row)">标记已处理</el-button>
           <span v-else class="muted">已处理</span>
         </template>
@@ -76,6 +77,10 @@ function reload() {
 
 function goOrder(row) {
   router.push({ path: '/orders', query: { orderId: row.orderId } })
+}
+
+function goDispatch(row) {
+  router.push({ path: '/dispatch', query: { orderId: row.orderId } })
 }
 
 async function markHandled(row) {

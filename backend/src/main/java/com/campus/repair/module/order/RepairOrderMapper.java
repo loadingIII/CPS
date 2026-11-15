@@ -70,10 +70,14 @@ public interface RepairOrderMapper extends BaseMapper<RepairOrder> {
     List<RepairOrder> selectExpiredOffers(@Param("now") LocalDateTime now,
                                           @Param("limit") int limit);
 
-    /** 处理超时：处理中且超过 due_at，尚未标记 */
+    /**
+     * 处理超时：处理中且已过 due_at。
+     * 不按 is_overdue 过滤——该标记现在表示「这单超时过」，回收后状态即变为 PENDING，
+     * 重复扫描不会重复处理。
+     */
     @Select("""
             SELECT * FROM repair_order
-            WHERE status = 'PROCESSING' AND is_overdue = 0
+            WHERE status = 'PROCESSING'
               AND due_at IS NOT NULL AND due_at < #{now}
             ORDER BY due_at ASC
             LIMIT #{limit}

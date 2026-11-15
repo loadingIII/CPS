@@ -210,6 +210,35 @@ class OrderStateMachineTest {
         assertThat(o.getDueAt()).isNull();
     }
 
+    @Test
+    @DisplayName("#12b 处理超时回收：处理中→待处理，清空承接人并保留超时标记")
+    void recycleOverdue() {
+        RepairOrder o = order(OrderStatus.PROCESSING);
+        o.setWorkerId(WORKER_ID);
+        o.setAssignedAt(java.time.LocalDateTime.now());
+        o.setAcceptedAt(java.time.LocalDateTime.now());
+        o.setDueAt(java.time.LocalDateTime.now().minusHours(1));
+        fire(o, OrderAction.RECYCLE_OVERDUE, Role.SYS_ADMIN, null, null, null);
+        assertThat(o.getStatus()).isEqualTo(OrderStatus.PENDING);
+        assertThat(o.getWorkerId()).isNull();
+        assertThat(o.getAssignedAt()).isNull();
+        assertThat(o.getAcceptedAt()).isNull();
+        assertThat(o.getDueAt()).isNull();
+        assertThat(o.getIsOverdue()).isTrue();
+    }
+
+    @Test
+    @DisplayName("#12b 处理超时回收只允许管理员/系统触发")
+    void recycleOverdueForbiddenForWorker() {
+        RepairOrder o = order(OrderStatus.PROCESSING);
+        o.setWorkerId(WORKER_ID);
+        assertThatThrownBy(() -> fire(o, OrderAction.RECYCLE_OVERDUE, Role.REPAIRER, WORKER_ID, null, null))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getCode())
+                .isEqualTo(40301);
+        assertThat(o.getStatus()).isEqualTo(OrderStatus.PROCESSING);
+    }
+
     // ---------- #13 评价 ----------
 
     @Test

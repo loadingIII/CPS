@@ -131,6 +131,20 @@ public class OrderStateMachine {
                         o.setDueAt(null);
                         o.setStatus(OrderStatus.PENDING);
                     }),
+            // #12b 处理超时回收：处理中 → 待处理（系统定时触发，清空承接信息回池，等待重新派单）
+            // is_overdue 保留为 true，派单池据此标红提示"这单超时过"；新师傅接单时清零重新计时
+            new Rule(OrderStatus.PROCESSING, OrderAction.RECYCLE_OVERDUE,
+                    Set.of(Role.ADMIN, Role.SYS_ADMIN), Identity.NONE, false,
+                    o -> true, null,
+                    (o, x) -> {
+                        o.setWorkerId(null);
+                        o.setAssignedAt(null);
+                        o.setAcceptedAt(null);
+                        o.setAssignExpiresAt(null);
+                        o.setDueAt(null);
+                        o.setIsOverdue(true);
+                        o.setStatus(OrderStatus.PENDING);
+                    }),
             // #13 评价：已完成 → 已评价（一单一评价由服务层 + uk_order 双重保证）
             new Rule(OrderStatus.COMPLETED, OrderAction.RATE,
                     Set.of(Role.REPORTER), Identity.REPORTER, false,

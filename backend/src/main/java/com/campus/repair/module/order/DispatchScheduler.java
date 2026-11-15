@@ -1,6 +1,7 @@
 package com.campus.repair.module.order;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.campus.repair.common.BusinessException;
 import com.campus.repair.module.notice.NotificationService;
 import com.campus.repair.module.order.statemachine.OrderAction;
 import com.campus.repair.module.order.statemachine.OrderStatus;
@@ -20,7 +21,7 @@ import java.util.List;
  *
  * <ul>
  *   <li>接单超时回收：已派待接超过 assign_expires_at → 回待派单池、拒绝计数 +1，等待管理员重新派单</li>
- *   <li>处理超时标记：处理中超过 due_at → is_overdue=1 + 预警日志</li>
+ *   <li>处理超时回收：处理中超过 due_at → 回待派单池（清空承接人、保留超时标记）+ 预警，等待管理员重新派单</li>
  *   <li>默认好评：完工超过 N 天未评价 → 自动 5 星关闭</li>
  * </ul>
  *
@@ -39,11 +40,12 @@ public class DispatchScheduler {
     private final DispatchProperties props;
     private final OverdueAlertMapper alertMapper;
     private final NotificationService notificationService;
+    private final OrderService orderService;
 
     public DispatchScheduler(RepairOrderMapper orderMapper, EvaluationMapper evaluationMapper,
                              WorkerMapper workerMapper, OrderLogService logService,
                              DispatchProperties props, OverdueAlertMapper alertMapper,
-                             NotificationService notificationService) {
+                             NotificationService notificationService, OrderService orderService) {
         this.orderMapper = orderMapper;
         this.evaluationMapper = evaluationMapper;
         this.workerMapper = workerMapper;
@@ -51,6 +53,7 @@ public class DispatchScheduler {
         this.props = props;
         this.alertMapper = alertMapper;
         this.notificationService = notificationService;
+        this.orderService = orderService;
     }
 
     /** 接单超时自动回收 */
@@ -86,24 +89,30 @@ public class DispatchScheduler {
         }
     }
 
-    /** 处理超时标记（超时是标记位，不是独立状态） */
+    /**
+     * 处理超时回收：处理中且已过 due_at 的工单回到待派单池，管理员重新派给其他师傅。
+     * 逐单独立事务，避免一张单失败拖垮整批。
+     */
     @Scheduled(fixedDelay = 120_000, initialDelay = 60_000)
-    @Transactional
-    public void markOverdue() {
+    public void recycleOverdueProcessing() {
         LocalDateTime now = LocalDateTime.now();
         List<RepairOrder> overdue = orderMapper.selectOverdueProcessing(now, BATCH);
+        int recycled = 0;
         for (RepairOrder o : overdue) {
-            int rows = orderMapper.update(null, new LambdaUpdateWrapper<RepairOrder>()
-                    .eq(RepairOrder::getId, o.getId())
-                    .eq(RepairOrder::getVersion, o.getVersion())
-                    .eq(RepairOrder::getStatus, OrderStatus.PROCESSING)
-                    .set(RepairOrder::getIsOverdue, true)
-                    .set(RepairOrder::getVersion, o.getVersion() + 1));
-            if (rows == 1) {
-                logService.log(o.getId(), OrderAction.OVERDUE, o.getWorkerId(), null,
-                        "处理超时，已超过处理截止时间");
-                raiseAlert(o, "PROCESS", "工单 " + o.getOrderNo() + " 处理超时（" + o.getLocationText() + "）");
+            try {
+                if (!orderService.recycleOverdue(o.getId())) {
+                    continue;
+                }
+            } catch (BusinessException e) {
+                // 师傅刚好完工、或被改派，条件更新失败即可跳过
+                log.debug("[Dispatch] 工单 {} 超时回收跳过：{}", o.getId(), e.getMessage());
+                continue;
             }
+            recycled++;
+            raiseAlert(o, "PROCESS", "工单 " + o.getOrderNo() + " 处理超时，已回收至待派单池");
+        }
+        if (recycled > 0) {
+            log.info("[Dispatch] 处理超时回收 {} 张工单", recycled);
         }
     }
 

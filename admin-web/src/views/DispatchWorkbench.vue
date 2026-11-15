@@ -159,10 +159,12 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { InfoFilled } from '@element-plus/icons-vue'
 import api from '../api'
 
+const route = useRoute()
 const list = ref([])
 const total = ref(0)
 const page = ref(1)
@@ -311,6 +313,17 @@ onMounted(async () => {
   window.addEventListener('resize', onResize)
   timer = setInterval(() => { now.value = Date.now() }, 30000)
   await Promise.all([load(), loadAllWorkers()])
+
+  // 从超时预警页「去派单」跳进来时，直接选中目标工单
+  const targetId = Number(route.query.orderId)
+  if (targetId) {
+    const row = list.value.find(o => o.id === targetId)
+    if (row) {
+      await selectOrder(row)
+    } else {
+      ElMessage.info('该工单不在当前队列，切换队列或刷新后重试')
+    }
+  }
 })
 
 onUnmounted(() => {

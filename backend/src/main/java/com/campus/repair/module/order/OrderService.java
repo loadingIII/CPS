@@ -443,6 +443,8 @@ public class OrderService {
     public void accept(Long orderId) {
         RepairOrder o = load(orderId);
         o.setDueAt(LocalDateTime.now().plusHours(props.slaHours(o.getUrgency())));
+        // 超时回收后重新派单：新一轮从接单时刻重新计时，清掉上一轮的迟到标记
+        o.setIsOverdue(false);
         transition(o, OrderAction.ACCEPT, null, null);
         notificationService.notifyUser(o.getReporterId(), NotificationService.ACCEPT,
                 "维修工 " + workerName(o.getWorkerId()) + " 已接单，工单 " + o.getOrderNo() + " 处理中",
@@ -493,7 +495,7 @@ public class OrderService {
     @Transactional
     public void finish(Long orderId, FinishReq req) {
         RepairOrder o = load(orderId);
-        // 迟到完工也要留超时标记：markOverdue 只扫处理中的单，完工这一刻是最后判定点
+        // 超时回收任务每 2 分钟跑一次，两分钟窗口内仍可能迟到完工，这里兜底留超时标记
         boolean late = o.getDueAt() != null && LocalDateTime.now().isAfter(o.getDueAt())
                 && !Boolean.TRUE.equals(o.getIsOverdue());
         if (late) {
@@ -509,6 +511,38 @@ public class OrderService {
         }
         notificationService.notifyUser(o.getReporterId(), NotificationService.FINISH,
                 "工单 " + o.getOrderNo() + " 已完工，请查看完工照片并评价", o.getId());
+    }
+
+    /**
+     * 处理超时回收（由 {@link DispatchScheduler} 调用）：处理中且已过 due_at 的工单回到待派单池，
+     * 清空承接信息、保留 is_overdue 供派单池标红，由管理员重新派给其他师傅。
+     *
+     * @return 真正回收了返回 true；工单已完工/已改派/未到截止时间返回 false
+     */
+    @Transactional
+    public boolean recycleOverdue(Long orderId) {
+        RepairOrder o = orderMapper.selectById(orderId);
+        if (o == null || o.getStatus() != OrderStatus.PROCESSING) {
+            return false;
+        }
+        if (o.getDueAt() == null || LocalDateTime.now().isBefore(o.getDueAt())) {
+            return false;
+        }
+        Long workerId = o.getWorkerId();
+        String orderNo = o.getOrderNo();
+        // 记在超时师傅名下（角色 SYSTEM）：时间线显示"张三（系统）"，并进入该单 24 小时冷却名单
+        transition(o, OrderAction.RECYCLE_OVERDUE, "处理超时自动回收，工单已回到待派单池",
+                null, Role.SYS_ADMIN, null, workerId, null);
+
+        notificationService.notifyAdmins(NotificationService.OVERDUE,
+                "工单 " + orderNo + " 处理超时，已回收至待派单池，请重新派单", orderId);
+        if (workerId != null) {
+            notificationService.notifyUser(workerId, NotificationService.OVERDUE,
+                    "工单 " + orderNo + " 处理超时，已从你的任务中回收", orderId);
+        }
+        notificationService.notifyUser(o.getReporterId(), NotificationService.OVERDUE,
+                "工单 " + orderNo + " 未能按时完成，已重新安排维修师傅", orderId);
+        return true;
     }
 
     /** 配件随完工一起落库；名称为空的行直接忽略 */
@@ -801,10 +835,19 @@ public class OrderService {
      */
     private RepairOrder transition(RepairOrder o, OrderAction action, String remark, Long extraWorkerId) {
         LoginUser op = AuthContext.get();
+        return transition(o, action, remark, extraWorkerId, op.role(), op.userId(), op.userId(), op.role());
+    }
+
+    /**
+     * 系统动作入口：role 用于状态机校验；logOperatorId / logRole 决定时间线记在谁名下。
+     * 超时回收记在超时师傅名下、角色为 SYSTEM，冷却名单才能据此排除他。
+     */
+    private RepairOrder transition(RepairOrder o, OrderAction action, String remark, Long extraWorkerId,
+                                   Role role, Long operatorId, Long logOperatorId, Role logRole) {
         OrderStatus beforeStatus = o.getStatus();
         Integer beforeVersion = o.getVersion();
 
-        stateMachine.fire(o, action, op.role(), op.userId(), remark, extraWorkerId);
+        stateMachine.fire(o, action, role, operatorId, remark, extraWorkerId);
 
         int newVersion = beforeVersion + 1;
         o.setVersion(newVersion);
@@ -838,13 +881,13 @@ public class OrderService {
                 .set(RepairOrder::getMainOrderId, o.getMainOrderId());
         // 并发接单幂等：必须仍是被派给本人
         if (action == OrderAction.ACCEPT) {
-            w.eq(RepairOrder::getWorkerId, op.userId());
+            w.eq(RepairOrder::getWorkerId, operatorId);
         }
         int rows = orderMapper.update(null, w);
         if (rows != 1) {
             throw BusinessException.conflict("工单状态已变化，请刷新后重试");
         }
-        logService.log(o.getId(), action, op.userId(), op.role(), remark);
+        logService.log(o.getId(), action, logOperatorId, logRole, remark);
         return o;
     }
 

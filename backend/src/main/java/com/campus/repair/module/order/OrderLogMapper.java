@@ -25,7 +25,7 @@ public interface OrderLogMapper extends BaseMapper<OrderLog> {
     @Select("""
             SELECT DISTINCT operator_id FROM order_log
             WHERE order_id = #{orderId}
-              AND action IN ('拒单', '超时回收')
+              AND action IN ('拒单', '超时回收', '处理超时回收')
               AND operator_id IS NOT NULL
               AND created_at >= #{since}
             """)
