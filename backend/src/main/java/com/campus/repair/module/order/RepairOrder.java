@@ -46,6 +46,18 @@ public class RepairOrder {
 
     private Long mainOrderId;
 
+    /** 从知识库「未解决去报修」进入时记录的文章 id（逻辑关联） */
+    private Long sourceKbId;
+
+    /** AI 建议的故障类型（未使用建议时为 NULL） */
+    private String aiSuggestedType;
+
+    /** AI 建议的紧急度：NORMAL/URGENT */
+    private String aiSuggestedUrgency;
+
+    /** 用户是否点击采纳过 AI 建议 */
+    private Boolean aiSuggestionUsed;
+
     /** 乐观锁版本号 */
     private Integer version;
 

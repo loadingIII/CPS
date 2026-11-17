@@ -9,6 +9,17 @@
 
 /* ===== 报修人：快捷报修 ===== */
 .category-head { margin-top: 30rpx; }
+.msg-entry {
+  position: relative; margin-left: auto; padding: 6rpx 18rpx;
+  border: 1rpx solid #cfe0e0; border-radius: 999rpx;
+  background: #ffffff; color: #0f7b7e; font-size: 20rpx; font-weight: 600;
+}
+.msg-badge {
+  position: absolute; top: -10rpx; right: -10rpx;
+  min-width: 26rpx; height: 26rpx; padding: 0 6rpx; box-sizing: border-box;
+  border: 2rpx solid #f5f6f7; border-radius: 999rpx;
+  background: #d98a98; color: #ffffff; font-size: 16rpx; line-height: 26rpx; text-align: center;
+}
 .category-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12rpx; margin: 0 24rpx; }
 .category-tile { min-height: 148rpx; position: relative; display: flex; flex-direction: column; justify-content: center; gap: 12rpx; padding: 18rpx; box-sizing: border-box; background: #ffffff; border: 2rpx solid #e0e4e6; border-radius: 18rpx; box-shadow: 0 5rpx 18rpx rgba(43,58,60,.05); }
 .category-icon { width: 48rpx; height: 48rpx; display: block; flex: 0 0 48rpx; border-radius: 14rpx; background-color: #d7ecec; background-repeat: no-repeat; background-position: center; background-size: 31rpx 31rpx; }

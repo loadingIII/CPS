@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
@@ -42,7 +43,7 @@ public class AgentService {
     private final KbArticleMapper kbArticleMapper;
 
     public AgentService(AgentProperties props,
-                        ObjectProvider<ChatClient> chatClientProvider,
+                        @Qualifier("chatClient") ObjectProvider<ChatClient> chatClientProvider,
                         RagRetriever retriever,
                         KeywordAgentFallback fallback,
                         KbArticleMapper kbArticleMapper) {

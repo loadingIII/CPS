@@ -10,6 +10,8 @@ import com.campus.repair.common.PageVO;
 import com.campus.repair.common.Role;
 import com.campus.repair.module.auth.SysUser;
 import com.campus.repair.module.auth.UserMapper;
+import com.campus.repair.module.kb.KbArticle;
+import com.campus.repair.module.kb.KbArticleMapper;
 import com.campus.repair.module.dict.Campus;
 import com.campus.repair.module.dict.Skill;
 import com.campus.repair.module.dict.SkillMapper;
@@ -69,6 +71,7 @@ public class OrderService {
     private final NotificationService notificationService;
     private final PartUsageMapper partUsageMapper;
     private final RevisitTaskMapper revisitTaskMapper;
+    private final KbArticleMapper kbArticleMapper;
 
     public OrderService(RepairOrderMapper orderMapper, AttachmentMapper attachmentMapper,
                         OrderLogMapper logMapper, EvaluationMapper evaluationMapper,
@@ -78,7 +81,8 @@ public class OrderService {
                         WorkerProfileMapper profileMapper,
                         IdempotentStore idempotentStore, DispatchProperties props,
                         NotificationService notificationService,
-                        PartUsageMapper partUsageMapper, RevisitTaskMapper revisitTaskMapper) {
+                        PartUsageMapper partUsageMapper, RevisitTaskMapper revisitTaskMapper,
+                        KbArticleMapper kbArticleMapper) {
         this.orderMapper = orderMapper;
         this.attachmentMapper = attachmentMapper;
         this.logMapper = logMapper;
@@ -95,6 +99,7 @@ public class OrderService {
         this.notificationService = notificationService;
         this.partUsageMapper = partUsageMapper;
         this.revisitTaskMapper = revisitTaskMapper;
+        this.kbArticleMapper = kbArticleMapper;
     }
 
     // ==================================================================
@@ -140,6 +145,14 @@ public class OrderService {
         o.setFaultType(req.faultType());
         o.setUrgency(req.urgency());
         o.setDescription(req.description());
+        // R3：知识库来源与 AI 建议只做记录，不影响工单状态机
+        o.setSourceKbId(req.sourceKbId());
+        if (StringUtils.hasText(req.aiSuggestedType())) {
+            o.setAiSuggestedType(req.aiSuggestedType().trim());
+            o.setAiSuggestedUrgency("URGENT".equalsIgnoreCase(req.aiSuggestedUrgency())
+                    ? "URGENT" : "NORMAL");
+            o.setAiSuggestionUsed(Boolean.TRUE.equals(req.aiSuggestionUsed()));
+        }
         o.setStatus(OrderStatus.PENDING_AUDIT);
         o.setIsOverdue(false);
         o.setVersion(0);
@@ -797,6 +810,53 @@ public class OrderService {
         return first.length() > 12 ? first.substring(0, 12) : first;
     }
 
+    /** R3：审核页同位置历史报修（同校区 + 同类型 + 位置相似，只读） */
+    public List<com.campus.repair.module.order.dto.SimilarOrderVO> similarHistory(Long orderId, int days) {
+        RepairOrder o = load(orderId);
+        String detail = o.getLocationText() == null ? "" : o.getLocationText();
+        int dot = detail.indexOf('·');
+        if (dot >= 0) {
+            detail = detail.substring(dot + 1);
+        }
+        String keyword = locationKeyword(detail);
+        int window = Math.max(1, Math.min(days, 365));
+        LocalDateTime from = LocalDateTime.now().minusDays(window);
+        return orderMapper.selectSimilarHistory(o.getCampus(), o.getFaultType(), orderId, keyword, from)
+                .stream()
+                .map(row -> new com.campus.repair.module.order.dto.SimilarOrderVO(
+                        ((Number) row.get("id")).longValue(),
+                        String.valueOf(row.get("orderNo")),
+                        String.valueOf(row.get("locationText")),
+                        String.valueOf(row.get("faultType")),
+                        statusLabel(row.get("status")),
+                        row.get("workerName") == null ? null : String.valueOf(row.get("workerName")),
+                        toDateTime(row.get("submittedAt")),
+                        toDateTime(row.get("completedAt")),
+                        row.get("rating") == null ? null : ((Number) row.get("rating")).intValue()))
+                .toList();
+    }
+
+    private String statusLabel(Object raw) {
+        if (raw == null) {
+            return null;
+        }
+        try {
+            return OrderStatus.valueOf(String.valueOf(raw)).label();
+        } catch (Exception e) {
+            return String.valueOf(raw);
+        }
+    }
+
+    private LocalDateTime toDateTime(Object raw) {
+        if (raw instanceof LocalDateTime dt) {
+            return dt;
+        }
+        if (raw instanceof java.sql.Timestamp ts) {
+            return ts.toLocalDateTime();
+        }
+        return null;
+    }
+
     /** 维修工登记配件（R2-F5-5）：仅承接人，且只能在处理中补录；完工时应随完工请求一次提交 */
     @Transactional
     public void addPart(Long orderId, PartReq req) {
@@ -1027,6 +1087,16 @@ public class OrderService {
         v.setDueAt(o.getDueAt());
         v.setDispatchCount(o.getDispatchCount());
         v.setRejectCount(o.getRejectCount());
+        v.setSourceKbId(o.getSourceKbId());
+        v.setAiSuggestedType(o.getAiSuggestedType());
+        v.setAiSuggestedUrgency(o.getAiSuggestedUrgency());
+        v.setAiSuggestionUsed(o.getAiSuggestionUsed());
+        if (o.getSourceKbId() != null) {
+            KbArticle kb = kbArticleMapper.selectById(o.getSourceKbId());
+            if (kb != null) {
+                v.setSourceKbTitle(kb.getTitle());
+            }
+        }
 
         List<Long> uids = new ArrayList<>();
         uids.add(o.getReporterId());

@@ -61,7 +61,8 @@ public class KbVectorIndexService {
         if (article == null || article.getId() == null || !available()) {
             return 0;
         }
-        if (!Boolean.TRUE.equals(article.getStatus()) || !StringUtils.hasText(article.getContent())) {
+        if (article.getStatus() == null || article.getStatus() != 1
+                || !StringUtils.hasText(article.getContent())) {
             remove(article.getId());
             return 0;
         }
@@ -135,7 +136,7 @@ public class KbVectorIndexService {
         int failed = 0;
         for (KbArticle article : articles) {
             try {
-                if (Boolean.TRUE.equals(article.getStatus())) {
+                if (article.getStatus() != null && article.getStatus() == 1) {
                     chunks += index(article);
                     indexed++;
                 } else {
@@ -182,7 +183,7 @@ public class KbVectorIndexService {
             String collectionId = ensureCollectionId(api);
             Long count = api.countEmbeddings(tenant(), database(), collectionId);
             Long published = articleMapper.selectCount(new LambdaQueryWrapper<KbArticle>()
-                    .eq(KbArticle::getStatus, true));
+                    .eq(KbArticle::getStatus, 1));
             if ((count == null || count == 0) && published != null && published > 0) {
                 SyncReport report = reindexAll();
                 log.info("[KB] 启动自动同步：{} 篇 / {} 块", report.indexed(), report.chunks());

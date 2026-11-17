@@ -16,6 +16,7 @@ const routes = [
       { path: 'dispatch', component: () => import('../views/DispatchWorkbench.vue'), meta: { title: '派单工作台', roles: ['ADMIN', 'SYS_ADMIN'] } },
       { path: 'orders', component: () => import('../views/OrderManage.vue'), meta: { title: '工单管理', roles: ['ADMIN', 'SYS_ADMIN'] } },
       { path: 'alerts', component: () => import('../views/AlertCenter.vue'), meta: { title: '超时预警', roles: ['ADMIN', 'SYS_ADMIN'] } },
+      { path: 'analysis', component: () => import('../views/Analysis.vue'), meta: { title: '数据分析', roles: ['ADMIN', 'SYS_ADMIN'] } },
       { path: 'revisits', component: () => import('../views/RevisitManage.vue'), meta: { title: '差评回访', roles: ['ADMIN', 'SYS_ADMIN'] } },
       { path: 'kb', component: () => import('../views/KbManage.vue'), meta: { title: '维修知识库', roles: ['ADMIN', 'SYS_ADMIN'] } },
       { path: 'skills', redirect: '/workers' },

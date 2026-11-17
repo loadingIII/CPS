@@ -24,5 +24,11 @@ public record SubmitReq(@NotBlank(message = "请选择校区") String campus,
                         Double mapLng,
                         Double mapLat,
                         /** 幂等 token：同 token 5 分钟内重复提交返回首次结果 */
-                        String clientToken) {
+                        String clientToken,
+                        /** R3：从知识库「未解决去报修」进入时带上的文章 id */
+                        Long sourceKbId,
+                        /** R3：AI 建议值（客户端回传，仅用于统计与详情展示） */
+                        String aiSuggestedType,
+                        String aiSuggestedUrgency,
+                        Boolean aiSuggestionUsed) {
 }

@@ -24,8 +24,11 @@ public class KbArticle {
 
     private Integer viewCount;
 
-    /** 1 启用 / 0 停用 */
-    private Boolean status;
+    /** 0 停用 / 1 启用 / 2 草稿（草稿仅管理端可见，不进向量库） */
+    private Integer status;
+
+    /** 由哪张工单沉淀而来（逻辑关联，一单只沉淀一次） */
+    private Long sourceOrderId;
 
     private LocalDateTime createdAt;
 

@@ -137,4 +137,24 @@ public interface RepairOrderMapper extends BaseMapper<RepairOrder> {
             """)
     List<Map<String, Object>> countTimeliness(@Param("ids") List<Long> ids,
                                               @Param("from") LocalDateTime from);
+
+    /** R3：审核页同位置历史报修（同校区 + 同类型 + 位置关键词） */
+    @Select("""
+            SELECT o.id AS id, o.order_no AS orderNo, o.location_text AS locationText,
+                   o.fault_type AS faultType, o.status AS status, u.name AS workerName,
+                   o.submitted_at AS submittedAt, o.completed_at AS completedAt, e.rating AS rating
+            FROM repair_order o
+            LEFT JOIN sys_user u ON u.id = o.worker_id
+            LEFT JOIN evaluation e ON e.order_id = o.id
+            WHERE o.campus = #{campus} AND o.fault_type = #{faultType}
+              AND o.id != #{excludeId} AND o.submitted_at >= #{from}
+              AND (#{keyword} IS NULL OR o.location_text LIKE CONCAT('%', #{keyword}, '%'))
+            ORDER BY o.submitted_at DESC
+            LIMIT 20
+            """)
+    List<Map<String, Object>> selectSimilarHistory(@Param("campus") String campus,
+                                                   @Param("faultType") String faultType,
+                                                   @Param("excludeId") Long excludeId,
+                                                   @Param("keyword") String keyword,
+                                                   @Param("from") LocalDateTime from);
 }

@@ -33,6 +33,12 @@ public class AgentProperties {
         return enabled && configIssue().isEmpty();
     }
 
+    /** 只判断对话模型是否可用（报修建议不需要 embedding） */
+    public boolean chatUsable() {
+        return enabled && StringUtils.hasText(baseUrl)
+                && StringUtils.hasText(apiKey) && StringUtils.hasText(chatModel);
+    }
+
     /** 返回第一处配置缺口，供自检与日志展示；为空表示配置完整 */
     public String configIssue() {
         if (!enabled) {

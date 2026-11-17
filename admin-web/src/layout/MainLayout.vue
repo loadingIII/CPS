@@ -91,6 +91,7 @@ const allMenus = [
   { path: '/dispatch', title: '派单工作台', icon: 'Share', roles: ['ADMIN', 'SYS_ADMIN'] },
   { path: '/orders', title: '工单管理', icon: 'Tickets', roles: ['ADMIN', 'SYS_ADMIN'] },
   { path: '/alerts', title: '超时预警', icon: 'Warning', roles: ['ADMIN', 'SYS_ADMIN'] },
+  { path: '/analysis', title: '数据分析', icon: 'DataAnalysis', roles: ['ADMIN', 'SYS_ADMIN'] },
   { path: '/revisits', title: '差评回访', icon: 'ChatDotRound', roles: ['ADMIN', 'SYS_ADMIN'] },
   { path: '/kb', title: '维修知识库', icon: 'Reading', roles: ['ADMIN', 'SYS_ADMIN'] },
   { path: '/workers', title: '维修工管理', icon: 'Avatar', roles: ['ADMIN', 'SYS_ADMIN'] },

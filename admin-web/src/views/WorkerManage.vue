@@ -45,9 +45,10 @@
           <el-switch :model-value="row.onDuty" @change="v => toggleDuty(row, v)" />
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="90">
+      <el-table-column label="操作" width="130">
         <template #default="{ row }">
           <el-button link type="primary" @click="openEdit(row)">详情</el-button>
+          <el-button link type="success" @click="openProfile(row)">画像</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -128,6 +129,44 @@
         <el-button type="primary" @click="save">保存</el-button>
       </template>
     </el-drawer>
+
+    <el-drawer v-model="profileDrawer" :title="`维修工画像 · ${profile?.name || ''}`" size="620px">
+      <template v-if="profile">
+        <el-descriptions :column="2" border size="small">
+          <el-descriptions-item label="工号">{{ profile.jobNo }}</el-descriptions-item>
+          <el-descriptions-item label="在岗">{{ profile.onDuty ? '在岗' : '离岗' }}</el-descriptions-item>
+          <el-descriptions-item label="技能">{{ profile.skills?.join(' / ') || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="负责校区">{{ profile.campuses?.join(' / ') || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="当前负载">{{ profile.currentLoad }}/{{ profile.loadLimit }}</el-descriptions-item>
+          <el-descriptions-item label="综合评分">{{ profile.score ?? '-' }}</el-descriptions-item>
+        </el-descriptions>
+
+        <el-row class="metric-row" :gutter="10">
+          <el-col :span="6"><div class="metric"><b>{{ profile.done }}</b><span>近 90 天完工</span></div></el-col>
+          <el-col :span="6"><div class="metric"><b>{{ pct(profile.onTimeRate) }}</b><span>按时率</span></div></el-col>
+          <el-col :span="6"><div class="metric"><b>{{ profile.avgRating ?? '—' }}</b><span>满意度</span></div></el-col>
+          <el-col :span="6"><div class="metric"><b>{{ pct(profile.repairRate) }}</b><span>返修率</span></div></el-col>
+        </el-row>
+        <el-row class="metric-row" :gutter="10">
+          <el-col :span="8"><div class="metric"><b>{{ profile.avgHours ?? '—' }}</b><span>平均处理（小时）</span></div></el-col>
+          <el-col :span="8"><div class="metric"><b>{{ profile.overdueRecycles }}</b><span>处理超时回收</span></div></el-col>
+          <el-col :span="8"><div class="metric"><b>{{ profile.sampleEnough ? '可排名' : '样本不足' }}</b><span>样本判定</span></div></el-col>
+        </el-row>
+        <p class="muted">返修率 = 其完工单中 7 天内同位置同类型再次报修的单 / 完工单；只作参考，不直接用于绩效扣分。</p>
+
+        <h4 style="margin: 16px 0 8px">最近完工</h4>
+        <el-table :data="profile.recentOrders" border size="small" max-height="260">
+          <el-table-column prop="orderNo" label="工单号" width="145" />
+          <el-table-column prop="faultType" label="类型" width="80" />
+          <el-table-column prop="locationText" label="位置" min-width="110" show-overflow-tooltip />
+          <el-table-column prop="completedAt" label="完工时间" width="135" />
+          <el-table-column label="超时" width="55">
+            <template #default="{ row }">{{ row.isOverdue ? '是' : '否' }}</template>
+          </el-table-column>
+          <el-table-column prop="rating" label="星级" width="55" />
+        </el-table>
+      </template>
+    </el-drawer>
   </el-card>
 </template>
 
@@ -143,6 +182,17 @@ const allSkills = ref([])
 const campusOptions = ref([])
 const drawer = ref(false)
 const form = ref({})
+const profileDrawer = ref(false)
+const profile = ref(null)
+
+function pct(v) {
+  return v == null ? '—' : (v * 100).toFixed(0) + '%'
+}
+
+async function openProfile(row) {
+  profile.value = await api.get(`/stats/workers/${row.id}`, { params: { days: 90 } })
+  profileDrawer.value = true
+}
 
 async function load() {
   const d = await api.get('/workers', {
@@ -265,4 +315,12 @@ onMounted(() => { load(); loadOptions() })
   padding: 7px 0; border-top: 1px dashed var(--line); font-size: 13px;
 }
 .dict-name { flex: 1; min-width: 0; }
+.metric-row { margin-top: 12px; }
+.metric {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
+  background: #fbfcfc;
+}
+.metric b { font-size: 18px; color: var(--teal-deep); font-variant-numeric: tabular-nums; }
+.metric span { font-size: 11.5px; color: var(--muted); }
 </style>

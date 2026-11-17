@@ -4,8 +4,13 @@
       <div class="toolbar">
         <b>维修知识库</b>
         <div class="filters">
-          <el-input v-model="keyword" placeholder="标题 / 内容关键词" clearable style="width: 240px"
+          <el-input v-model="keyword" placeholder="标题 / 内容关键词" clearable style="width: 220px"
                     @keyup.enter="reload" />
+          <el-select v-model="statusFilter" placeholder="全部状态" clearable style="width: 120px" @change="reload">
+            <el-option label="启用" :value="1" />
+            <el-option label="停用" :value="0" />
+            <el-option label="草稿" :value="2" />
+          </el-select>
           <el-button type="primary" plain @click="reload">查询</el-button>
         </div>
         <div class="actions">
@@ -20,18 +25,59 @@
       </div>
     </template>
 
+    <el-row class="stat-row" :gutter="10">
+      <el-col :span="6">
+        <div class="stat">
+          <b>{{ stats.selfServiceRate == null ? '—' : pct(stats.selfServiceRate) }}</b>
+          <span>自助解决率（点击口径）</span>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="stat">
+          <b>{{ stats.solved }} / {{ stats.unsolved }}</b>
+          <span>已解决 / 未解决去报修</span>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="stat">
+          <b>{{ stats.searchMiss }}</b>
+          <span>搜索无结果次数</span>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="stat stat-keywords">
+          <b>内容缺口</b>
+          <span v-if="!stats.searchMissKeywords?.length">暂无</span>
+          <span v-else class="keyword-list">
+            <el-tag v-for="k in stats.searchMissKeywords.slice(0, 5)" :key="k.keyword" size="small" type="info">
+              {{ k.keyword }} · {{ k.count }}
+            </el-tag>
+          </span>
+        </div>
+      </el-col>
+    </el-row>
+
     <el-table :data="list" border>
-      <el-table-column prop="title" label="标题" min-width="260" show-overflow-tooltip />
+      <el-table-column prop="title" label="标题" min-width="240" show-overflow-tooltip />
       <el-table-column label="状态" width="90">
         <template #default="{ row }">
-          <el-tag :type="row.status ? 'success' : 'info'" size="small">{{ row.status ? '启用' : '停用' }}</el-tag>
+          <el-tag :type="statusTag(row.status)" size="small">{{ statusText(row.status) }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="来源" width="120">
+        <template #default="{ row }">
+          <span v-if="row.sourceOrderId" class="muted">工单 #{{ row.sourceOrderId }}</span>
+          <span v-else class="muted">上传</span>
         </template>
       </el-table-column>
       <el-table-column prop="viewCount" label="浏览量" width="90" />
       <el-table-column prop="updatedAt" label="更新时间" width="165" />
-      <el-table-column label="操作" width="130" fixed="right">
+      <el-table-column label="操作" width="150" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openView(row)">查看</el-button>
+          <el-button link type="primary" @click="openView(row)">
+            {{ row.status === 2 ? '编辑草稿' : '查看' }}
+          </el-button>
+          <el-button v-if="row.status === 2" link type="success" @click="publish(row)">发布</el-button>
           <el-button link type="danger" @click="remove(row)">删除</el-button>
         </template>
       </el-table-column>
@@ -40,21 +86,32 @@
     <el-pagination style="margin-top: 12px; justify-content: flex-end" layout="total, prev, pager, next"
                    :total="total" :page-size="pageSize" v-model:current-page="page" @current-change="load" />
 
-    <el-dialog v-model="dialog" title="查看文章" width="720px" top="6vh">
+    <el-dialog v-model="dialog" :title="form.isDraft ? '编辑知识库草稿' : '查看文章'" width="760px" top="6vh">
       <el-form label-width="64px">
         <el-form-item label="标题">
           <el-input v-model="form.title" maxlength="128" show-word-limit />
         </el-form-item>
-        <el-form-item label="状态">
-          <el-switch v-model="form.status" active-text="启用" inactive-text="停用" />
+        <el-form-item v-if="!form.isDraft" label="状态">
+          <el-switch v-model="form.enabled" active-text="启用" inactive-text="停用" />
+        </el-form-item>
+        <el-form-item v-else label="状态">
+          <el-tag type="warning" size="small">草稿（仅管理端可见，发布后才进向量库）</el-tag>
         </el-form-item>
       </el-form>
-      <div class="md-wrap">
+
+      <el-input v-if="form.isDraft" v-model="form.content" type="textarea" :rows="18"
+                placeholder="编辑 Markdown 正文，确认无个人信息后再发布" />
+      <div v-else class="md-wrap">
         <div class="md-body" v-html="previewHtml"></div>
       </div>
+
       <template #footer>
         <el-button @click="dialog = false">关闭</el-button>
-        <el-button type="primary" @click="submit">保存标题 / 状态</el-button>
+        <el-button v-if="form.isDraft" :loading="saving" @click="saveDraft">保存草稿</el-button>
+        <el-button v-if="form.isDraft" type="success" :loading="publishing" @click="publishCurrent">
+          发布到知识库
+        </el-button>
+        <el-button v-else type="primary" @click="submit">保存标题 / 状态</el-button>
       </template>
     </el-dialog>
   </el-card>
@@ -72,21 +129,46 @@ const total = ref(0)
 const page = ref(1)
 const pageSize = 10
 const keyword = ref('')
+const statusFilter = ref(null)
 const dialog = ref(false)
 const previewHtml = ref('')
-const form = reactive({ id: null, title: '', status: true })
+const form = reactive({ id: null, title: '', enabled: true, content: '', isDraft: false })
+const stats = ref({ solved: 0, unsolved: 0, searchMiss: 0, selfServiceRate: null, searchMissKeywords: [] })
 const reindexing = ref(false)
 const importing = ref(false)
+const saving = ref(false)
+const publishing = ref(false)
+
+function pct(v) {
+  return v == null ? '—' : (v * 100).toFixed(0) + '%'
+}
+
+function statusText(status) {
+  if (status === 1) return '启用'
+  if (status === 2) return '草稿'
+  return '停用'
+}
+
+function statusTag(status) {
+  if (status === 1) return 'success'
+  if (status === 2) return 'warning'
+  return 'info'
+}
 
 async function load() {
   const d = await api.get('/kb/articles/manage', {
     params: {
       keyword: keyword.value.trim() || undefined,
+      status: statusFilter.value == null ? undefined : statusFilter.value,
       page: page.value, pageSize,
     },
   })
   list.value = d.list
   total.value = d.total
+}
+
+async function loadStats() {
+  stats.value = await api.get('/kb/articles/stats', { params: { days: 30 } })
 }
 
 function reload() {
@@ -103,8 +185,10 @@ function renderMarkdown(text) {
 function openView(row) {
   form.id = row.id
   form.title = row.title
-  form.status = !!row.status
-  previewHtml.value = renderMarkdown(row.content)
+  form.enabled = row.status === 1
+  form.content = row.content || ''
+  form.isDraft = row.status === 2
+  previewHtml.value = form.isDraft ? '' : renderMarkdown(row.content)
   dialog.value = true
 }
 
@@ -114,10 +198,61 @@ async function submit() {
     ElMessage.warning('标题不能为空')
     return
   }
-  await api.put(`/kb/articles/${form.id}`, { title: form.title.trim(), status: form.status })
+  await api.put(`/kb/articles/${form.id}`, {
+    title: form.title.trim(),
+    status: form.enabled ? 1 : 0,
+  })
   ElMessage.success('已保存')
   dialog.value = false
-  await load()
+  await Promise.all([load(), loadStats()])
+}
+
+async function saveDraft() {
+  if (!form.content.trim()) {
+    ElMessage.warning('正文不能为空')
+    return
+  }
+  saving.value = true
+  try {
+    await api.put(`/kb/articles/${form.id}/draft`, {
+      title: form.title.trim(),
+      content: form.content,
+    })
+    ElMessage.success('草稿已保存')
+    await load()
+  } finally {
+    saving.value = false
+  }
+}
+
+async function publishCurrent() {
+  publishing.value = true
+  try {
+    const r = await api.post(`/kb/articles/${form.id}/publish`)
+    if (r.warning) {
+      ElMessage.warning(r.warning)
+    } else {
+      ElMessage.success(`已发布，写入 ${r.chunks} 个切片`)
+    }
+    dialog.value = false
+    await Promise.all([load(), loadStats()])
+  } finally {
+    publishing.value = false
+  }
+}
+
+async function publish(row) {
+  try {
+    await ElMessageBox.confirm(`确认发布《${row.title}》？发布后小程序可见并写入向量库。`, '发布草稿',
+      { type: 'warning', confirmButtonText: '发布' })
+  } catch { return }
+  const r = await api.post(`/kb/articles/${row.id}/publish`)
+  if (r.warning) {
+    ElMessage.warning(r.warning)
+  } else {
+    ElMessage.success(`已发布，写入 ${r.chunks} 个切片`)
+  }
+  await Promise.all([load(), loadStats()])
 }
 
 async function remove(row) {
@@ -128,7 +263,7 @@ async function remove(row) {
   )
   await api.delete(`/kb/articles/${row.id}`)
   ElMessage.success('已删除')
-  await load()
+  await Promise.all([load(), loadStats()])
 }
 
 function beforeImport(file) {
@@ -155,7 +290,7 @@ async function importMd(options) {
     } else {
       ElMessage.success(`已导入《${r.title}》：${r.chunks} 个切片已写入向量库`)
     }
-    await load()
+    await Promise.all([load(), loadStats()])
     options.onSuccess && options.onSuccess(r)
   } catch (e) {
     options.onError && options.onError(e)
@@ -175,7 +310,10 @@ async function reindex() {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  loadStats()
+})
 </script>
 
 <style scoped>
@@ -184,6 +322,18 @@ onMounted(load)
 .actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .inline-hint { color: #909399; font-size: 12px; }
 .inline-upload { display: inline-flex; }
+.muted { color: var(--muted); font-size: 12px; }
+
+.stat-row { margin-bottom: 12px; }
+.stat {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px;
+  background: #fbfcfc; min-height: 62px;
+}
+.stat b { font-size: 18px; color: var(--teal-deep); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 11.5px; color: var(--muted); }
+.stat-keywords { overflow: hidden; }
+.keyword-list { display: flex; gap: 4px; flex-wrap: wrap; }
 
 .md-wrap {
   max-height: 56vh; overflow: auto; padding: 4px 18px 8px;

@@ -18,12 +18,17 @@ import com.campus.repair.module.order.dto.OrderCreatedVO;
 import com.campus.repair.module.order.dto.PartReq;
 import com.campus.repair.module.order.dto.ReasonReq;
 import com.campus.repair.module.order.dto.ResubmitReq;
+import com.campus.repair.module.order.dto.SimilarOrderVO;
 import com.campus.repair.module.order.dto.SubmitReq;
 import com.campus.repair.module.order.statemachine.OrderStatus;
 import com.campus.repair.module.worker.dto.EligibleWorkerVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,6 +37,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Tag(name = "07 工单业务")
@@ -40,9 +49,11 @@ import java.util.List;
 public class OrderController {
 
     private final OrderService orderService;
+    private final OrderExportService exportService;
 
-    public OrderController(OrderService orderService) {
+    public OrderController(OrderService orderService, OrderExportService exportService) {
         this.orderService = orderService;
+        this.exportService = exportService;
     }
 
     // ---------------- 报修人 ----------------
@@ -173,6 +184,28 @@ public class OrderController {
 
     // ---------------- 管理员 ----------------
 
+    @Operation(summary = "导出工单明细 Excel（R3，最多 5000 行）")
+    @RequireRole({Role.ADMIN, Role.SYS_ADMIN})
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> export(@RequestParam(required = false) OrderStatus status,
+                                         @RequestParam(required = false) Urgency urgency,
+                                         @RequestParam(required = false) String faultType,
+                                         @RequestParam(required = false) String campus,
+                                         @RequestParam(required = false) String keyword,
+                                         @RequestParam(required = false)
+                                         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                                         @RequestParam(required = false)
+                                         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        byte[] bytes = exportService.export(status, urgency, faultType, campus, keyword, from, to);
+        String name = "工单导出_" + LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE) + ".xlsx";
+        String encoded = URLEncoder.encode(name, StandardCharsets.UTF_8).replace("+", "%20");
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encoded)
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(bytes);
+    }
+
     @Operation(summary = "管理工作台工单统计")
     @RequireRole({Role.ADMIN, Role.SYS_ADMIN})
     @GetMapping("/statistics")
@@ -251,6 +284,14 @@ public class OrderController {
     public Result<Void> assign(@PathVariable Long id, @Valid @RequestBody AssignReq req) {
         orderService.assign(id, req);
         return Result.ok();
+    }
+
+    @Operation(summary = "同位置历史报修（R3，同校区+同类型+位置相似）")
+    @RequireRole({Role.ADMIN, Role.SYS_ADMIN})
+    @GetMapping("/{id}/similar-history")
+    public Result<List<SimilarOrderVO>> similarHistory(@PathVariable Long id,
+                                                       @RequestParam(defaultValue = "90") int days) {
+        return Result.ok(orderService.similarHistory(id, days));
     }
 
     @Operation(summary = "派单调度信息（子状态/来源/次数/剩余接单时间）")

@@ -3,6 +3,10 @@
     <view class="section-row category-head">
       <view class="section-heading">快捷报修</view>
       <view class="section-note">选中类别，自动带入报修表单</view>
+      <view class="msg-entry" bindtap="goMessages">
+        <text>消息</text>
+        <view class="msg-badge" wx:if="{{unread > 0}}">{{unread > 99 ? '99+' : unread}}</view>
+      </view>
     </view>
     <view class="category-grid" wx:if="{{skills.length}}">
       <view class="category-tile tone-{{item.tone}}" wx:for="{{skills}}" wx:key="id" data-index="{{index}}" bindtap="onSkill">

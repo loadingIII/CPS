@@ -13,4 +13,16 @@
   margin-top: 24rpx; padding: 20rpx 24rpx; border-radius: 14rpx;
   background: #fbf6e8; color: #7a6535; font-size: 24rpx; line-height: 1.6;
 }
+.actions { display: flex; gap: 16rpx; margin-top: 24rpx; }
+.btn {
+  flex: 1; margin: 0; padding: 0; height: 84rpx; line-height: 84rpx;
+  border-radius: 16rpx; font-size: 26rpx; font-weight: 600;
+}
+.btn::after { border: none; }
+.btn.ghost { background: #ffffff; color: #0f7b7e; border: 2rpx solid #bcdcdc; }
+.btn.primary { background: #0f7b7e; color: #ffffff; }
+.feedback-done {
+  margin-top: 24rpx; padding: 22rpx 24rpx; border-radius: 14rpx;
+  background: #e8f4f1; color: #0a5f62; font-size: 24rpx; text-align: center;
+}
 .bottom-space { height: 40rpx; }

@@ -65,5 +65,13 @@ public class OrderDetailVO {
     /** 主单工单号，前端直接展示，避免让用户看数字 id */
     private String mainOrderNo;
 
+    /** R3：来源知识库文章（从「未解决去报修」进入时） */
+    private Long sourceKbId;
+    private String sourceKbTitle;
+    /** R3：AI 建议与是否采纳（仅管理端详情展示） */
+    private String aiSuggestedType;
+    private String aiSuggestedUrgency;
+    private Boolean aiSuggestionUsed;
+
     private Evaluation evaluation;
 }

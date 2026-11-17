@@ -14,6 +14,7 @@
           <el-input v-model="query.keyword" placeholder="工单号/位置/报修人" clearable style="width: 190px"
                     @keyup.enter="search" />
           <el-button type="primary" plain @click="search">查询</el-button>
+          <el-button plain :loading="exporting" @click="exportExcel">导出 Excel</el-button>
         </div>
       </div>
     </template>
@@ -62,6 +63,12 @@
 
     <el-drawer v-model="drawer" title="工单详情" :size="drawerSize">
       <template v-if="detail">
+        <div v-if="detail.status === 'COMPLETED' || detail.status === 'EVALUATED'"
+             class="drawer-actions">
+          <el-button type="success" plain :loading="sedimenting" @click="sedimentKb">
+            沉淀为知识库草稿
+          </el-button>
+        </div>
         <el-descriptions :column="1" border size="small" title="基本信息">
           <el-descriptions-item label="工单号">
             <span :class="{ urgent: detail.urgency === 'URGENT' }">{{ detail.orderNo }}</span>
@@ -76,6 +83,15 @@
           <el-descriptions-item label="位置">{{ detail.locationText }}</el-descriptions-item>
           <el-descriptions-item label="类型 / 紧急度">
             {{ detail.faultType || '-' }} / {{ detail.urgency === 'URGENT' ? '紧急' : '普通' }}
+          </el-descriptions-item>
+          <el-descriptions-item v-if="detail.sourceKbTitle" label="来源知识库">
+            {{ detail.sourceKbTitle }}
+          </el-descriptions-item>
+          <el-descriptions-item v-if="detail.aiSuggestedType" label="AI 建议">
+            {{ detail.aiSuggestedType }} / {{ detail.aiSuggestedUrgency === 'URGENT' ? '紧急' : '普通' }}
+            <el-tag size="small" :type="detail.aiSuggestionUsed ? 'success' : 'info'" style="margin-left: 6px">
+              {{ detail.aiSuggestionUsed ? '已采纳' : '未采纳' }}
+            </el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="提交时间">{{ detail.submittedAt || '-' }}</el-descriptions-item>
         </el-descriptions>
@@ -145,6 +161,17 @@
             <span style="margin-left: 6px">{{ detail.evaluation.content }}</span>
           </el-descriptions-item>
         </el-descriptions>
+
+        <h4 style="margin: 16px 0 8px">同位置历史报修（近 90 天）</h4>
+        <el-table :data="similar" border size="small" max-height="220">
+          <el-table-column prop="orderNo" label="工单号" width="160" />
+          <el-table-column prop="locationText" label="位置" min-width="150" show-overflow-tooltip />
+          <el-table-column prop="status" label="状态" width="80" />
+          <el-table-column prop="workerName" label="维修工" width="80" />
+          <el-table-column prop="completedAt" label="完工时间" width="150" />
+          <el-table-column prop="rating" label="星级" width="70" />
+        </el-table>
+        <p v-if="!similar.length" class="muted" style="margin: 6px 0 0">暂无同位置同类型的历史工单</p>
 
         <h4 style="margin: 16px 0 8px">状态时间线</h4>
         <OrderTimeline :logs="logs" />
@@ -228,6 +255,9 @@ const drawer = ref(false)
 const drawerSize = ref(window.innerWidth < 768 ? '94%' : '560px')
 const detail = ref(null)
 const logs = ref([])
+const similar = ref([])
+const exporting = ref(false)
+const sedimenting = ref(false)
 
 const mergeDialog = ref(false)
 const mergeTarget = ref(null)
@@ -308,7 +338,53 @@ function search() {
 async function showDetail(row) {
   detail.value = await api.get(`/orders/${row.id}`)
   logs.value = await api.get(`/orders/${row.id}/logs`)
+  similar.value = await api.get(`/orders/${row.id}/similar-history`, { params: { days: 90 } })
+    .catch(() => [])
   drawer.value = true
+}
+
+/** 导出当前筛选条件下的工单明细；用 fetch 直接拿 blob，避免 axios 拦截器把二进制当 Result */
+async function exportExcel() {
+  exporting.value = true
+  try {
+    const params = new URLSearchParams()
+    if (status.value) params.set('status', status.value)
+    if (query.value.urgency) params.set('urgency', query.value.urgency)
+    if (query.value.faultType) params.set('faultType', query.value.faultType)
+    if (query.value.keyword) params.set('keyword', query.value.keyword)
+    const res = await fetch('/api/orders/export?' + params.toString(), {
+      headers: { Authorization: 'Bearer ' + localStorage.getItem('token') },
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => null)
+      throw new Error(body?.message || '导出失败')
+    }
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `工单导出_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.xlsx`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    ElMessage.error(e.message || '导出失败')
+  } finally {
+    exporting.value = false
+  }
+}
+
+async function sedimentKb() {
+  sedimenting.value = true
+  try {
+    const r = await api.post(`/kb/articles/from-order/${detail.value.id}`)
+    if (r.status === 1) {
+      ElMessage.info(`该工单已沉淀为《${r.title}》，当前已发布`)
+    } else {
+      ElMessage.success(`已生成知识库草稿《${r.title}》，请到「维修知识库」编辑后发布`)
+    }
+  } finally {
+    sedimenting.value = false
+  }
 }
 
 onMounted(async () => {
@@ -319,6 +395,8 @@ onMounted(async () => {
   if (orderId) {
     detail.value = await api.get(`/orders/${orderId}`)
     logs.value = await api.get(`/orders/${orderId}/logs`)
+    similar.value = await api.get(`/orders/${orderId}/similar-history`, { params: { days: 90 } })
+      .catch(() => [])
     drawer.value = true
   }
 })
@@ -330,5 +408,6 @@ onMounted(async () => {
 .urgent { color: var(--el-color-danger); font-weight: 700; }
 .muted { color: var(--muted); font-size: 13px; }
 .desc-gap { margin-top: 14px; }
+.drawer-actions { display: flex; justify-content: flex-end; margin-bottom: 10px; }
 .merge-search { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 </style>

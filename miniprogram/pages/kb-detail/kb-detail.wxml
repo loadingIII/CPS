@@ -9,6 +9,14 @@
     <text wx:else class="content">{{detail.content}}</text>
   </view>
 
-  <view class="tip">按步骤操作仍无法解决？返回首页提交报修，由师傅上门处理。</view>
+  <view class="feedback-done" wx:if="{{feedback === 'solved'}}">
+    已记录：这条教程解决了你的问题
+  </view>
+  <view class="actions" wx:else>
+    <button class="btn ghost" loading="{{sending}}" bindtap="markSolved">问题已解决</button>
+    <button class="btn primary" loading="{{sending}}" bindtap="goReport">仍未解决，去报修</button>
+  </view>
+
+  <view class="tip">按步骤操作仍无法解决？点「去报修」提交，类型会自动带入，由师傅上门处理。</view>
   <view class="bottom-space"></view>
 </view>

@@ -47,13 +47,50 @@ public class KbController {
         return Result.ok(kbArticleService.detail(id, admin));
     }
 
-    @Operation(summary = "管理端知识库列表（含停用）")
+    @Operation(summary = "管理端知识库列表（含停用与草稿）")
     @RequireRole({Role.ADMIN, Role.SYS_ADMIN})
     @GetMapping("/manage")
     public Result<PageVO<KbArticle>> manage(@RequestParam(required = false) String keyword,
+                                            @RequestParam(required = false) Integer status,
                                             @RequestParam(defaultValue = "1") long page,
                                             @RequestParam(defaultValue = "10") long pageSize) {
-        return Result.ok(kbArticleService.pageAdmin(keyword, page, pageSize));
+        return Result.ok(kbArticleService.pageAdmin(keyword, status, page, pageSize));
+    }
+
+    @Operation(summary = "知识库自助统计（R3：自助解决率/内容缺口）")
+    @RequireRole({Role.ADMIN, Role.SYS_ADMIN})
+    @GetMapping("/stats")
+    public Result<KbStatsVO> stats(@RequestParam(defaultValue = "30") int days) {
+        return Result.ok(kbArticleService.stats(days));
+    }
+
+    @Operation(summary = "教程页自助事件（SOLVED / UNSOLVED）")
+    @PostMapping("/{id}/events")
+    public Result<Void> event(@PathVariable Long id, @Valid @RequestBody KbEventReq req) {
+        kbArticleService.recordEvent(id, req.eventType());
+        return Result.ok();
+    }
+
+    @Operation(summary = "完工工单沉淀为知识库草稿")
+    @RequireRole({Role.ADMIN, Role.SYS_ADMIN})
+    @PostMapping("/from-order/{orderId}")
+    public Result<KbArticle> fromOrder(@PathVariable Long orderId) {
+        return Result.ok(kbArticleService.fromOrder(orderId));
+    }
+
+    @Operation(summary = "编辑草稿正文（仅 status=2）")
+    @RequireRole({Role.ADMIN, Role.SYS_ADMIN})
+    @PutMapping("/{id}/draft")
+    public Result<Void> updateDraft(@PathVariable Long id, @Valid @RequestBody KbDraftReq req) {
+        kbArticleService.updateDraft(id, req);
+        return Result.ok();
+    }
+
+    @Operation(summary = "发布草稿（切片写入向量库）")
+    @RequireRole({Role.ADMIN, Role.SYS_ADMIN})
+    @PostMapping("/{id}/publish")
+    public Result<KbImportResult> publish(@PathVariable Long id) {
+        return Result.ok(kbArticleService.publish(id));
     }
 
     @Operation(summary = "上传 Markdown 并直接入库（切分 + 向量化）")

@@ -106,6 +106,31 @@
                   placeholder-class="ph" maxlength="1000" value="{{desc}}" bindinput="onDesc" />
       </view>
 
+      <view class="item ai-item">
+        <view class="field-label">
+          AI 帮我判断
+          <text class="optional">根据描述建议类型和紧急度，不自动提交</text>
+        </view>
+        <button class="ai-trigger" size="mini" loading="{{aiLoading}}" bindtap="askAi">
+          帮我判断
+        </button>
+        <view class="ai-card" wx:if="{{aiSuggestion}}">
+          <view class="ai-line">
+            <text class="ai-label">建议</text>
+            <text class="ai-value">
+              {{aiSuggestion.faultType || '暂不确定'}} · {{aiSuggestion.urgency === 'URGENT' ? '紧急' : '普通'}}
+            </text>
+            <text class="ai-conf" wx:if="{{aiConfidence}}">置信度 {{aiConfidence}}</text>
+          </view>
+          <view class="ai-reason">{{aiSuggestion.reason}}</view>
+          <view class="ai-actions">
+            <button class="ai-adopt" size="mini" bindtap="adoptAi">采纳建议</button>
+            <text class="ai-degraded" wx:if="{{aiSuggestion.degraded}}">关键词兜底</text>
+            <text class="ai-used" wx:if="{{aiUsed}}">已采纳</text>
+          </view>
+        </view>
+      </view>
+
       <view class="item">
         <view class="field-label">现场图片 <text class="optional">最多 3 张，建议上传</text></view>
         <view class="imgs">

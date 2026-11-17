@@ -153,4 +153,12 @@ public class AgentAiConfig {
                 .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
                 .build();
     }
+
+    /**
+     * 报修建议专用：不带会话记忆，避免分诊结果受历史聊天影响。
+     */
+    @Bean("suggestionChatClient")
+    public ChatClient suggestionChatClient(OpenAiChatModel chatModel) {
+        return ChatClient.builder(chatModel).build();
+    }
 }

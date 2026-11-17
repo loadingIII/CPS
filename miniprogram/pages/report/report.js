@@ -28,6 +28,11 @@ Page({
     desc: '',
     images: [],
     submitting: false,
+    aiSuggestion: null,
+    aiLoading: false,
+    aiUsed: false,
+    aiConfidence: '',
+    sourceKbId: null,
     orderTabs: ORDER_TABS,
     STATUS_LABEL,
     STATUS_TAG,
@@ -49,9 +54,14 @@ Page({
     const homeFaultType = app.globalData.homeFaultType || ''
     if (homeFaultType) app.globalData.homeFaultType = ''
     if (homeFaultType) requestedView = 'form'
+    // 从知识库「未解决去报修」进入：记录来源文章，提交时带给后端
+    let sourceKbId = app.globalData.reportSourceKbId || ''
+    if (sourceKbId) app.globalData.reportSourceKbId = ''
+    if (sourceKbId) requestedView = 'form'
     this.setData({
       serviceView: requestedView,
       faultType: homeFaultType || this.data.faultType,
+      sourceKbId: sourceKbId || this.data.sourceKbId || null,
     })
     this.loadBase()
     if (requestedView === 'orders') this.reloadOrders()
@@ -203,7 +213,45 @@ Page({
   },
 
   onDesc(e) {
-    this.setData({ desc: e.detail.value })
+    const desc = e.detail.value
+    // 描述改了，旧建议就不再可信，清掉避免误采纳
+    const patch = { desc }
+    if (this.data.aiSuggestion) {
+      patch.aiSuggestion = null
+      patch.aiUsed = false
+      patch.aiConfidence = ''
+    }
+    this.setData(patch)
+  },
+
+  /** R3：让 AI 根据描述建议故障类型与紧急度（只建议，不自动填） */
+  async askAi() {
+    const text = this.data.desc.trim()
+    if (text.length < 5) {
+      wx.showToast({ title: '先写 5 个字以上的故障描述', icon: 'none' })
+      return
+    }
+    this.setData({ aiLoading: true })
+    try {
+      const r = await post('/ai/report-suggestion', { description: text })
+      this.setData({
+        aiSuggestion: r,
+        aiConfidence: r.confidence == null ? '' : Math.round(r.confidence * 100) + '%',
+        aiUsed: false,
+      })
+    } catch (e) { /* 拦截器已提示 */ }
+    finally { this.setData({ aiLoading: false }) }
+  },
+
+  /** 采纳建议：写入表单，用户仍可手动改 */
+  adoptAi() {
+    const s = this.data.aiSuggestion
+    if (!s) return
+    const patch = { aiUsed: true }
+    if (s.faultType) patch.faultType = s.faultType
+    if (s.urgency === 'URGENT' || s.urgency === 'NORMAL') patch.urgency = s.urgency
+    this.setData(patch)
+    wx.showToast({ title: '已填入表单，可继续修改', icon: 'none' })
   },
 
   chooseImage() {
@@ -287,6 +335,10 @@ Page({
         mapLng: this.data.mapPick ? this.data.mapPick.lng : null,
         mapLat: this.data.mapPick ? this.data.mapPick.lat : null,
         clientToken: 'mp-' + Date.now() + '-' + Math.floor(Math.random() * 100000),
+        sourceKbId: this.data.sourceKbId || null,
+        aiSuggestedType: this.data.aiSuggestion ? this.data.aiSuggestion.faultType : null,
+        aiSuggestedUrgency: this.data.aiSuggestion ? this.data.aiSuggestion.urgency : null,
+        aiSuggestionUsed: this.data.aiUsed,
       })
       wx.showModal({
         title: '报修成功',
@@ -296,6 +348,7 @@ Page({
         success: () => {
           this.setData({
             faultType: '', desc: '', images: [], mapPick: null, locationDetail: '',
+            aiSuggestion: null, aiUsed: false, aiConfidence: '', sourceKbId: null,
             serviceView: 'orders', orderStatus: '',
           }, () => this.reloadOrders())
         },

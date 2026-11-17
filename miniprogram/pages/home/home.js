@@ -135,6 +135,7 @@ Page({
       this.startCountdown()
     } else {
       this.loadReporterHome()
+      this.loadUnread()
     }
   },
 
@@ -166,7 +167,7 @@ Page({
     this.setData({ loadError: false })
     const task = this.data.role === 'REPAIRER'
       ? Promise.all([this.loadRepairerHome(), this.loadUnread()])
-      : this.loadReporterHome()
+      : Promise.all([this.loadReporterHome(), this.loadUnread()])
     Promise.resolve(task).finally(() => wx.stopPullDownRefresh())
   },
 

@@ -56,7 +56,7 @@ public class KeywordAgentFallback {
         }
 
         List<KbArticle> articles = kbArticleMapper.selectList(new LambdaQueryWrapper<KbArticle>()
-                .eq(KbArticle::getStatus, true)
+                .eq(KbArticle::getStatus, 1)
                 .orderByDesc(KbArticle::getUpdatedAt));
         if (articles.isEmpty()) {
             return fallback(null);
@@ -170,7 +170,7 @@ public class KeywordAgentFallback {
     /** 供健康检查与统计使用：已启用文章数 */
     public long publishedCount() {
         Long count = kbArticleMapper.selectCount(new LambdaQueryWrapper<KbArticle>()
-                .eq(KbArticle::getStatus, true));
+                .eq(KbArticle::getStatus, 1));
         return count == null ? 0 : count;
     }
 

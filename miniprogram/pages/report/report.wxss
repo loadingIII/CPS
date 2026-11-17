@@ -192,3 +192,30 @@
   box-shadow: 0 4rpx 10rpx rgba(43, 58, 60, .06);
 }
 .back-btn-hover { background: #eef6f6; transform: scale(.96); }
+
+/* ===== R3：AI 报修建议 ===== */
+.ai-item { position: relative; }
+.ai-trigger {
+  margin: 4rpx 0 0; padding: 0 26rpx; height: 62rpx; line-height: 62rpx;
+  border: 2rpx solid #bcdcdc; border-radius: 999rpx;
+  background: #f4fbfa; color: #0f7b7e; font-size: 23rpx; font-weight: 600;
+}
+.ai-trigger::after { border: none; }
+.ai-card {
+  margin-top: 16rpx; padding: 20rpx 22rpx;
+  border: 2rpx solid #cfe6e4; border-radius: 16rpx;
+  background: linear-gradient(180deg, #f7fcfb, #ffffff);
+}
+.ai-line { display: flex; align-items: baseline; gap: 12rpx; flex-wrap: wrap; }
+.ai-label { color: #86909c; font-size: 21rpx; }
+.ai-value { color: #0a5f62; font-size: 26rpx; font-weight: 700; }
+.ai-conf { margin-left: auto; color: #9aa6a8; font-size: 20rpx; }
+.ai-reason { margin-top: 8rpx; color: #5c6b6d; font-size: 22rpx; line-height: 1.55; }
+.ai-actions { display: flex; align-items: center; gap: 14rpx; margin-top: 12rpx; }
+.ai-adopt {
+  margin: 0; padding: 0 24rpx; height: 56rpx; line-height: 56rpx;
+  border-radius: 999rpx; background: #0f7b7e; color: #ffffff; font-size: 22rpx; font-weight: 600;
+}
+.ai-adopt::after { border: none; }
+.ai-degraded, .ai-used { color: #9aa6a8; font-size: 20rpx; }
+.ai-used { color: #0f7b7e; font-weight: 600; }

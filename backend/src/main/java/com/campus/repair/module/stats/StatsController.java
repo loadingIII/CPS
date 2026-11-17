@@ -3,11 +3,16 @@ package com.campus.repair.module.stats;
 import com.campus.repair.common.Result;
 import com.campus.repair.common.RequireRole;
 import com.campus.repair.common.Role;
+import com.campus.repair.module.stats.dto.AiSuggestionStatVO;
+import com.campus.repair.module.stats.dto.AnomalyOrderVO;
+import com.campus.repair.module.stats.dto.CampusStatVO;
 import com.campus.repair.module.stats.dto.OntimePointVO;
 import com.campus.repair.module.stats.dto.WorkerPerfVO;
+import com.campus.repair.module.stats.dto.WorkerProfileVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -36,5 +41,30 @@ public class StatsController {
     @GetMapping("/workers")
     public Result<List<WorkerPerfVO>> workers(@RequestParam(defaultValue = "30") int days) {
         return Result.ok(statsService.workerPerformance(days));
+    }
+
+    @Operation(summary = "校区维度统计（R3）")
+    @GetMapping("/campus")
+    public Result<List<CampusStatVO>> campus(@RequestParam(defaultValue = "30") int days) {
+        return Result.ok(statsService.campus(days));
+    }
+
+    @Operation(summary = "异常工单看板（R3）")
+    @GetMapping("/anomalies")
+    public Result<List<AnomalyOrderVO>> anomalies(@RequestParam(defaultValue = "30") int days) {
+        return Result.ok(statsService.anomalies(days));
+    }
+
+    @Operation(summary = "维修工画像（R3）")
+    @GetMapping("/workers/{id}")
+    public Result<WorkerProfileVO> workerProfile(@PathVariable Long id,
+                                                 @RequestParam(defaultValue = "90") int days) {
+        return Result.ok(statsService.workerProfile(id, days));
+    }
+
+    @Operation(summary = "AI 建议采纳率（R3）")
+    @GetMapping("/ai-suggestions")
+    public Result<AiSuggestionStatVO> aiSuggestions(@RequestParam(defaultValue = "30") int days) {
+        return Result.ok(statsService.aiSuggestions(days));
     }
 }
