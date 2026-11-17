@@ -3,7 +3,7 @@
  * 覆盖：AI 报修建议、知识库自助事件与统计、校区/异常/画像/AI 采纳率、同位置历史、
  *      Excel 导出、案例沉淀草稿、权限。
  *
- * 运行前提：后端已启动、已执行 design/migration_v3.0_r3.sql。
+ * 运行前提：后端已启动、已执行 db/migration_v3.0_r3.sql。
  * 运行方式：node r3-flow.mjs
  *          BASE=http://localhost:8080/api node r3-flow.mjs
  *

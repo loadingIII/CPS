@@ -3,7 +3,7 @@
  * 覆盖：知识库、按时率/绩效、通知、催单限频、配件权限、批量审核、合并校验、重复报修提示、
  *      重报修改关键字段、完工带配件、差评回访。
  *
- * 运行前提：后端已启动、种子数据已初始化、已执行 design/migration_v2.3_r2.sql。
+ * 运行前提：后端已启动、种子数据已初始化、已执行 db/migration_v2.3_r2.sql。
  * 运行方式：node r2-flow.mjs        （默认 http://localhost:8080/api）
  *          BASE=http://localhost:18080/api node r2-flow.mjs
  *

@@ -12,7 +12,7 @@ import java.util.Map;
  *
  * <p>校区清单（广东工业大学六校区）：大学城、龙洞、东风路、番禺、沙河、揭阳。
  * 增删校区请同步更新 {@code worker_scope.campus} / {@code repair_order.campus}
- * 中的历史 code，参见 design/migration_v2.2_campus.sql。</p>
+ * 中的历史 code，参见 CPS/db/migration_v2.2_campus.sql。</p>
  */
 public enum Campus {
 

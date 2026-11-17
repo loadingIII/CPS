@@ -10,6 +10,7 @@ CPS/
 ├── backend/        后端：Java 17 + Spring Boot 3.4 + Spring AI + MyBatis-Plus + MySQL 8 + JWT
 ├── admin-web/      管理端：Vue 3 + Vite + Element Plus + Pinia
 ├── miniprogram/    小程序：微信原生（师生端 + 维修工端，按角色渲染）
+├── db/             数据库脚本：init.sql（一键建库+演示数据）/ schema.sql / migration_*.sql
 ├── scripts/        联调脚本（Node）与知识库入库脚本 ingest_kb.py
 ├── chroma/         本地 ChromaDB 实例（start.ps1 + data/）
 └── docs/           测试记录、演示脚本
@@ -18,22 +19,31 @@ CPS/
 ## 启动步骤
 
 ### 0. 数据库
-MySQL 8 本机 root/123321；建库脚本 `design/schema.sql`（v3.0，含派单调度字段、AI 建议字段、知识库事件表），
-后端首次启动会自动检测空库并写入种子数据（7 类技能、15 个账号、12 张演示工单）。
+MySQL 8 本机 root/123321。数据库脚本都在 `db/`，**推荐直接用最终一键脚本**：
 
-已有旧库升级：执行 `design/migration_v2.1_dispatch.sql`（新增 `dispatch_source / grab_open_at /
+```bash
+mysql --default-character-set=utf8mb4 -uroot -p < db/init.sql
+```
+
+`db/init.sql` = 建库 + 15 张表 + 演示数据（15 个账号、7 类技能、12 张工单），会 `DROP` 重建
+`campus_repair`，执行前请备份。导入后直接启动后端即可。
+
+也可以只建空库 `db/schema.sql`（v3.0，含派单调度字段、AI 建议字段、知识库事件表），
+后端首次启动会自动检测空库并写入种子数据。
+
+已有旧库升级：执行 `db/migration_v2.1_dispatch.sql`（新增 `dispatch_source / grab_open_at /
 assign_expires_at / due_at / dispatch_count / reject_count / finish_summary` 与 `worker_skill.level`，
 并回填存量数据），无需重建。
 
-R2 升级：再执行 `design/migration_v2.3_r2.sql`（`notification.biz_id`、`revisit_task` 表、
+R2 升级：再执行 `db/migration_v2.3_r2.sql`（`notification.biz_id`、`revisit_task` 表、
 `idx_worker_completed` 索引）。知识库不再内置示例文章，改为管理端上传 Markdown 导入。
 
-个人资料升级：执行 `design/migration_v2.4_profile.sql`（`sys_user.campus`，报修人所属校区）。
+个人资料升级：执行 `db/migration_v2.4_profile.sql`（`sys_user.campus`，报修人所属校区）。
 
-抢单移除（v2.6）：执行 `design/migration_v2.6_remove_grab.sql`（删除 `grab_open_at` 与旧 `idx_pool`，
+抢单移除（v2.6）：执行 `db/migration_v2.6_remove_grab.sql`（删除 `grab_open_at` 与旧 `idx_pool`，
 重建 `idx_pool(status, worker_id)`）。**执行前先停后端**，否则旧进程写 `grab_open_at` 会报 Unknown column。
 
-R3 升级：执行 `design/migration_v3.0_r3.sql`（`repair_order` 的 `source_kb_id / ai_suggested_*`、
+R3 升级：执行 `db/migration_v3.0_r3.sql`（`repair_order` 的 `source_kb_id / ai_suggested_*`、
 `kb_article` 的草稿状态与 `source_order_id`、`kb_event` 表）。脚本通过 information_schema 判断，
 可重复执行；执行后重启后端。
 
